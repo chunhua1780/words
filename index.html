@@ -113,6 +113,18 @@ label.opt:has(input:checked){background:var(--ink-soft);color:var(--ink);font-we
 .mode .enl{display:block;color:var(--ink)}
 .mode span.d{font-size:13px;color:var(--muted)}
 .mode.game{background:var(--sun-soft)}
+.kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.kid{border:2px solid var(--soft);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--paper)}
+.kid.cur{border-color:var(--ink)}
+.kid .btn{padding:8px 14px;min-height:44px}
+.kid .row{gap:8px;flex-wrap:nowrap}
+nav.tabs[hidden]+main{margin-top:16px}
+.kid .who{display:flex;gap:12px;align-items:center;min-width:0}
+.kid .nm{font:600 22px/1.2 var(--round);overflow-wrap:anywhere}
+.ava{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;font:600 26px var(--round);flex:none}
+.colors{display:flex;gap:6px}
+.colors button{width:30px;height:30px;border-radius:50%;border:3px solid transparent}
+.colors button.on{border-color:var(--fg)}
 
 /* ===== 学习界面 Session ===== */
 #session{position:fixed;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
@@ -196,6 +208,7 @@ label.opt:has(input:checked){background:var(--ink-soft);color:var(--ink);font-we
       <div>单词听写本<small>Word Speller</small></div>
     </div>
     <span class="spacer"></span>
+    <button class="chip" id="kid" style="border:0;font-weight:700;color:var(--ink)"></button>
     <span class="chip" id="streak"></span>
     <span class="chip" id="total"></span>
     <button class="chip" id="accent" style="border:0" title="发音 Accent"></button>
@@ -251,11 +264,27 @@ const INTERVAL=[0,1,2,4,7,15,30,60];
 const MASTER=7;
 
 /* ---------------- 存储 Storage ---------------- */
-const KEY="gc-words-v1";
-let state={words:{},log:{},accent:"us",best:0};
-try{const raw=localStorage.getItem(KEY); if(raw){const s=JSON.parse(raw); if(s&&s.words) state=Object.assign(state,s);}}catch(e){}
+/* 每个孩子一本单词本 One word book per child */
+const KEY="gc-words-v2", OLD_KEY="gc-words-v1";
+let root={v:2,accent:"us",current:null,profiles:{}}, migrated=false;
+try{
+  const raw=localStorage.getItem(KEY);
+  if(raw){const r=JSON.parse(raw); if(r&&r.profiles)root=Object.assign(root,r);}
+  else{ // 旧版数据搬到第一个孩子名下 Move old single-list data into a first profile
+    const o=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
+    if(o&&o.words&&Object.keys(o.words).length){
+      const id=uid(); root.accent=o.accent||"us";
+      root.profiles[id]={id,name:"我的孩子",color:0,words:o.words,log:o.log||{},best:o.best||0};
+      root.current=id; migrated=true;
+    }
+  }
+}catch(e){}
+const blankBook=()=>({words:{},log:{},best:0});
+let state=root.profiles[root.current]||null;
+if(!state){root.current=null;state=blankBook();}
 state.log=state.log||{};
-function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(root));}catch(e){}}
+function useKid(id){root.current=id;state=root.profiles[id];state.log=state.log||{};save();}
 const words=()=>Object.values(state.words);
 function findWord(w){w=norm(w);return words().find(x=>norm(x.w)===w);}
 
@@ -270,7 +299,7 @@ document.addEventListener("pointerdown",()=>{ // iPad 需要先点一下才能�
 let voice=null;
 function pickVoice(){
   if(!("speechSynthesis" in window))return;
-  const want=state.accent==="uk"?/en[-_]GB/i:/en[-_]US/i;
+  const want=root.accent==="uk"?/en[-_]GB/i:/en[-_]US/i;
   const vs=speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
   const pref=["Samantha","Google US English","Microsoft Aria","Microsoft Jenny","Daniel","Karen","Alex"];
   voice=vs.find(v=>want.test(v.lang)&&pref.some(n=>v.name.includes(n)))||vs.find(v=>want.test(v.lang))||vs[0]||null;
@@ -294,11 +323,11 @@ function tts(text,{rate=.85,lang="en-US",onend}={}){
 /* 联网发音 Online audio */
 function onlineUrl(text,zh){
   if(zh)return "https://dict.youdao.com/dictvoice?le=zh&audio="+encodeURIComponent(text);
-  return "https://dict.youdao.com/dictvoice?type="+(state.accent==="uk"?1:2)+"&audio="+encodeURIComponent(text);
+  return "https://dict.youdao.com/dictvoice?type="+(root.accent==="uk"?1:2)+"&audio="+encodeURIComponent(text);
 }
 function say(text,{slow=false,onend,zh=false}={}){
   if(!text)return;
-  if(!navigator.onLine){tts(text,{rate:slow?.45:.85,lang:zh?"zh-CN":(state.accent==="uk"?"en-GB":"en-US"),onend});return;}
+  if(!navigator.onLine){tts(text,{rate:slow?.45:.85,lang:zh?"zh-CN":(root.accent==="uk"?"en-GB":"en-US"),onend});return;}
   if("speechSynthesis" in window)speechSynthesis.cancel();
   const id=++speakId;
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
@@ -306,7 +335,7 @@ function say(text,{slow=false,onend,zh=false}={}){
     const w=!zh&&findWord(text); // 再试词典发音，最后用设备语音
     if(w&&w.audio&&player.src!==w.audio){fell=false;player.src=w.audio;player.play().catch(()=>{fell=false;fallback2();});return;}
     fallback2();};
-  const fallback2=()=>{if(id!==speakId)return;fell=true;tts(text,{rate:slow?.45:.85,lang:zh?"zh-CN":(state.accent==="uk"?"en-GB":"en-US"),onend});};
+  const fallback2=()=>{if(id!==speakId)return;fell=true;tts(text,{rate:slow?.45:.85,lang:zh?"zh-CN":(root.accent==="uk"?"en-GB":"en-US"),onend});};
   player.onended=fire; player.onerror=()=>fallback();
   player.src=onlineUrl(text,zh);
   try{player.playbackRate=slow?.6:1; player.defaultPlaybackRate=slow?.6:1; player.preservesPitch=true;}catch(e){}
@@ -415,10 +444,10 @@ function dueOn(day){
   const review=ws.filter(w=>w.stage>0&&(isToday?w.due<=day:w.due===day));
   return {fresh,review};
 }
-function streak(){
-  let n=0,d=today();
-  if(!state.log[d])d=addDays(d,-1);
-  while(state.log[d]){n++;d=addDays(d,-1);}
+function streak(log=state.log){
+  let n=0,d=today(); log=log||{};
+  if(!log[d])d=addDays(d,-1);
+  while(log[d]){n++;d=addDays(d,-1);}
   return n;
 }
 const SETS={
@@ -431,24 +460,27 @@ const SETS={
 
 /* ---------------- 页面 Pages ---------------- */
 let tab="today", bankFilter="all", addTarget="today", practiceSet="today";
-try{tab=sessionStorage.getItem("tab")||"today";practiceSet=sessionStorage.getItem("pset")||"today";}catch(e){}
+try{tab=migrated?"kids":(sessionStorage.getItem("tab")||"today");practiceSet=sessionStorage.getItem("pset")||"today";}catch(e){}
 function setTab(t){tab=t;try{sessionStorage.setItem("tab",t)}catch(e){}render();window.scrollTo(0,0);}
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-$("#accent").onclick=()=>{state.accent=state.accent==="uk"?"us":"uk";save();pickVoice();render();say("hello");};
+$("#accent").onclick=()=>{root.accent=root.accent==="uk"?"us":"uk";save();pickVoice();render();say("hello");};
 
 function chipList(ws,empty){
   if(!ws.length)return `<p class="muted" style="margin:0">${empty}</p>`;
   return `<div class="words">${ws.map(w=>`<span class="w">${esc(w.w)}<small>${esc(w.cn||"")}</small></span>`).join("")}</div>`;
 }
 function render(){
+  const noKid=!root.current; if(noKid)tab="kids";
+  $("nav.tabs").hidden=noKid; ["#streak","#total","#kid"].forEach(x=>$(x).hidden=noKid);
+  if(!noKid){$("#kid").textContent=`👤 ${state.name} · 换人 Switch`;}
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   const s=streak();
   $("#streak").textContent=s?`连续 ${s} 天 · ${s}-day streak`:"今天开始打卡 · Start today";
   const mastered=words().filter(w=>w.stage>=MASTER).length;
   $("#total").textContent=`词库 ${words().length} Words · 已掌握 ${mastered} Mastered`;
-  $("#accent").textContent=state.accent==="uk"?"🔊 英音 UK":"🔊 美音 US";
+  $("#accent").textContent=root.accent==="uk"?"🔊 英音 UK":"🔊 美音 US";
   const v=$("#view");
-  v.innerHTML=({today:viewToday,practice:viewPractice,tomorrow:viewTomorrow,add:viewAdd,bank:viewBank})[tab]();
+  v.innerHTML=({kids:viewKids,today:viewToday,practice:viewPractice,tomorrow:viewTomorrow,add:viewAdd,bank:viewBank})[tab]();
   bind();
 }
 
@@ -458,7 +490,7 @@ function viewToday(){
   const max=Math.max(1,...fc.map(f=>f.n));
   const learnedToday=words().filter(w=>w.learnedOn===t);
   return `<div class="stack">
-    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="muted">今天 · ${niceDateEn(t)}</div><div class="date">${niceDate(t)}</div></div>
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="muted">${esc(state.name)}，今天加油！Go, ${esc(state.name)}! · ${niceDateEn(t)}</div><div class="date">${niceDate(t)}</div></div>
       ${log?`<span class="chip" style="background:var(--green-soft);color:var(--green)">今天已练 ${log.done||0} 个 · ${log.done||0} practised today</span>`:""}</div>
     <div class="grid-home">
       <div class="card stack">
@@ -495,6 +527,62 @@ function viewToday(){
       <div class="forecast">${fc.map((f,k)=>`<div><div class="n">${f.n}</div><div class="bar"><i style="height:${f.n/max*100}%"></i></div><div class="muted">${k===0?"今天<br>Today":k===1?"明天<br>Tmrw":"周"+WEEK[pdate(f.d).getDay()]+"<br>"+WEEK_EN[pdate(f.d).getDay()]}</div></div>`).join("")}</div>
     </div>
   </div>`;
+}
+
+const AVA=["#2742a8","#d8342c","#1d8a4c","#b86e00","#7a3fb0","#0f7c8c"];
+let renaming=null, kidMsg=migrated?"原来的单词已放进「我的孩子」，点「改名」换成孩子的名字。Your existing words are in \"我的孩子\"; tap Rename to use your child's name.":"";
+function viewKids(){
+  const ks=Object.values(root.profiles);
+  return `<div class="stack">
+    <div class="card stack">
+      <h2>谁来学单词？<span class="enl">Who's learning?</span></h2>
+      ${kidMsg?`<div class="notice">${esc(kidMsg)}</div>`:""}
+      ${ks.length?`<div class="kids">${ks.map(kidCard).join("")}</div>`:`<p class="muted" style="margin:0">先输入孩子的名字。每个孩子有自己的单词列表、复习计划和游戏分数。<br>Enter your child's name. Each child gets their own word lists, review plan and game scores.</p>`}
+    </div>
+    <div class="card stack">
+      <h3>添加孩子 <span class="enl">Add a child</span></h3>
+      <div class="row"><input type="text" id="kidName" maxlength="20" placeholder="孩子的名字 Child's name，例如 问底" style="flex:1;min-width:200px;font-family:var(--body)">
+      <button class="btn primary big" id="kidAdd">${L("添加","Add")}</button></div>
+    </div>
+  </div>`;
+}
+function kidCard(k){
+  const ws=Object.values(k.words||{}), m=ws.filter(w=>w.stage>=MASTER).length, s=streak(k.log);
+  const cur=k.id===root.current;
+  const name=renaming===k.id
+    ?`<input type="text" id="renameIn" maxlength="20" value="${esc(k.name)}" style="font-family:var(--body);font-size:18px">`
+    :`<div class="nm">${esc(k.name)}</div>`;
+  return `<div class="kid ${cur?"cur":""}">
+    <div class="who"><div class="ava" style="background:${AVA[(k.color||0)%AVA.length]}">${esc([...k.name][0]||"?")}</div>
+      <div style="min-width:0;flex:1">${name}<div class="muted small">${ws.length} 个词 words · 已掌握 ${m} mastered${s?` · 连续 ${s} 天 ${s}-day streak`:""}${cur?" · 正在使用 Current":""}</div></div></div>
+    ${renaming===k.id?`<div class="colors">${AVA.map((c,i)=>`<button style="background:${c}" class="${(k.color||0)===i?"on":""}" data-color="${i}" aria-label="颜色 color ${i+1}"></button>`).join("")}</div>`:""}
+    <div class="row">
+      ${renaming===k.id?`<button class="btn primary" data-kid-save="${k.id}">${L("保存","Save")}</button>`
+        :`<button class="btn primary" data-kid-go="${k.id}">${L("开始学习","Start")}</button><button class="btn" data-kid-ren="${k.id}">${L("改名","Rename")}</button><button class="btn del" data-kid-del="${k.id}">${L("删除","Delete")}</button>`}
+    </div>
+  </div>`;
+}
+function bindKids(){
+  const addKid=()=>{
+    const inp=$("#kidName"), name=inp.value.trim().slice(0,20); if(!name){inp.focus();return;}
+    const id=uid(); root.profiles[id]={id,name,color:Object.keys(root.profiles).length%AVA.length,...blankBook()};
+    useKid(id); kidMsg=""; addMsg=`已为「${esc(name)}」建好单词本，现在输入要学的单词吧。${esc(name)}'s word book is ready. Type the words to learn.`;
+    setTab("add");
+  };
+  const ka=$("#kidAdd"); if(ka){ka.onclick=addKid;$("#kidName").onkeydown=e=>{if(e.key==="Enter")addKid();};}
+  document.querySelectorAll("[data-kid-go]").forEach(b=>b.onclick=()=>{useKid(b.dataset.kidGo);kidMsg="";setTab("today");});
+  document.querySelectorAll("[data-kid-ren]").forEach(b=>b.onclick=()=>{renaming=b.dataset.kidRen;render();const i=$("#renameIn");if(i){i.focus();i.select();}});
+  document.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{root.profiles[renaming].color=+b.dataset.color;const v=$("#renameIn").value;render();$("#renameIn").value=v;});
+  const saveName=()=>{const k=root.profiles[renaming], v=$("#renameIn").value.trim().slice(0,20); if(k&&v)k.name=v; renaming=null; kidMsg=""; save(); render();};
+  document.querySelectorAll("[data-kid-save]").forEach(b=>b.onclick=saveName);
+  const ri=$("#renameIn"); if(ri)ri.onkeydown=e=>{if(e.key==="Enter")saveName();};
+  document.querySelectorAll("[data-kid-del]").forEach(b=>b.onclick=()=>{
+    const k=root.profiles[b.dataset.kidDel];
+    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.innerHTML=L(`删除${esc(k.name)}的全部单词？`,"Delete all words?");setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("confirm");b.innerHTML=L("删除","Delete");}},3500);return;}
+    delete root.profiles[k.id];
+    if(root.current===k.id){const first=Object.keys(root.profiles)[0]; if(first)useKid(first); else {root.current=null;state=blankBook();}}
+    save(); render();
+  });
 }
 
 function viewPractice(){
@@ -587,6 +675,8 @@ function viewBank(){
 }
 
 function bind(){
+  bindKids();
+  $("#kid").onclick=()=>setTab("kids");
   document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{if(b.dataset.target)addTarget=b.dataset.target;setTab(b.dataset.go);});
   document.querySelectorAll("[data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say));
   document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{bankFilter=b.dataset.filter;render();});
@@ -961,13 +1051,6 @@ function tDone(st){
   beep(true,true);
 }
 
-/* 首次打开放示例词 Sample words on first run */
-if(!words().length){
-  [["apple","苹果 n.","/ˈæp.əl/","ap·ple","I eat an apple every day."],["elephant","大象 n.","/ˈel.ɪ.fənt/","el·e·phant","The elephant has a long nose."],["beautiful","美丽的 adj.","/ˈbjuː.tɪ.fəl/","beau·ti·ful","What a beautiful flower!"],["library","图书馆 n.","/ˈlaɪ.brer.i/","li·brar·y","I read books in the library."],["Wednesday","星期三 n.","/ˈwenz.deɪ/","Wednes·day","Today is Wednesday."]]
-  .forEach(([w,cn,ipa,syl,ex])=>{const id=uid();state.words[id]={id,w,cn,ipa,syl,ex,stage:0,due:today(),added:today(),lapses:0,sample:true};});
-  addMsg="已放入 5 个示例词，可以先试一试；不需要的话在「词库」里删掉。5 sample words added so you can try it out. Delete them in Word Bank.";
-  save();
-}
 render();
 </script>
 </body>

@@ -1,11 +1,17 @@
-# 单词听写本 Word Speller
+# Word Speller
 
-给孩子记英语单词的网页，iPad 横屏友好，界面中英双语。
+An English spelling trainer for children, made for iPad (landscape works best).
 
-- **添加单词**：一行一个，中英文一起写，顺序随意，例如 `apple 苹果`、`大象 elephant`。没写中文会自动查询。
-- **今天 / 明天的列表**：按艾宾浩斯遗忘曲线在第 1、2、4、7、15、30、60 天安排复习。
-- **五步学新词**：看一看（发音、中文、音节）→ 认一认 → 拼一拼 → 默一默（看、盖、写、查）→ 听写。
-- **练习**：拼写游戏（计分、连击、计时）、听写、默写。写错的词进入「易错词」。
-- **发音**：联网使用有道真人发音（美音 / 英音），离线时用设备自带语音。
+- **Type your name** (for example `WDY`). Every word, review date and score is saved online under that name, so it's there every day on any device.
+- **Add Words**: one word per line. Choose today or tomorrow. Delete any word (or all words) in *My Words*.
+- **5 steps for new words**: Look & Listen (syllable chunks, spell-out) → Pick the right spelling → Build with letter tiles → Look, Cover, Write, Check → Dictation.
+- **Spaced review**: learned words come back after 1, 2, 4, 7, 15, 30 and 60 days.
+- **Practice**: Spelling Game (points, streaks, timer), Dictation, Cover & Write.
+- **Pronunciation**: online human voice (Youdao, then Google), falling back to the device voice. US or UK.
 
-数据保存在浏览器本地（localStorage）。纯静态网页，打开 `index.html` 即可使用，也可以用 GitHub Pages 发布。
+## One-time setup: online saving
+
+Open the Supabase project → **SQL Editor** → paste [`setup.sql`](setup.sql) → **Run**.
+Until then, words are saved on the device only.
+
+Note: anyone who types the same name opens the same word list.

@@ -1,25 +1,25 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>单词听写本 Word Speller</title>
+<title>Word Speller</title>
 <meta name="theme-color" content="#2742a8">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="单词听写本">
+<meta name="apple-mobile-web-app-title" content="Word Speller">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@500;600&display=swap">
 <style>
-/* 练习本风格：蓝色圆珠笔 + 红笔批改 + 英语四线三格；iPad 横屏双栏 */
+/* Exercise-book look: ballpoint blue, red-pen marking, four-line handwriting grid. Two columns on iPad landscape. */
 :root{
   --bg:#eef2f8; --paper:#ffffff; --fg:#1d2433; --muted:#5d6a82; --soft:#e3e9f4;
   --ink:#2742a8; --on-ink:#ffffff; --ink-soft:#e4e9fb; --red:#d8342c; --red-soft:#fde8e6;
   --green:#1d8a4c; --green-soft:#e2f5ea; --sun:#f5b301; --sun-soft:#fff4d1; --line:#9fb3d6; --baseline:#e38d8d;
   --word:"Andika","Comic Sans MS",system-ui,sans-serif;
-  --round:"Fredoka","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
-  --body:system-ui,-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  --round:"Fredoka",system-ui,-apple-system,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --r:16px; color-scheme:light;
 }
 @media (prefers-color-scheme:dark){:root{
@@ -29,111 +29,96 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font:17px/1.55 var(--body);-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
 button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 .wrap{max-width:1180px;margin:0 auto;padding:12px max(16px,env(safe-area-inset-right)) 40px max(16px,env(safe-area-inset-left))}
-header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding-top:env(safe-area-inset-top,0)}
-.brand{font:600 22px/1.15 var(--round);color:var(--ink);display:flex;align-items:center;gap:10px}
-.brand small{display:block;font:500 12px var(--round);color:var(--muted);letter-spacing:.04em}
-.brand svg{width:34px;height:34px;flex:none}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:999px;background:var(--paper);color:var(--muted);font-size:13px}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:env(safe-area-inset-top,0)}
+.brand{font:600 24px/1.1 var(--round);color:var(--ink);display:flex;align-items:center;gap:10px}
+.brand svg{width:36px;height:36px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;background:var(--paper);color:var(--muted);font-size:14px;border:0;min-height:36px}
+.chip.kid{color:var(--ink);font-weight:700}
+.chip.ok{color:var(--green)} .chip.warn{color:var(--red)}
 .spacer{flex:1}
-.enl{font-size:.74em;font-weight:500;opacity:.78;font-family:var(--round)}
 nav.tabs{display:flex;gap:6px;margin:14px 0 18px;background:var(--soft);padding:5px;border-radius:14px}
-nav.tabs button{flex:1;border:0;background:transparent;padding:8px 4px;border-radius:10px;font-weight:700;color:var(--muted);line-height:1.25}
-nav.tabs button .enl{display:block}
+nav.tabs button{flex:1;border:0;background:transparent;padding:12px 4px;border-radius:10px;font:600 17px var(--round);color:var(--muted)}
 nav.tabs button[aria-selected="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-h2{font:600 20px/1.3 var(--round);margin:0 0 6px;text-wrap:balance}
-h3{font:600 17px/1.3 var(--round);margin:0 0 8px}
-h2 .enl,h3 .enl{margin-left:6px;color:var(--muted)}
+nav.tabs[hidden]+main{margin-top:16px}
+h2{font:600 24px/1.25 var(--round);margin:0 0 6px;text-wrap:balance}
+h3{font:600 19px/1.3 var(--round);margin:0 0 8px}
 .muted{color:var(--muted)}
-.small{font-size:13px}
+.small{font-size:14px}
 .card{background:var(--paper);border-radius:var(--r);padding:18px}
 .stack{display:flex;flex-direction:column;gap:14px}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-.btn{border:0;border-radius:14px;padding:10px 18px;font-weight:700;background:var(--soft);color:var(--fg);line-height:1.25;min-height:48px}
-.btn .enl{display:block}
+.btn{border:0;border-radius:14px;padding:10px 18px;font:600 17px var(--round);background:var(--soft);color:var(--fg);min-height:50px}
 .btn.primary{background:var(--ink);color:var(--on-ink)}
-.btn.big{padding:12px 26px;font-size:18px;min-height:60px}
+.btn.big{padding:12px 28px;font-size:20px;min-height:62px}
 .btn.sun{background:var(--sun);color:#3a2a00}
+.btn.danger{background:var(--red);color:#fff}
 .btn:disabled{opacity:.45;cursor:default}
 .words{display:flex;flex-wrap:wrap;gap:6px}
-.w{font:18px var(--word);background:var(--ink-soft);color:var(--ink);padding:2px 10px;border-radius:8px}
-.w small{font:12px var(--body);color:var(--muted);margin-left:4px}
-.date{font:600 30px/1.1 var(--round)}
+.w{font:20px var(--word);background:var(--ink-soft);color:var(--ink);padding:2px 12px;border-radius:8px}
+.date{font:600 32px/1.1 var(--round)}
 .grid-home{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 @media (max-width:900px){.grid-home{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.grid-home{grid-template-columns:1fr}}
-.big-num{font:600 36px/1 var(--round);color:var(--ink)}
+.big-num{font:600 40px/1 var(--round);color:var(--ink)}
 .steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;counter-reset:s}
 @media (max-width:700px){.steps{grid-template-columns:1fr 1fr}}
-.step{background:var(--paper);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--muted)}
-.step b{display:block;font:600 16px var(--round);color:var(--fg)}
-.step b::before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--ink);color:var(--on-ink);font-size:12px;margin-right:6px;vertical-align:2px}
-.forecast{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:12px}
+.step{background:var(--paper);border-radius:12px;padding:10px 12px;font-size:14px;color:var(--muted)}
+.step b{display:block;font:600 17px var(--round);color:var(--fg)}
+.step b::before{counter-increment:s;content:counter(s);display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--on-ink);font-size:13px;margin-right:6px;vertical-align:2px}
+.forecast{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center;font-size:13px}
 .forecast .bar{height:54px;display:flex;align-items:flex-end;justify-content:center}
 .forecast .bar i{display:block;width:60%;background:var(--ink);border-radius:4px 4px 0 0;min-height:2px;opacity:.85}
-.forecast .n{font:600 13px var(--round);font-variant-numeric:tabular-nums}
-textarea,input[type=text]{width:100%;border:2px solid var(--soft);background:var(--paper);color:var(--fg);border-radius:12px;padding:10px 12px;font:18px/1.5 var(--word)}
-textarea{min-height:220px;resize:vertical}
-label.opt{display:inline-flex;gap:6px;align-items:center;padding:8px 14px;border-radius:12px;background:var(--soft);cursor:pointer;min-height:44px}
-label.opt:has(input:checked){background:var(--ink-soft);color:var(--ink);font-weight:700}
+.forecast .n{font:600 14px var(--round);font-variant-numeric:tabular-nums}
+textarea,input[type=text]{width:100%;border:2px solid var(--soft);background:var(--paper);color:var(--fg);border-radius:12px;padding:10px 12px;font:20px/1.5 var(--word)}
+textarea{min-height:240px;resize:vertical}
+label.opt{display:inline-flex;gap:6px;align-items:center;padding:8px 14px;border-radius:12px;background:var(--soft);cursor:pointer;min-height:46px;font-weight:600}
+label.opt:has(input:checked){background:var(--ink-soft);color:var(--ink)}
 .add-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:800px){.add-grid{grid-template-columns:1fr}}
-.pv-table{width:100%;border-collapse:collapse;font-size:15px}
-.pv-table td,.pv-table th{padding:6px 8px;border-bottom:1px solid var(--soft);text-align:left}
-.pv-table th{font-size:12px;color:var(--muted);font-weight:600}
-.pv-table .e{font:18px var(--word);color:var(--ink)}
-.pv-table .auto{color:var(--muted);font-style:italic}
 .list{display:flex;flex-direction:column}
 .bank-list{display:grid;grid-template-columns:1fr 1fr;column-gap:24px}
 @media (max-width:800px){.bank-list{grid-template-columns:1fr}}
-.item{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--soft)}
-.item .en{font:21px var(--word);color:var(--ink)}
-.item .cn{min-width:0}
-.item .cn input{font:15px var(--body);padding:4px 8px;border-width:1px}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--soft)}
+.item .en{font:23px var(--word);color:var(--ink);overflow-wrap:anywhere}
+.ipa{font:17px var(--word);color:var(--muted)}
 .dots{display:flex;gap:3px}
-.dots i{width:8px;height:8px;border-radius:50%;background:var(--soft)}
+.dots i{width:9px;height:9px;border-radius:50%;background:var(--soft)}
 .dots i.on{background:var(--green)}
-.icon-btn{border:0;background:var(--soft);border-radius:12px;min-width:44px;height:44px;display:inline-grid;place-items:center;font-size:18px;padding:0 8px}
-.del.confirm{background:var(--red);color:#fff;font-size:13px}
+.icon-btn{border:0;background:var(--soft);border-radius:12px;min-width:46px;height:46px;display:inline-grid;place-items:center;font-size:19px;padding:0 10px}
+.icon-btn.confirm{background:var(--red);color:#fff;font-size:14px;font-weight:700}
 .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.filters button,.seg button{border:0;border-radius:999px;padding:6px 14px;background:var(--soft);font-size:14px;min-height:40px}
+.filters button,.seg button{border:0;border-radius:999px;padding:6px 16px;background:var(--soft);font-size:15px;min-height:42px;font-weight:600}
 .filters button.on,.seg button.on{background:var(--ink);color:var(--on-ink)}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.notice{padding:10px 12px;border-radius:10px;background:var(--ink-soft);color:var(--ink);font-size:14px}
+.notice{padding:10px 14px;border-radius:10px;background:var(--ink-soft);color:var(--ink);font-size:15px}
+.notice.warn{background:var(--red-soft);color:var(--red)}
 .empty{text-align:center;padding:26px 10px;color:var(--muted)}
 .modes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 @media (max-width:800px){.modes{grid-template-columns:1fr 1fr}}
-.mode{border:0;text-align:left;background:var(--paper);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:4px;min-height:140px;border:2px solid transparent}
+.mode{text-align:left;background:var(--paper);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:4px;min-height:150px;border:2px solid transparent}
 .mode:hover{border-color:var(--ink-soft)}
-.mode .ic{font-size:30px;line-height:1}
-.mode b{font:600 19px var(--round)}
-.mode .enl{display:block;color:var(--ink)}
-.mode span.d{font-size:13px;color:var(--muted)}
+.mode .ic{font-size:32px;line-height:1}
+.mode b{font:600 21px var(--round)}
+.mode span.d{font-size:14px;color:var(--muted)}
 .mode.game{background:var(--sun-soft)}
-.kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
-.kid{border:2px solid var(--soft);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--paper)}
-.kid.cur{border-color:var(--ink)}
-.kid .btn{padding:8px 14px;min-height:44px}
-.kid .row{gap:8px;flex-wrap:nowrap}
-nav.tabs[hidden]+main{margin-top:16px}
-.kid .who{display:flex;gap:12px;align-items:center;min-width:0}
-.kid .nm{font:600 22px/1.2 var(--round);overflow-wrap:anywhere}
-.ava{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;font:600 26px var(--round);flex:none}
-.colors{display:flex;gap:6px}
-.colors button{width:30px;height:30px;border-radius:50%;border:3px solid transparent}
-.colors button.on{border-color:var(--fg)}
+.kids{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.kid{border:2px solid var(--soft);border-radius:var(--r);padding:14px;display:flex;gap:12px;align-items:center;background:var(--paper);text-align:left}
+.kid .nm{font:600 24px/1.2 var(--round);overflow-wrap:anywhere}
+.ava{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;color:#fff;font:600 26px var(--round);flex:none;background:var(--ink)}
+.login{display:flex;gap:10px;flex-wrap:wrap}
+.login input{flex:1;min-width:200px;font:600 26px var(--round);text-transform:none}
 
-/* ===== 学习界面 Session ===== */
+/* ===== Practice screen ===== */
 #session{position:fixed;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0)}
 .s-top{display:flex;align-items:center;gap:12px;padding:10px max(16px,env(safe-area-inset-left));max-width:1180px;width:100%;margin:0 auto}
-.s-label{font:600 16px/1.2 var(--round);color:var(--ink);white-space:nowrap}
-.s-label .enl{display:block}
+.s-label{font:600 18px/1.2 var(--round);color:var(--ink);white-space:nowrap}
 .prog{flex:1;height:12px;background:var(--soft);border-radius:99px;overflow:hidden;min-width:60px}
 .prog i{display:block;height:100%;background:var(--green);border-radius:99px;transition:width .3s}
-.hud{display:flex;gap:8px;font:600 15px var(--round);font-variant-numeric:tabular-nums}
+.hud{display:flex;gap:8px;font:600 16px var(--round);font-variant-numeric:tabular-nums}
 .hud span{background:var(--paper);border-radius:10px;padding:4px 10px;white-space:nowrap}
 .hud .combo{background:var(--sun);color:#3a2a00}
 .s-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
@@ -146,34 +131,31 @@ nav.tabs[hidden]+main{margin-top:16px}
   .pa{position:sticky;top:0;background:var(--paper);border-radius:22px;padding:22px}
   .pb{padding-top:6px}
 }
-.kind{font:600 14px var(--round);letter-spacing:.06em;color:var(--muted)}
-.grid4{display:block;width:100%;--h:min(40px,7.5vh,calc(100cqw / (var(--n) * 1.12)));height:calc(var(--h) * 3 + 2px);overflow:visible}
+.kind{font:600 15px var(--round);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.grid4{display:block;width:100%;--h:min(42px,7.5vh,calc(100cqw / (var(--n) * 1.12)));height:calc(var(--h) * 3 + 2px);overflow:visible}
 .grid4 line{stroke:var(--line);stroke-width:1}
 .grid4 line.base{stroke:var(--baseline);stroke-width:1.5}
 .grid4 text{font-family:var(--word);font-size:calc(var(--h) * 2);fill:var(--fg)}
 .grid4 .s1{fill:var(--ink)} .grid4 .s2{fill:var(--red)}
 .grid4 .hl{fill:var(--sun)}
-.meaning{font-size:26px;font-weight:700}
-.meaning.huge{font-size:40px;padding:12px 0}
-.ipa{font:17px var(--word);color:var(--muted)}
-.ex{background:var(--bg);border-radius:12px;padding:10px 14px;text-align:left}
-.ex .e{font:18px var(--word)}
-.tip{background:var(--green-soft);color:var(--green);border-radius:12px;padding:8px 14px;text-align:left;font-size:14px}
+.syl{font:24px var(--word);color:var(--muted);letter-spacing:.02em}
+.syl b{font-weight:400;color:var(--ink)} .syl b:nth-child(even){color:var(--red)}
+.ex{background:var(--bg);border-radius:12px;padding:10px 14px;text-align:left;font:20px var(--word)}
+.tip{background:var(--green-soft);color:var(--green);border-radius:12px;padding:8px 14px;text-align:left;font-size:15px}
 .say{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.say .btn{min-width:92px}
+.say .btn{min-width:100px}
 .opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.opt-btn{border:2px solid var(--soft);background:var(--paper);border-radius:16px;padding:16px 10px;font-size:20px;font-weight:700;min-height:76px}
-.opt-btn.en{font:24px var(--word)}
+.opt-btn{border:2px solid var(--soft);background:var(--paper);border-radius:16px;padding:16px 10px;font:28px var(--word);min-height:80px;overflow-wrap:anywhere}
 .opt-btn.right{border-color:var(--green);background:var(--green-soft);color:var(--green)}
 .opt-btn.wrong{border-color:var(--red);background:var(--red-soft);color:var(--red)}
 .slots{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-.slot{width:44px;height:54px;border-bottom:3px solid var(--line);font:32px/52px var(--word);color:var(--green)}
+.slot{width:44px;height:56px;border-bottom:3px solid var(--line);font:34px/54px var(--word);color:var(--green)}
 .slot.given{color:var(--muted)}
 .slot.next{border-bottom-color:var(--ink)}
 .slot.gap{border:0;width:16px}
 .tiles{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.tile{width:60px;height:64px;border:0;border-radius:14px;background:var(--paper);font:32px var(--word);color:var(--ink);box-shadow:0 4px 0 var(--soft)}
-@media (min-width:880px) and (orientation:landscape){.tile{width:68px;height:72px;font-size:36px}}
+.tile{width:62px;height:66px;border:0;border-radius:14px;background:var(--paper);font:34px var(--word);color:var(--ink);box-shadow:0 4px 0 var(--soft)}
+@media (min-width:880px) and (orientation:landscape){.tile{width:70px;height:74px;font-size:38px}}
 .tile.used{visibility:hidden}
 .tile.bad{animation:shake .35s;background:var(--red-soft);color:var(--red)}
 .tile.hint{outline:3px dashed var(--sun)}
@@ -181,23 +163,24 @@ nav.tabs[hidden]+main{margin-top:16px}
 @keyframes pop{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
 .pop{animation:pop .3s}
 @media (prefers-reduced-motion:reduce){.tile.bad,.pop{animation:none}.prog i{transition:none}}
-.answer{font:30px var(--word);text-align:center;letter-spacing:.04em;padding:12px}
+.answer{font:32px var(--word);text-align:center;letter-spacing:.04em;padding:12px}
 .answer.ok{border-color:var(--green)} .answer.no{border-color:var(--red)}
-.fb{border-radius:12px;padding:12px;font-size:16px}
+.fb{border-radius:12px;padding:12px;font-size:17px}
 .fb.ok{background:var(--green-soft);color:var(--green)}
 .fb.no{background:var(--red-soft);color:var(--red)}
-.diff{font:28px var(--word);letter-spacing:.04em}
+.diff{font:30px var(--word);letter-spacing:.04em}
 .diff .x{color:var(--red);text-decoration:line-through}
 .diff .m{color:var(--red);background:var(--red-soft);border-radius:4px}
 .diff .k{color:var(--green)}
-.cover{height:120px;border-radius:12px;background:repeating-linear-gradient(45deg,var(--soft) 0 12px,var(--paper) 12px 24px);display:grid;place-items:center;color:var(--muted);font-weight:700}
-.headphones{font-size:72px;line-height:1}
-.stars{font-size:44px;letter-spacing:4px;color:var(--sun)}
+.cover{height:120px;border-radius:12px;background:repeating-linear-gradient(45deg,var(--soft) 0 12px,var(--paper) 12px 24px);display:grid;place-items:center;color:var(--muted);font:600 20px var(--round)}
+.headphones{font-size:80px;line-height:1}
+.stars{font-size:46px;letter-spacing:4px;color:var(--sun)}
 .res-list{text-align:left}
 .ok-t{color:var(--green);font-weight:700} .no-t{color:var(--red);font-weight:700}
 .stat-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.stat{background:var(--paper);border-radius:14px;padding:10px 18px;min-width:110px}
-.stat b{display:block;font:600 28px var(--round);color:var(--ink);font-variant-numeric:tabular-nums}
+.stat{background:var(--paper);border-radius:14px;padding:10px 18px;min-width:120px}
+.stat b{display:block;font:600 30px var(--round);color:var(--ink);font-variant-numeric:tabular-nums}
+#soundTip{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;max-width:calc(100% - 32px)}
 </style>
 </head>
 <body>
@@ -205,27 +188,29 @@ nav.tabs[hidden]+main{margin-top:16px}
   <header class="top">
     <div class="brand">
       <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="3" width="24" height="26" rx="4" fill="var(--ink)"/><g stroke="var(--paper)" stroke-width="1.4" opacity=".9"><line x1="8" y1="11" x2="24" y2="11"/><line x1="8" y1="15" x2="24" y2="15"/><line x1="8" y1="19" x2="24" y2="19"/><line x1="8" y1="23" x2="24" y2="23"/></g><path d="M9 20.5l3-6 3 6M10 18.8h4" stroke="var(--sun)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
-      <div>单词听写本<small>Word Speller</small></div>
+      Word Speller
     </div>
     <span class="spacer"></span>
-    <button class="chip" id="kid" style="border:0;font-weight:700;color:var(--ink)"></button>
+    <button class="chip kid" id="kid"></button>
+    <span class="chip" id="sync"></span>
     <span class="chip" id="streak"></span>
-    <span class="chip" id="total"></span>
-    <button class="chip" id="accent" style="border:0" title="发音 Accent"></button>
+    <button class="chip" id="soundTest">🔊 Test sound</button>
+    <button class="chip" id="accent"></button>
   </header>
   <nav class="tabs" role="tablist">
-    <button role="tab" data-tab="today">今天<span class="enl">Today</span></button>
-    <button role="tab" data-tab="practice">练习<span class="enl">Practice</span></button>
-    <button role="tab" data-tab="tomorrow">明天<span class="enl">Tomorrow</span></button>
-    <button role="tab" data-tab="add">添加单词<span class="enl">Add Words</span></button>
-    <button role="tab" data-tab="bank">词库<span class="enl">Word Bank</span></button>
+    <button role="tab" data-tab="today">Today</button>
+    <button role="tab" data-tab="practice">Practice</button>
+    <button role="tab" data-tab="tomorrow">Tomorrow</button>
+    <button role="tab" data-tab="add">Add Words</button>
+    <button role="tab" data-tab="bank">My Words</button>
   </nav>
   <main id="view"></main>
 </div>
+<div id="soundTip" class="notice warn" hidden></div>
 
 <section id="session" hidden>
   <div class="s-top">
-    <button class="icon-btn" id="quit" aria-label="退出 Quit">✕</button>
+    <button class="icon-btn" id="quit" aria-label="Quit">✕</button>
     <span class="s-label" id="sLabel"></span>
     <div class="prog"><i id="sProg"></i></div>
     <div class="hud" id="hud" hidden><span id="hScore"></span><span class="combo" id="hCombo" hidden></span><span id="hTime"></span></div>
@@ -235,67 +220,127 @@ nav.tabs[hidden]+main{margin-top:16px}
 
 <script>
 "use strict";
-/* ---------------- 内置小词典 Built-in mini dictionary ---------------- */
-const DICT_RAW = "apple|苹果 n.;banana|香蕉 n.;orange|橙子 n.;pear|梨 n.;grape|葡萄 n.;peach|桃子 n.;watermelon|西瓜 n.;strawberry|草莓 n.;lemon|柠檬 n.;fruit|水果 n.;cat|猫 n.;dog|狗 n.;bird|鸟 n.;fish|鱼 n.;rabbit|兔子 n.;tiger|老虎 n.;lion|狮子 n.;monkey|猴子 n.;panda|熊猫 n.;elephant|大象 n.;horse|马 n.;cow|奶牛 n.;pig|猪 n.;duck|鸭子 n.;chicken|鸡；鸡肉 n.;sheep|绵羊 n.;mouse|老鼠 n.;bear|熊 n.;zoo|动物园 n.;animal|动物 n.;red|红色 adj.;blue|蓝色 adj.;green|绿色 adj.;yellow|黄色 adj.;black|黑色 adj.;white|白色 adj.;pink|粉色 adj.;purple|紫色 adj.;brown|棕色 adj.;color|颜色 n.;one|一;two|二;three|三;four|四;five|五;six|六;seven|七;eight|八;nine|九;ten|十;eleven|十一;twelve|十二;twenty|二十;hundred|百;book|书 n.;pen|钢笔 n.;pencil|铅笔 n.;ruler|尺子 n.;eraser|橡皮 n.;bag|包 n.;desk|课桌 n.;chair|椅子 n.;school|学校 n.;teacher|老师 n.;student|学生 n.;classroom|教室 n.;friend|朋友 n.;family|家庭 n.;father|父亲 n.;mother|母亲 n.;brother|兄弟 n.;sister|姐妹 n.;grandpa|爷爷；外公 n.;grandma|奶奶；外婆 n.;baby|婴儿 n.;boy|男孩 n.;girl|女孩 n.;man|男人 n.;woman|女人 n.;head|头 n.;face|脸 n.;eye|眼睛 n.;ear|耳朵 n.;nose|鼻子 n.;mouth|嘴 n.;hand|手 n.;arm|胳膊 n.;leg|腿 n.;foot|脚 n.;hair|头发 n.;body|身体 n.;big|大的 adj.;small|小的 adj.;long|长的 adj.;short|短的；矮的 adj.;tall|高的 adj.;fat|胖的 adj.;thin|瘦的 adj.;happy|开心的 adj.;sad|难过的 adj.;hot|热的 adj.;cold|冷的 adj.;warm|温暖的 adj.;cool|凉爽的 adj.;good|好的 adj.;bad|坏的 adj.;new|新的 adj.;old|旧的；老的 adj.;beautiful|美丽的 adj.;hungry|饿的 adj.;thirsty|渴的 adj.;tired|累的 adj.;water|水 n.;milk|牛奶 n.;juice|果汁 n.;bread|面包 n.;rice|米饭 n.;egg|鸡蛋 n.;cake|蛋糕 n.;noodles|面条 n.;meat|肉 n.;breakfast|早餐 n.;lunch|午餐 n.;dinner|晚餐 n.;food|食物 n.;sun|太阳 n.;moon|月亮 n.;star|星星 n.;sky|天空 n.;cloud|云 n.;rain|雨 n.;snow|雪 n.;wind|风 n.;weather|天气 n.;tree|树 n.;flower|花 n.;grass|草 n.;river|河 n.;mountain|山 n.;house|房子 n.;home|家 n.;room|房间 n.;door|门 n.;window|窗户 n.;bed|床 n.;table|桌子 n.;kitchen|厨房 n.;car|小汽车 n.;bus|公共汽车 n.;bike|自行车 n.;train|火车 n.;plane|飞机 n.;boat|小船 n.;run|跑 v.;jump|跳 v.;swim|游泳 v.;fly|飞 v.;walk|走 v.;sing|唱歌 v.;dance|跳舞 v.;read|读 v.;write|写 v.;draw|画画 v.;play|玩 v.;eat|吃 v.;drink|喝 v.;sleep|睡觉 v.;look|看 v.;see|看见 v.;listen|听 v.;speak|说 v.;open|打开 v.;close|关上 v.;like|喜欢 v.;love|爱 v.;want|想要 v.;have|有 v.;go|去 v.;come|来 v.;help|帮助 v.;clean|打扫；干净的;wash|洗 v.;cook|做饭 v.;Monday|星期一 n.;Tuesday|星期二 n.;Wednesday|星期三 n.;Thursday|星期四 n.;Friday|星期五 n.;Saturday|星期六 n.;Sunday|星期日 n.;day|天 n.;week|星期 n.;month|月 n.;year|年 n.;today|今天 n.;tomorrow|明天 n.;morning|早上 n.;afternoon|下午 n.;evening|晚上 n.;night|夜晚 n.;time|时间 n.;spring|春天 n.;summer|夏天 n.;autumn|秋天 n.;winter|冬天 n.;hello|你好;goodbye|再见;thanks|谢谢;please|请;sorry|对不起;yes|是;no|不;ball|球 n.;toy|玩具 n.;doll|娃娃 n.;kite|风筝 n.;music|音乐 n.;English|英语 n.;Chinese|中文 n.;math|数学 n.;art|美术 n.;science|科学 n.;doctor|医生 n.;nurse|护士 n.;farmer|农民 n.;driver|司机 n.;park|公园 n.;shop|商店 n.;hospital|医院 n.;library|图书馆 n.;city|城市 n.;country|国家 n.;world|世界 n.";
-const DICT = {};
-DICT_RAW.split(";").forEach(p=>{const [w,c]=p.split("|"); DICT[w.toLowerCase()]=c;});
+/* ---------------- Cloud database (Supabase, table word_books) ---------------- */
+const SB_URL="https://mztoenhgfuomzrashrqk.supabase.co";
+const SB_KEY="sb_publishable_pOM3IfVWYiscQ-cz9vAwvA_F2Ht6zg1";
+const SB_H={apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"};
+async function cloudGet(key){
+  const r=await fetch(`${SB_URL}/rest/v1/word_books?name=eq.${encodeURIComponent(key)}&select=data,updated_at`,{headers:SB_H,cache:"no-store"});
+  if(!r.ok)throw new Error("cloud "+r.status);
+  const a=await r.json(); return a[0]||null;
+}
+async function cloudPut(key,book,keepalive){
+  const r=await fetch(`${SB_URL}/rest/v1/word_books`,{method:"POST",keepalive:!!keepalive,
+    headers:{...SB_H,Prefer:"resolution=merge-duplicates,return=minimal"},
+    body:JSON.stringify([{name:key,data:book,updated_at:new Date().toISOString()}])});
+  if(!r.ok)throw new Error("cloud "+r.status);
+}
 
-/* ---------------- 工具 Utils ---------------- */
+/* ---------------- Utils ---------------- */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const L=(zh,en)=>`${zh}<span class="enl">${en}</span>`;
 const pad=n=>String(n).padStart(2,"0");
 const dstr=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const today=()=>dstr(new Date());
 const pdate=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d);};
 const addDays=(s,n)=>{const d=pdate(s);d.setDate(d.getDate()+n);return dstr(d);};
 const dayDiff=(a,b)=>Math.round((pdate(b)-pdate(a))/864e5);
-const WEEK="日一二三四五六", WEEK_EN=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const MON_EN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const niceDate=s=>{const d=pdate(s);return `${d.getMonth()+1}月${d.getDate()}日 星期${WEEK[d.getDay()]}`;};
-const niceDateEn=s=>{const d=pdate(s);return `${WEEK_EN[d.getDay()]}, ${MON_EN[d.getMonth()]} ${d.getDate()}`;};
+const WEEK=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const niceDate=s=>{const d=pdate(s);return `${WEEK[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}`;};
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
 const norm=s=>String(s).toLowerCase().replace(/[’`]/g,"'").replace(/\s+/g," ").trim();
 const uid=()=>Math.random().toString(36).slice(2,10);
-const hasCJK=s=>/[\u3400-\u9fff]/.test(s);
+const keyOf=name=>name.trim().toLowerCase().replace(/\s+/g," ");
 
-/* 艾宾浩斯间隔 Spaced repetition: review after 1, 2, 4, 7, 15, 30, 60 days */
+/* Spaced review: after learning, words come back after 1, 2, 4, 7, 15, 30 and 60 days */
 const INTERVAL=[0,1,2,4,7,15,30,60];
 const MASTER=7;
 
-/* ---------------- 存储 Storage ---------------- */
-/* 每个孩子一本单词本 One word book per child */
-const KEY="gc-words-v2", OLD_KEY="gc-words-v1";
-let root={v:2,accent:"us",current:null,profiles:{}}, migrated=false;
+/* ---------------- Local storage (cache of every child's book on this device) ---------------- */
+const KEY="gc-words-v3";
+let root={v:3,accent:"us",current:null,books:{}};
 try{
   const raw=localStorage.getItem(KEY);
-  if(raw){const r=JSON.parse(raw); if(r&&r.profiles)root=Object.assign(root,r);}
-  else{ // 旧版数据搬到第一个孩子名下 Move old single-list data into a first profile
-    const o=JSON.parse(localStorage.getItem(OLD_KEY)||"null");
-    if(o&&o.words&&Object.keys(o.words).length){
-      const id=uid(); root.accent=o.accent||"us";
-      root.profiles[id]={id,name:"我的孩子",color:0,words:o.words,log:o.log||{},best:o.best||0};
-      root.current=id; migrated=true;
-    }
+  if(raw){const r=JSON.parse(raw); if(r&&r.books)root=Object.assign(root,r);}
+  else{ // bring over data from older versions
+    const v2=JSON.parse(localStorage.getItem("gc-words-v2")||"null");
+    const v1=JSON.parse(localStorage.getItem("gc-words-v1")||"null");
+    if(v2&&v2.profiles){root.accent=v2.accent||"us";Object.values(v2.profiles).forEach(p=>{if(Object.keys(p.words||{}).length)root.books[keyOf(p.name)]={name:p.name,words:p.words,log:p.log||{},best:p.best||0,updated:1};});}
+    else if(v1&&v1.words&&Object.keys(v1.words).length){root.accent=v1.accent||"us";root.books["my child"]={name:"My Child",words:v1.words,log:v1.log||{},best:v1.best||0,updated:1};}
   }
 }catch(e){}
-const blankBook=()=>({words:{},log:{},best:0});
-let state=root.profiles[root.current]||null;
-if(!state){root.current=null;state=blankBook();}
-state.log=state.log||{};
-function save(){try{localStorage.setItem(KEY,JSON.stringify(root));}catch(e){}}
-function useKid(id){root.current=id;state=root.profiles[id];state.log=state.log||{};save();}
+const blankBook=name=>({name,words:{},log:{},best:0,updated:0});
+let state=root.books[root.current]||null;
+if(!state){root.current=null;state=blankBook("");}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(root));}catch(e){}}
+
+/* Sync: every change is saved on this device at once and sent to the cloud a moment later */
+let syncState="idle", syncTimer=null, pushing=false, pending=false;
+function setSync(s){syncState=s;const c=$("#sync");if(!c)return;
+  c.className="chip "+(s==="saved"?"ok":s==="error"?"warn":"");
+  c.textContent={idle:"",loading:"☁️ Loading…",saving:"☁️ Saving…",saved:"☁️ Saved",error:"⚠️ Not saved online yet"}[s]||"";
+  c.hidden=!root.current||!c.textContent;
+  c.title=s==="error"?"Saved on this device. It will upload when the internet is back.":"";
+}
+function save(){
+  if(!root.current)return;
+  state.updated=Date.now(); saveLocal();
+  clearTimeout(syncTimer); syncTimer=setTimeout(pushNow,1200); setSync("saving");
+}
+async function pushNow(keepalive){
+  if(!root.current)return;
+  if(pushing){pending=true;return;}
+  pushing=true;
+  const key=root.current, book=state;
+  try{await cloudPut(key,book,keepalive);setSync("saved");}
+  catch(e){setSync("error");clearTimeout(syncTimer);syncTimer=setTimeout(pushNow,30000);}
+  pushing=false;
+  if(pending){pending=false;pushNow();}
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"&&syncState==="saving"){clearTimeout(syncTimer);pushNow(true);}});
+window.addEventListener("online",()=>{if(syncState==="error")pushNow();});
+/* Open a child's book by name: the newest copy (cloud or this device) wins */
+async function openBook(name){
+  const key=keyOf(name); if(!key)return;
+  root.current=key;
+  let local=root.books[key];
+  setSync("loading");
+  try{
+    const row=await cloudGet(key);
+    if(row&&row.data&&(!local||(row.data.updated||0)>=(local.updated||0))){local=row.data;}
+    else if(!local){local=blankBook(name.trim());}
+    root.books[key]=local; state=local; state.log=state.log||{}; state.words=state.words||{};
+    saveLocal();
+    if(!row||(local.updated||0)>(row.data?.updated||0))await pushNow(); else setSync("saved");
+  }catch(e){
+    if(!local)local=blankBook(name.trim());
+    root.books[key]=local; state=local; state.log=state.log||{}; saveLocal(); setSync("error");
+  }
+}
 const words=()=>Object.values(state.words);
 function findWord(w){w=norm(w);return words().find(x=>norm(x.w)===w);}
 
-/* ---------------- 发音 Pronunciation：联网真人发音（有道），失败时用设备语音 ---------------- */
-const player=new Audio(); player.preload="auto";
-let audioUnlocked=false;
-document.addEventListener("pointerdown",()=>{ // iPad 需要先点一下才能自动播放
-  if(audioUnlocked)return; audioUnlocked=true;
-  try{player.src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=";player.play().catch(()=>{});}catch(e){}
+/* ---------------- Pronunciation: online human voice (Youdao, then Google), then the device voice ---------------- */
+const player=new Audio(); player.preload="auto"; player.setAttribute("playsinline","");
+let unlocked=false, actx=null;
+function silentWav(){ // 0.1 s of silence, used to unlock audio on iPad with the first tap
+  const n=800,b=new ArrayBuffer(44+n),v=new DataView(b),w=(o,s)=>[...s].forEach((c,i)=>v.setUint8(o+i,c.charCodeAt(0)));
+  w(0,"RIFF");v.setUint32(4,36+n,true);w(8,"WAVEfmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);w(36,"data");v.setUint32(40,n,true);
+  for(let i=0;i<n;i++)v.setUint8(44+i,128);
+  return URL.createObjectURL(new Blob([b],{type:"audio/wav"}));
+}
+const SILENT=silentWav();
+function unlock(){
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();actx.resume();}catch(e){}
+  if(unlocked)return; unlocked=true;
+  try{player.src=SILENT;player.play().catch(()=>{unlocked=false;});}catch(e){}
   try{if("speechSynthesis" in window){const u=new SpeechSynthesisUtterance(" ");u.volume=0;speechSynthesis.speak(u);}}catch(e){}
-},{capture:true});
+}
+document.addEventListener("pointerdown",unlock,{capture:true});
+document.addEventListener("keydown",unlock,{capture:true});
+
 let voice=null;
 function pickVoice(){
   if(!("speechSynthesis" in window))return;
@@ -307,59 +352,72 @@ function pickVoice(){
 if("speechSynthesis" in window){pickVoice(); speechSynthesis.onvoiceschanged=pickVoice;}
 let speakId=0;
 function stopAudio(){speakId++;try{player.pause();}catch(e){} if("speechSynthesis" in window)speechSynthesis.cancel();}
-/* 设备语音 Device voice (TTS) */
-function tts(text,{rate=.85,lang="en-US",onend}={}){
-  const id=++speakId;
+function tts(text,{rate=.85,onend,id=++speakId}={}){
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
   try{player.pause();}catch(e){}
   if(!("speechSynthesis" in window)){setTimeout(fire,300);return;}
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text); u.lang=lang; u.rate=rate;
-  if(lang.startsWith("en")&&voice)u.voice=voice;
+  const u=new SpeechSynthesisUtterance(text); u.lang=root.accent==="uk"?"en-GB":"en-US"; u.rate=rate;
+  if(voice)u.voice=voice;
   u.onend=fire; u.onerror=fire;
   speechSynthesis.speak(u);
   if(onend)setTimeout(fire,1500+text.length*180/rate);
 }
-/* 联网发音 Online audio */
-function onlineUrl(text,zh){
-  if(zh)return "https://dict.youdao.com/dictvoice?le=zh&audio="+encodeURIComponent(text);
-  return "https://dict.youdao.com/dictvoice?type="+(root.accent==="uk"?1:2)+"&audio="+encodeURIComponent(text);
+function sources(text){
+  const q=encodeURIComponent(text), uk=root.accent==="uk";
+  return ["https://dict.youdao.com/dictvoice?type="+(uk?1:2)+"&audio="+q,
+          "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+(uk?"en-GB":"en-US")+"&q="+q];
 }
-function say(text,{slow=false,onend,zh=false}={}){
+let tipShown=false;
+function showSoundTip(){
+  if(tipShown)return; tipShown=true; const t=$("#soundTip");
+  t.innerHTML="No sound? Tap any 🔊 button. Also check the iPad is not on Silent (swipe down → the bell) and the volume is up.";
+  t.hidden=false; setTimeout(()=>t.hidden=true,7000);
+}
+function say(text,{slow=false,onend}={}){
   if(!text)return;
-  if(!navigator.onLine){tts(text,{rate:slow?.45:.85,lang:zh?"zh-CN":(root.accent==="uk"?"en-GB":"en-US"),onend});return;}
   if("speechSynthesis" in window)speechSynthesis.cancel();
   const id=++speakId;
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
-  let fell=false; const fallback=()=>{if(fell||id!==speakId)return;fell=true;
-    const w=!zh&&findWord(text); // 再试词典发音，最后用设备语音
-    if(w&&w.audio&&player.src!==w.audio){fell=false;player.src=w.audio;player.play().catch(()=>{fell=false;fallback2();});return;}
-    fallback2();};
-  const fallback2=()=>{if(id!==speakId)return;fell=true;tts(text,{rate:slow?.45:.85,lang:zh?"zh-CN":(root.accent==="uk"?"en-GB":"en-US"),onend});};
-  player.onended=fire; player.onerror=()=>fallback();
-  player.src=onlineUrl(text,zh);
-  try{player.playbackRate=slow?.6:1; player.defaultPlaybackRate=slow?.6:1; player.preservesPitch=true;}catch(e){}
-  player.play().catch(()=>fallback());
-  if(onend)setTimeout(()=>{if(!fell)fire();},(slow?7000:4500));
+  const list=navigator.onLine===false?[]:sources(text);
+  const w=findWord(text); if(w&&w.audio)list.push(w.audio);
+  let k=-1, started=false;
+  const tryNext=()=>{
+    if(id!==speakId)return;
+    k++; started=false;
+    if(k>=list.length){tts(text,{rate:slow?.5:.85,onend,id});return;}
+    player.onended=fire;
+    player.onplaying=()=>{started=true;};
+    player.onerror=()=>{if(id===speakId&&k<list.length)tryNext();};
+    player.src=list[k];
+    try{player.playbackRate=slow?.65:1;player.defaultPlaybackRate=slow?.65:1;player.preservesPitch=true;}catch(e){}
+    const kk=k;
+    player.play().then(()=>{try{player.playbackRate=slow?.65:1;}catch(e){}}).catch(err=>{
+      if(id!==speakId||kk!==k)return;
+      if(err&&err.name==="NotAllowedError"){showSoundTip();tts(text,{rate:slow?.5:.85,onend,id});k=list.length;}
+      else tryNext();
+    });
+    setTimeout(()=>{if(id===speakId&&kk===k&&!started)tryNext();},4000); // source too slow: try the next one
+  };
+  tryNext();
+  if(onend)setTimeout(fire,slow?9000:7000);
 }
-function sayZh(text){say(text.replace(/\b(n|v|vt|vi|adj|adv|prep|pron|conj|num|art|int)\./g,"").trim(),{zh:true});}
-
-/* 逐个字母拼读 Spell letter by letter, highlighting the grid */
+/* Spell letter by letter, lighting up each letter on the grid */
 function spellOut(w,svgSel){
-  const letters=[...w]; let i=0;
+  const letters=[...w]; let i=0; const myId=speakId+1;
   const step=()=>{
     document.querySelectorAll(svgSel+" tspan").forEach(t=>t.classList.remove("hl"));
     if(i>=letters.length){say(w);return;}
     const t=document.querySelector(`${svgSel} tspan[data-i="${i}"]`); if(!t)return; t.classList.add("hl");
     const ch=letters[i++];
     if(!/[a-z]/i.test(ch)){setTimeout(step,250);return;}
-    tts(ch.toUpperCase(),{rate:.8,onend:()=>setTimeout(step,120)});
+    if(voice)tts(ch.toUpperCase(),{rate:.8,onend:()=>setTimeout(step,120)});
+    else say(ch.toUpperCase(),{onend:()=>setTimeout(step,120)});
   };
   step();
 }
 
-/* ---------------- 音效 Sound effects ---------------- */
-let actx=null;
+/* ---------------- Sound effects ---------------- */
 function beep(ok,big){
   try{
     actx=actx||new (window.AudioContext||window.webkitAudioContext)();
@@ -371,11 +429,37 @@ function beep(ok,big){
   }catch(e){}
 }
 
-/* ---------------- 四线三格 Four-line grid ---------------- */
-function grid(word,{syl,id="g"}={}){
+/* ---------------- Syllables (a simple rule-based split to show word chunks) ---------------- */
+function syllables(word){
+  if(/[^a-z']/i.test(word)||word.length<4)return [word];
+  const lw=word.toLowerCase(), n=lw.length;
+  const isV=i=>"aeiou".includes(lw[i])||(lw[i]==="y"&&i>0&&!"aeiou".includes(lw[i-1]));
+  const g=[]; for(let i=0;i<n;){if(isV(i)){let j=i;while(j<n&&isV(j))j++;g.push([i,j]);i=j;}else i++;}
+  if(g.length>1){const last=g[g.length-1];
+    if(last[0]===n-1&&lw[n-1]==="e"&&!(lw[n-2]==="l"&&n>2&&!isV(n-3)))g.pop();
+    else if(last[0]===n-2&&/e[sd]$/.test(lw)&&!/[td]ed$|[sxz]es$|[cs]hes$/.test(lw))g.pop();}
+  if(g.length<2)return [word];
+  const DI=["ch","sh","th","ph","wh","gh"], AFTER=["ck","ng"], BL=["bl","br","cl","cr","dr","fl","fr","gl","gr","pl","pr","tr","wr"];
+  const cuts=[];
+  for(let k=0;k<g.length-1;k++){
+    const s=g[k][1], e=g[k+1][0], num=e-s; let cut;
+    if(k===g.length-2&&e===n-1&&lw[n-1]==="e"&&lw[n-2]==="l")cut=e-2;
+    else if(num<=1)cut=lw[s]==="x"?s+1:s;
+    else{const p=lw.slice(s,s+2);
+      if(num===2&&(DI.includes(p)||BL.includes(p)))cut=s;
+      else if(AFTER.includes(p))cut=s+2;
+      else cut=s+1;}
+    if(cut>(cuts[cuts.length-1]||0)&&cut<n)cuts.push(cut);
+  }
+  const out=[];let p=0;cuts.forEach(c=>{out.push(word.slice(p,c));p=c;});out.push(word.slice(p));
+  return out.filter(Boolean);
+}
+
+/* ---------------- Four-line handwriting grid ---------------- */
+function grid(word,{id="g",color=true}={}){
   const n=Math.max(word.length,5);
   let spans="", i=0;
-  const parts=syl&&syl.replace(/[·\-]/g,"").toLowerCase()===word.toLowerCase()?syl.split(/[·\-]/):[word];
+  const parts=color?syllables(word):[word];
   parts.forEach((p,k)=>{for(const ch of p){
     const cls=parts.length>1?(k%2?"s2":"s1"):"";
     spans+=`<tspan data-i="${i}" class="${cls}">${esc(ch===" "?"\u00a0":ch)}</tspan>`; i++;}});
@@ -384,26 +468,14 @@ function grid(word,{syl,id="g"}={}){
     <line class="base" x1="0" x2="100%" y1="66.67%" y2="66.67%"/><line x1="0" x2="100%" y1="99%" y2="99%"/>
     <text x="50%" y="66.67%" text-anchor="middle">${spans}</text></svg>`;
 }
+const sylHtml=w=>{const s=syllables(w);return s.length>1?`<div class="syl">${s.map(x=>`<b>${esc(x)}</b>`).join(" · ")}</div>`:"";};
 
-/* ---------------- 中英文输入解析 Parse mixed Chinese/English input ---------------- */
-const POS_RE=/(^|[\s\u3400-\u9fff,，;；])((?:n|v|vt|vi|adj|adv|prep|pron|conj|num|art|int)\.)(?=$|[\s\u3400-\u9fff,，;；])/g;
-function parseLine(line){
-  let pos=[]; line=line.replace(POS_RE,(m,a,p)=>{pos.push(p);return a+" ";});
-  const runs=line.match(/[A-Za-z][A-Za-z'’\- .]*[A-Za-z]|[A-Za-z]/g); if(!runs)return null;
-  const en=runs.sort((a,b)=>b.length-a.length)[0];
-  let w=en.replace(/[\s.\-]+$/,"").replace(/\s+/g," ").trim();
-  let cn=line.replace(en,"").replace(/[\s,，:：\-—=|\/、。.;；\t]+/g," ").trim();
-  if(!hasCJK(cn))cn="";
-  if(cn&&pos.length)cn+=" "+pos.join(" ");
-  return w?{w,cn}:null;
-}
+/* ---------------- Word input ---------------- */
 function parseInput(text){
-  const out=[];
-  text.split(/\n/).forEach(line=>{
-    line=line.trim(); if(!line)return;
-    if(!hasCJK(line)){line.split(/[,，、;；]/).forEach(c=>{const r=parseLine(c);if(r)out.push(r);});return;}
-    // 一行里有多组「英文+中文」用分号隔开
-    line.split(/[;；]/).forEach(c=>{const r=parseLine(c);if(r)out.push(r);});
+  const out=[], seen=new Set();
+  text.split(/[\n,;，；、]+/).forEach(chunk=>{
+    const w=chunk.replace(/[^A-Za-z'’\- ]+/g," ").replace(/\s+/g," ").replace(/^[\s'\-]+|[\s'\-]+$/g,"").trim();
+    if(w&&/[a-z]/i.test(w)&&!seen.has(w.toLowerCase())){seen.add(w.toLowerCase());out.push(w);}
   });
   return out;
 }
@@ -411,33 +483,40 @@ async function fetchJSON(url,ms=6000){
   const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),ms);
   try{const r=await fetch(url,{signal:ctl.signal}); if(!r.ok)return null; return await r.json();}catch(e){return null;}finally{clearTimeout(t);}
 }
-/* 联网补全 Online lookup: 中文 (MyMemory)、音标/例句/发音 (Free Dictionary) */
+/* Online lookup: phonetic spelling, a short example sentence, and a recorded pronunciation */
 async function enrich(word){
-  const jobs=[];
-  if(!word.cn){
-    jobs.push(fetchJSON("https://api.mymemory.translated.net/get?langpair=en|zh-CN&q="+encodeURIComponent(word.w)).then(j=>{
-      const t=j&&j.responseData&&j.responseData.translatedText;
-      if(t&&hasCJK(t)&&!word.cn)word.cn=t.replace(/[。.]$/,"");
-    }));
+  if(word.ipa&&word.ex&&word.audio)return;
+  const j=await fetchJSON("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(word.w.toLowerCase()));
+  if(!Array.isArray(j))return;
+  const e=j[0]; const phs=e.phonetics||[];
+  const ph=e.phonetic||phs.map(p=>p.text).find(Boolean);
+  if(ph&&!word.ipa)word.ipa=ph.startsWith("/")?ph:"/"+ph+"/";
+  const au=phs.find(p=>p.audio&&/-us\./.test(p.audio))||phs.find(p=>p.audio);
+  if(au&&!word.audio)word.audio=au.audio;
+  if(!word.ex){
+    for(const m of e.meanings||[])for(const d of m.definitions||[])
+      if(d.example&&d.example.split(" ").length<=12&&new RegExp("\\b"+word.w.split(" ")[0],"i").test(d.example)){word.ex=d.example.replace(/^./,c=>c.toUpperCase());return;}
   }
-  if(!word.ipa||!word.ex||!word.audio){
-    jobs.push(fetchJSON("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(word.w.toLowerCase())).then(j=>{
-      if(!Array.isArray(j))return;
-      const e=j[0]; const phs=e.phonetics||[];
-      const ph=e.phonetic||phs.map(p=>p.text).find(Boolean);
-      if(ph&&!word.ipa)word.ipa=ph.startsWith("/")?ph:"/"+ph+"/";
-      const au=phs.find(p=>p.audio&&/-us\./.test(p.audio))||phs.find(p=>p.audio);
-      if(au&&!word.audio)word.audio=au.audio;
-      if(!word.ex){
-        for(const m of e.meanings||[])for(const d of m.definitions||[])
-          if(d.example&&d.example.split(" ").length<=12&&new RegExp("\\b"+word.w.split(" ")[0],"i").test(d.example)){word.ex=d.example;return;}
-      }
-    }));
-  }
-  await Promise.all(jobs);
 }
 
-/* ---------------- 列表 Lists ---------------- */
+/* ---------------- Misspellings for "Pick the right spelling" ---------------- */
+function misspellings(w){
+  const s=w.toLowerCase(), out=new Set(), V="aeiou";
+  for(let i=1;i<s.length-1;i++)if(s[i]!==s[i+1]&&s[i]!==" "&&s[i+1]!==" ")out.add(s.slice(0,i)+s[i+1]+s[i]+s.slice(i+2)); // swap two letters
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(i<s.length-1&&c===s[i+1])out.add(s.slice(0,i)+s.slice(i+1)); // one letter instead of two
+    else if(/[bcdfglmnprst]/.test(c)&&i>0)out.add(s.slice(0,i)+c+s.slice(i)); // double a letter
+    if(V.includes(c)){out.add(s.slice(0,i)+s.slice(i+1)); for(const v of V)if(v!==c)out.add(s.slice(0,i)+v+s.slice(i+1));} // drop or change a vowel
+  }
+  [["ie","ei"],["ei","ie"],["ph","f"],["c","k"],["k","c"],["tion","shun"],["ck","k"],["ee","ea"],["ea","ee"],["ou","ow"],["ow","ou"],["y","ie"],["er","ur"],["ai","ay"],["ay","ai"]]
+    .forEach(([a,b])=>{if(s.includes(a))out.add(s.replace(a,b));});
+  out.delete(s);
+  const fix=x=>w[0]===w[0].toUpperCase()?x[0].toUpperCase()+x.slice(1):x;
+  return shuffle([...out].filter(x=>x.length>1&&x.trim()===x)).slice(0,3).map(fix);
+}
+
+/* ---------------- Lists ---------------- */
 function dueOn(day){
   const ws=words(), isToday=day===today();
   const fresh=ws.filter(w=>w.stage===0&&(isToday?w.due<=day:w.due===day));
@@ -451,37 +530,55 @@ function streak(log=state.log){
   return n;
 }
 const SETS={
-  today:{zh:"今天的词",en:"Today",get:()=>{const t=today(),d=dueOn(t);const s=new Set([...d.fresh,...d.review,...words().filter(w=>w.learnedOn===t)]);return [...s];}},
-  tomorrow:{zh:"明天的词",en:"Tomorrow",get:()=>{const d=dueOn(addDays(today(),1));return [...d.fresh,...d.review];}},
-  hard:{zh:"易错词",en:"Mistakes",get:()=>words().filter(w=>(w.lapses||0)>0)},
-  recent:{zh:"最近 3 天",en:"Last 3 days",get:()=>{const t=today();return words().filter(w=>w.added&&dayDiff(w.added,t)<=2);}},
-  all:{zh:"全部",en:"All",get:()=>words()},
+  today:{name:"Today's words",get:()=>{const t=today(),d=dueOn(t);return [...new Set([...d.fresh,...d.review,...words().filter(w=>w.learnedOn===t)])];}},
+  tomorrow:{name:"Tomorrow's words",get:()=>{const d=dueOn(addDays(today(),1));return [...d.fresh,...d.review];}},
+  hard:{name:"Tricky words",get:()=>words().filter(w=>(w.lapses||0)>0)},
+  recent:{name:"Last 3 days",get:()=>{const t=today();return words().filter(w=>w.added&&dayDiff(w.added,t)<=2);}},
+  all:{name:"All words",get:()=>words()},
 };
 
-/* ---------------- 页面 Pages ---------------- */
+/* ---------------- Pages ---------------- */
 let tab="today", bankFilter="all", addTarget="today", practiceSet="today";
-try{tab=migrated?"kids":(sessionStorage.getItem("tab")||"today");practiceSet=sessionStorage.getItem("pset")||"today";}catch(e){}
+try{tab=sessionStorage.getItem("tab")||"today";practiceSet=sessionStorage.getItem("pset")||"today";}catch(e){}
 function setTab(t){tab=t;try{sessionStorage.setItem("tab",t)}catch(e){}render();window.scrollTo(0,0);}
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
-$("#accent").onclick=()=>{root.accent=root.accent==="uk"?"us":"uk";save();pickVoice();render();say("hello");};
+$("#accent").onclick=()=>{root.accent=root.accent==="uk"?"us":"uk";saveLocal();pickVoice();render();say("hello");};
+$("#soundTest").onclick=()=>say("Hello! Let's spell some words.");
+$("#kid").onclick=()=>setTab("kids");
 
 function chipList(ws,empty){
   if(!ws.length)return `<p class="muted" style="margin:0">${empty}</p>`;
-  return `<div class="words">${ws.map(w=>`<span class="w">${esc(w.w)}<small>${esc(w.cn||"")}</small></span>`).join("")}</div>`;
+  return `<div class="words">${ws.map(w=>`<span class="w">${esc(w.w)}</span>`).join("")}</div>`;
 }
 function render(){
   const noKid=!root.current; if(noKid)tab="kids";
-  $("nav.tabs").hidden=noKid; ["#streak","#total","#kid"].forEach(x=>$(x).hidden=noKid);
-  if(!noKid){$("#kid").textContent=`👤 ${state.name} · 换人 Switch`;}
+  $("nav.tabs").hidden=noKid; ["#streak","#kid"].forEach(x=>$(x).hidden=noKid);
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
-  const s=streak();
-  $("#streak").textContent=s?`连续 ${s} 天 · ${s}-day streak`:"今天开始打卡 · Start today";
-  const mastered=words().filter(w=>w.stage>=MASTER).length;
-  $("#total").textContent=`词库 ${words().length} Words · 已掌握 ${mastered} Mastered`;
-  $("#accent").textContent=root.accent==="uk"?"🔊 英音 UK":"🔊 美音 US";
-  const v=$("#view");
-  v.innerHTML=({kids:viewKids,today:viewToday,practice:viewPractice,tomorrow:viewTomorrow,add:viewAdd,bank:viewBank})[tab]();
+  if(!noKid){
+    $("#kid").textContent=`👤 ${state.name} · Switch`;
+    const s=streak(); $("#streak").textContent=s?`🔥 ${s}-day streak`:"Start your streak today";
+  }
+  setSync(syncState);
+  $("#accent").textContent=root.accent==="uk"?"🇬🇧 UK voice":"🇺🇸 US voice";
+  $("#view").innerHTML=({kids:viewKids,today:viewToday,practice:viewPractice,tomorrow:viewTomorrow,add:viewAdd,bank:viewBank})[tab]();
   bind();
+}
+
+let kidMsg="";
+function viewKids(){
+  const ks=Object.entries(root.books);
+  return `<div class="stack">
+    <div class="card stack">
+      <h2>Who's learning today?</h2>
+      <p class="muted" style="margin:0">Type your name. Your words and progress are saved online, so they are here every day, on any iPad.</p>
+      <div class="login"><input type="text" id="kidName" maxlength="24" placeholder="Your name, e.g. WDY" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <button class="btn primary big" id="kidGo">Go</button></div>
+      ${kidMsg?`<div class="notice ${/offline|not/i.test(kidMsg)?"warn":""}">${esc(kidMsg)}</div>`:""}
+    </div>
+    ${ks.length?`<div class="card stack"><h3>On this iPad</h3><div class="kids">${ks.map(([k,b])=>`
+      <button class="kid" data-open="${esc(b.name||k)}"><span class="ava">${esc(([...(b.name||k)][0]||"?").toUpperCase())}</span>
+      <span><span class="nm">${esc(b.name||k)}</span><br><span class="muted small">${Object.keys(b.words||{}).length} words${k===root.current?" · now":""}</span></span></button>`).join("")}</div></div>`:""}
+  </div>`;
 }
 
 function viewToday(){
@@ -489,269 +586,217 @@ function viewToday(){
   const fc=[...Array(7)].map((_,k)=>{const d=addDays(t,k);const x=dueOn(d);return {d,n:x.fresh.length+x.review.length};});
   const max=Math.max(1,...fc.map(f=>f.n));
   const learnedToday=words().filter(w=>w.learnedOn===t);
+  const all=SETS.today.get();
+  if(!words().length)return `<div class="card stack" style="text-align:center;padding:40px 20px">
+    <h2>Hi ${esc(state.name)}! Your word list is empty.</h2>
+    <p class="muted" style="margin:0">Add the words you want to learn, and they will be saved for every day.</p>
+    <div><button class="btn primary big" data-go="add">Add words</button></div></div>`;
   return `<div class="stack">
-    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="muted">${esc(state.name)}，今天加油！Go, ${esc(state.name)}! · ${niceDateEn(t)}</div><div class="date">${niceDate(t)}</div></div>
-      ${log?`<span class="chip" style="background:var(--green-soft);color:var(--green)">今天已练 ${log.done||0} 个 · ${log.done||0} practised today</span>`:""}</div>
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="muted">Hi ${esc(state.name)}, let's go!</div><div class="date">${niceDate(t)}</div></div>
+      ${log?`<span class="chip ok">✔ ${log.done||0} words practised today</span>`:""}</div>
     <div class="grid-home">
       <div class="card stack">
-        <div class="row"><div class="big-num">${fresh.length}</div><div><h3 style="margin:0">学新词 <span class="enl">New Words</span></h3><div class="muted small">看 · 认 · 拼 · 默 · 听写</div></div></div>
-        ${chipList(fresh,"今天没有新词。No new words today.")}
-        <div class="row">${fresh.length?`<button class="btn primary big" data-act="learn">${L("开始学习","Start Learning")}</button>`:`<button class="btn" data-go="add">${L("添加单词","Add Words")}</button>`}</div>
+        <div class="row"><div class="big-num">${fresh.length}</div><div><h3 style="margin:0">New words</h3><div class="muted small">Look · Pick · Build · Write · Dictation</div></div></div>
+        ${chipList(fresh,"No new words for today.")}
+        <div class="row">${fresh.length?`<button class="btn primary big" data-act="learn">Start learning</button>`:`<button class="btn" data-go="add">Add words</button>`}</div>
       </div>
       <div class="card stack">
-        <div class="row"><div class="big-num">${review.length}</div><div><h3 style="margin:0">复习 <span class="enl">Review</span></h3><div class="muted small">按遗忘曲线安排 · Spaced review</div></div></div>
-        ${chipList(review,"今天没有要复习的词。Nothing to review today.")}
-        <div class="row">${review.length?`<button class="btn primary big" data-act="review">${L("开始复习","Start Review")}</button>`:""}</div>
+        <div class="row"><div class="big-num">${review.length}</div><div><h3 style="margin:0">Review</h3><div class="muted small">Words you learned before</div></div></div>
+        ${chipList(review,"Nothing to review today.")}
+        <div class="row">${review.length?`<button class="btn primary big" data-act="review">Start review</button>`:""}</div>
       </div>
       <div class="card stack" style="background:var(--sun-soft)">
-        <div class="row"><div class="big-num" style="color:var(--fg)">🎮</div><div><h3 style="margin:0">拼写游戏 <span class="enl">Spelling Game</span></h3><div class="muted small">把今天的词一起拼一遍 · All today's words</div></div></div>
-        ${chipList(SETS.today.get().slice(0,12),"先添加单词再玩。Add words first.")}
-        <div class="row">${SETS.today.get().length?`<button class="btn sun big" data-quick="game">${L("开始游戏","Play")}</button>`:""}
-        <button class="btn" data-go="practice">${L("更多练习","More Practice")}</button></div>
+        <div class="row"><div class="big-num" style="color:var(--fg)">🎮</div><div><h3 style="margin:0">Spelling Game</h3><div class="muted small">Spell all of today's words</div></div></div>
+        ${chipList(all.slice(0,12),"Add words first.")}
+        <div class="row">${all.length?`<button class="btn sun big" data-quick="game">Play</button>`:""}<button class="btn" data-go="practice">More practice</button></div>
       </div>
     </div>
-    ${learnedToday.length&&!fresh.length?`<div class="card row" style="justify-content:space-between"><div><h3 style="margin:0">今天学了 ${learnedToday.length} 个词 <span class="enl">Learned today</span></h3><div class="muted small">睡前再听写一遍，记得更牢 · A dictation before bed helps it stick</div></div><button class="btn" data-quick="dict">${L("听写一遍","Dictation")}</button></div>`:""}
+    ${learnedToday.length&&!fresh.length?`<div class="card row" style="justify-content:space-between"><div><h3 style="margin:0">You learned ${learnedToday.length} words today</h3><div class="muted small">One more dictation before bed helps them stick.</div></div><button class="btn" data-quick="dict">Dictation</button></div>`:""}
     <div>
-      <h3>每个新词都走这 5 步 <span class="enl">5 steps for every new word</span></h3>
+      <h3>5 steps for every new word</h3>
       <div class="steps">
-        <div class="step"><b>看一看</b>Look &amp; Listen · 听发音、看中文、按音节读</div>
-        <div class="step"><b>认一认</b>Match · 英中互选</div>
-        <div class="step"><b>拼一拼</b>Build · 按顺序点字母</div>
-        <div class="step"><b>默一默</b>Look, Cover, Write, Check · 看、盖、写、查</div>
-        <div class="step"><b>听写</b>Dictation · 只听发音写单词</div>
+        <div class="step"><b>Look &amp; Listen</b>Hear it, see the chunks, spell it out loud</div>
+        <div class="step"><b>Pick</b>Find the right spelling</div>
+        <div class="step"><b>Build</b>Tap the letters in order</div>
+        <div class="step"><b>Cover &amp; Write</b>Look, cover, write, check</div>
+        <div class="step"><b>Dictation</b>Hear it and write it</div>
       </div>
-      <p class="muted small" style="margin:8px 0 0">每 5 个词一组，最后全部听写。学会的词在第 1、2、4、7、15、30、60 天后自动复习。Words come back for review after 1, 2, 4, 7, 15, 30 and 60 days.</p>
+      <p class="muted small" style="margin:8px 0 0">New words are learned 5 at a time. Learned words come back after 1, 2, 4, 7, 15, 30 and 60 days, just before you would forget them.</p>
     </div>
     <div class="card">
-      <h3>未来 7 天 <span class="enl">Next 7 days</span></h3>
-      <div class="forecast">${fc.map((f,k)=>`<div><div class="n">${f.n}</div><div class="bar"><i style="height:${f.n/max*100}%"></i></div><div class="muted">${k===0?"今天<br>Today":k===1?"明天<br>Tmrw":"周"+WEEK[pdate(f.d).getDay()]+"<br>"+WEEK_EN[pdate(f.d).getDay()]}</div></div>`).join("")}</div>
+      <h3>Next 7 days</h3>
+      <div class="forecast">${fc.map((f,k)=>`<div><div class="n">${f.n}</div><div class="bar"><i style="height:${f.n/max*100}%"></i></div><div class="muted">${k===0?"Today":k===1?"Tmrw":WEEK[pdate(f.d).getDay()]}</div></div>`).join("")}</div>
     </div>
   </div>`;
-}
-
-const AVA=["#2742a8","#d8342c","#1d8a4c","#b86e00","#7a3fb0","#0f7c8c"];
-let renaming=null, kidMsg=migrated?"原来的单词已放进「我的孩子」，点「改名」换成孩子的名字。Your existing words are in \"我的孩子\"; tap Rename to use your child's name.":"";
-function viewKids(){
-  const ks=Object.values(root.profiles);
-  return `<div class="stack">
-    <div class="card stack">
-      <h2>谁来学单词？<span class="enl">Who's learning?</span></h2>
-      ${kidMsg?`<div class="notice">${esc(kidMsg)}</div>`:""}
-      ${ks.length?`<div class="kids">${ks.map(kidCard).join("")}</div>`:`<p class="muted" style="margin:0">先输入孩子的名字。每个孩子有自己的单词列表、复习计划和游戏分数。<br>Enter your child's name. Each child gets their own word lists, review plan and game scores.</p>`}
-    </div>
-    <div class="card stack">
-      <h3>添加孩子 <span class="enl">Add a child</span></h3>
-      <div class="row"><input type="text" id="kidName" maxlength="20" placeholder="孩子的名字 Child's name，例如 问底" style="flex:1;min-width:200px;font-family:var(--body)">
-      <button class="btn primary big" id="kidAdd">${L("添加","Add")}</button></div>
-    </div>
-  </div>`;
-}
-function kidCard(k){
-  const ws=Object.values(k.words||{}), m=ws.filter(w=>w.stage>=MASTER).length, s=streak(k.log);
-  const cur=k.id===root.current;
-  const name=renaming===k.id
-    ?`<input type="text" id="renameIn" maxlength="20" value="${esc(k.name)}" style="font-family:var(--body);font-size:18px">`
-    :`<div class="nm">${esc(k.name)}</div>`;
-  return `<div class="kid ${cur?"cur":""}">
-    <div class="who"><div class="ava" style="background:${AVA[(k.color||0)%AVA.length]}">${esc([...k.name][0]||"?")}</div>
-      <div style="min-width:0;flex:1">${name}<div class="muted small">${ws.length} 个词 words · 已掌握 ${m} mastered${s?` · 连续 ${s} 天 ${s}-day streak`:""}${cur?" · 正在使用 Current":""}</div></div></div>
-    ${renaming===k.id?`<div class="colors">${AVA.map((c,i)=>`<button style="background:${c}" class="${(k.color||0)===i?"on":""}" data-color="${i}" aria-label="颜色 color ${i+1}"></button>`).join("")}</div>`:""}
-    <div class="row">
-      ${renaming===k.id?`<button class="btn primary" data-kid-save="${k.id}">${L("保存","Save")}</button>`
-        :`<button class="btn primary" data-kid-go="${k.id}">${L("开始学习","Start")}</button><button class="btn" data-kid-ren="${k.id}">${L("改名","Rename")}</button><button class="btn del" data-kid-del="${k.id}">${L("删除","Delete")}</button>`}
-    </div>
-  </div>`;
-}
-function bindKids(){
-  const addKid=()=>{
-    const inp=$("#kidName"), name=inp.value.trim().slice(0,20); if(!name){inp.focus();return;}
-    const id=uid(); root.profiles[id]={id,name,color:Object.keys(root.profiles).length%AVA.length,...blankBook()};
-    useKid(id); kidMsg=""; addMsg=`已为「${esc(name)}」建好单词本，现在输入要学的单词吧。${esc(name)}'s word book is ready. Type the words to learn.`;
-    setTab("add");
-  };
-  const ka=$("#kidAdd"); if(ka){ka.onclick=addKid;$("#kidName").onkeydown=e=>{if(e.key==="Enter")addKid();};}
-  document.querySelectorAll("[data-kid-go]").forEach(b=>b.onclick=()=>{useKid(b.dataset.kidGo);kidMsg="";setTab("today");});
-  document.querySelectorAll("[data-kid-ren]").forEach(b=>b.onclick=()=>{renaming=b.dataset.kidRen;render();const i=$("#renameIn");if(i){i.focus();i.select();}});
-  document.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{root.profiles[renaming].color=+b.dataset.color;const v=$("#renameIn").value;render();$("#renameIn").value=v;});
-  const saveName=()=>{const k=root.profiles[renaming], v=$("#renameIn").value.trim().slice(0,20); if(k&&v)k.name=v; renaming=null; kidMsg=""; save(); render();};
-  document.querySelectorAll("[data-kid-save]").forEach(b=>b.onclick=saveName);
-  const ri=$("#renameIn"); if(ri)ri.onkeydown=e=>{if(e.key==="Enter")saveName();};
-  document.querySelectorAll("[data-kid-del]").forEach(b=>b.onclick=()=>{
-    const k=root.profiles[b.dataset.kidDel];
-    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.innerHTML=L(`删除${esc(k.name)}的全部单词？`,"Delete all words?");setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("confirm");b.innerHTML=L("删除","Delete");}},3500);return;}
-    delete root.profiles[k.id];
-    if(root.current===k.id){const first=Object.keys(root.profiles)[0]; if(first)useKid(first); else {root.current=null;state=blankBook();}}
-    save(); render();
-  });
 }
 
 function viewPractice(){
   const ws=(SETS[practiceSet]||SETS.today).get();
+  const dis=ws.length?"":"disabled";
   return `<div class="stack">
     <div class="card stack">
-      <h2>选择单词 <span class="enl">Choose words</span></h2>
-      <div class="seg">${Object.entries(SETS).map(([k,s])=>`<button class="${k===practiceSet?"on":""}" data-set="${k}">${s.zh} ${s.en} · ${s.get().length}</button>`).join("")}</div>
-      ${chipList(ws,"这一组没有单词。No words in this group.")}
+      <h2>Choose words</h2>
+      <div class="seg">${Object.entries(SETS).map(([k,s])=>`<button class="${k===practiceSet?"on":""}" data-set="${k}">${s.name} · ${s.get().length}</button>`).join("")}</div>
+      ${chipList(ws,"No words in this group.")}
     </div>
     <div class="modes">
-      <button class="mode game" data-mode="game" ${ws.length?"":"disabled"}><span class="ic">🎮</span><b>拼写游戏</b><span class="enl">Spelling Game</span><span class="d">所有词连着拼，比分数和速度。All words in one game, score and time.</span></button>
-      <button class="mode" data-mode="dict" ${ws.length?"":"disabled"}><span class="ic">🎧</span><b>听写</b><span class="enl">Dictation</span><span class="d">只听发音，写出单词。Listen and write.</span></button>
-      <button class="mode" data-mode="mx" ${ws.length?"":"disabled"}><span class="ic">✍️</span><b>默写</b><span class="enl">Write from Memory</span><span class="d">看中文，默写英文。See Chinese, write English.</span></button>
-      <button class="mode" data-mode="full" ${ws.length?"":"disabled"}><span class="ic">📘</span><b>完整五步</b><span class="enl">Full 5 Steps</span><span class="d">看、认、拼、默、听写全来一遍。All five steps.</span></button>
+      <button class="mode game" data-mode="game" ${dis}><span class="ic">🎮</span><b>Spelling Game</b><span class="d">All the words in one game. Get points and streaks. Be quick!</span></button>
+      <button class="mode" data-mode="dict" ${dis}><span class="ic">🎧</span><b>Dictation</b><span class="d">Hear the word (and a sentence), then write it.</span></button>
+      <button class="mode" data-mode="lcwc" ${dis}><span class="ic">✍️</span><b>Cover &amp; Write</b><span class="d">Look at the word, cover it, write it, check it.</span></button>
+      <button class="mode" data-mode="full" ${dis}><span class="ic">📘</span><b>All 5 Steps</b><span class="d">Look, pick, build, cover &amp; write, dictation.</span></button>
     </div>
-    <p class="muted small" style="margin:0">练习不改变复习计划，写错的词会进入「易错词」。Practice doesn't change the review plan; misspelled words go to Mistakes.${state.best?` · 游戏最高分 Best score: <b>${state.best}</b>`:""}</p>
+    <p class="muted small" style="margin:0">Practice does not change the review plan. Words you misspell go to Tricky words.${state.best?` · Best game score: <b>${state.best}</b>`:""}</p>
   </div>`;
 }
 
 function viewTomorrow(){
   const t=addDays(today(),1), {fresh,review}=dueOn(t);
   return `<div class="stack">
-    <div><div class="muted">明天 · ${niceDateEn(t)}</div><div class="date">${niceDate(t)}</div></div>
-    <div class="grid-home" style="grid-template-columns:1fr 1fr">
-    <div class="card stack"><h3>新词 ${fresh.length} 个 <span class="enl">New words</span></h3>${chipList(fresh,"还没有安排明天的新词。No new words planned yet.")}
-      <div class="row"><button class="btn primary" data-go="add" data-target="tomorrow">${L("给明天添加单词","Add words for tomorrow")}</button>
-      ${fresh.length?`<button class="btn" data-set-go="tomorrow">${L("提前预习","Preview now")}</button>`:""}</div></div>
-    <div class="card stack"><h3>复习 ${review.length} 个 <span class="enl">Review</span></h3>${chipList(review,"明天没有要复习的词。Nothing to review tomorrow.")}</div>
+    <div><div class="muted">Tomorrow</div><div class="date">${niceDate(t)}</div></div>
+    <div class="grid-home" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div class="card stack"><h3>New words · ${fresh.length}</h3>${chipList(fresh,"No new words planned yet.")}
+      <div class="row"><button class="btn primary" data-go="add" data-target="tomorrow">Add words for tomorrow</button>
+      ${fresh.length?`<button class="btn" data-set-go="tomorrow">Practise now</button>`:""}</div></div>
+    <div class="card stack"><h3>Review · ${review.length}</h3>${chipList(review,"Nothing to review tomorrow.")}</div>
     </div>
   </div>`;
 }
 
 let addMsg="", addDraft="";
-function previewTable(){
-  const items=parseInput(addDraft);
-  if(!items.length)return `<div class="empty small">在左边输入后，这里会显示识别结果。<br>What you type will be matched here.</div>`;
-  return `<table class="pv-table"><tr><th>英文 English</th><th>中文 Chinese</th><th></th></tr>${items.map(({w,cn})=>{
-    const auto=!cn&&DICT[w.toLowerCase()], old=findWord(w);
-    return `<tr><td class="e">${esc(w)}</td><td>${cn?esc(cn):auto?`<span>${esc(auto)}</span> <span class="auto small">词典 dict</span>`:`<span class="auto">联网查询 look up online</span>`}</td><td class="small muted">${old?"已有 exists":""}</td></tr>`;}).join("")}</table>`;
-}
 function viewAdd(){
-  return `<div class="stack">
-    <div class="add-grid">
+  const items=parseInput(addDraft);
+  return `<div class="add-grid">
       <div class="card stack">
-        <div><h2>输入单词 <span class="enl">Type your words</span></h2>
-        <div class="muted small">一行一个，中文英文一起写，顺序随意。One per line, English and Chinese in any order:<br>
-        <span class="w">apple 苹果</span> <span class="w">大象 elephant</span> <span class="w">library</span></div></div>
-        <textarea id="addText" placeholder="apple 苹果&#10;大象 elephant&#10;beautiful 美丽的&#10;library&#10;Wednesday 星期三" autocapitalize="none" autocorrect="off" spellcheck="false">${esc(addDraft)}</textarea>
+        <div><h2>Add words</h2><div class="muted small">One word per line, or separate them with commas. They are saved for ${esc(state.name)} and stay here every day.</div></div>
+        <textarea id="addText" placeholder="apple&#10;elephant&#10;beautiful&#10;library&#10;Wednesday" autocapitalize="none" autocorrect="off" spellcheck="false">${esc(addDraft)}</textarea>
         <div class="row">
-          <span class="muted">加到 Add to:</span>
-          <label class="opt"><input type="radio" name="tgt" value="today" ${addTarget==="today"?"checked":""}> 今天 Today</label>
-          <label class="opt"><input type="radio" name="tgt" value="tomorrow" ${addTarget==="tomorrow"?"checked":""}> 明天 Tomorrow</label>
+          <span class="muted">Learn them:</span>
+          <label class="opt"><input type="radio" name="tgt" value="today" ${addTarget==="today"?"checked":""}> Today</label>
+          <label class="opt"><input type="radio" name="tgt" value="tomorrow" ${addTarget==="tomorrow"?"checked":""}> Tomorrow</label>
         </div>
-        <div class="row"><button class="btn primary big" id="addBtn">${L("保存到列表","Save to list")}</button></div>
+        <div class="row"><button class="btn primary big" id="addBtn">Save words</button></div>
         ${addMsg?`<div class="notice">${addMsg}</div>`:""}
       </div>
-      <div class="card stack"><h3>识别结果 <span class="enl">Preview</span></h3><div id="pv">${previewTable()}</div>
-        <p class="muted small" style="margin:0">没写中文的词，先查内置词典，再联网查中文、音标和例句。Missing Chinese is filled from the built-in dictionary, then online.</p></div>
-    </div>
-    ${missingCard()}
-  </div>`;
+      <div class="card stack"><h3>Words found · <span id="pvn">${items.length}</span></h3><div id="pv">${previewList(items)}</div>
+        <p class="muted small" style="margin:0">Only English letters are kept. You can delete any word later in My Words.</p></div>
+    </div>`;
 }
-function missingCard(){
-  const miss=words().filter(w=>!w.cn);
-  if(!miss.length)return "";
-  return `<div class="card stack"><h3>这些词还缺中文，请填一下 <span class="enl">Please add Chinese</span></h3><div class="list">${miss.map(itemRow).join("")}</div></div>`;
+function previewList(items){
+  if(!items.length)return `<div class="empty small">The words you type will show here.</div>`;
+  return `<div class="words">${items.map(w=>`<span class="w">${esc(w)}${findWord(w)?` <small class="muted">(already saved)</small>`:""}</span>`).join("")}</div>`;
 }
 function itemRow(w){
   const t=today(), dd=dayDiff(t,w.due);
-  let when = w.stage===0?(dd<=0?"今天学 Learn today":dd===1?"明天学 Learn tomorrow":niceDate(w.due)+"学")
-    : dd<=0?"今天复习 Review today":dd===1?"明天复习 Review tomorrow":`${dd} 天后复习 Review in ${dd} days`;
-  if(w.stage>=MASTER)when="已掌握 Mastered · "+when;
-  return `<div class="item" data-id="${w.id}">
-    <button class="icon-btn" data-say="${esc(w.w)}" aria-label="发音 Play">🔊</button>
-    <div class="cn"><div class="en">${esc(w.w)} <span class="ipa">${esc(w.ipa||"")}</span></div>
-      <input type="text" data-cn="${w.id}" value="${esc(w.cn||"")}" placeholder="填写中文 Add Chinese">
-      <div class="row" style="gap:8px;margin-top:4px"><span class="dots">${[...Array(MASTER)].map((_,k)=>`<i class="${k<w.stage?"on":""}"></i>`).join("")}</span><span class="muted" style="font-size:12px">${when}${w.lapses?` · 错 ${w.lapses} 次 Missed ${w.lapses}×`:""}</span></div></div>
-    <button class="icon-btn del" data-del="${w.id}" aria-label="删除 Delete">🗑</button>
+  let when = w.stage===0?(dd<=0?"Learn today":dd===1?"Learn tomorrow":"Learn on "+niceDate(w.due))
+    : dd<=0?"Review today":dd===1?"Review tomorrow":`Review in ${dd} days`;
+  if(w.stage>=MASTER)when="Mastered · "+when;
+  return `<div class="item">
+    <button class="icon-btn" data-say="${esc(w.w)}" aria-label="Play">🔊</button>
+    <div style="min-width:0"><div class="en">${esc(w.w)} <span class="ipa">${esc(w.ipa||"")}</span></div>
+      <div class="row" style="gap:8px"><span class="dots">${[...Array(MASTER)].map((_,k)=>`<i class="${k<w.stage?"on":""}"></i>`).join("")}</span><span class="muted" style="font-size:13px">${when}${w.lapses?` · missed ${w.lapses}×`:""}</span></div></div>
+    <button class="icon-btn" data-del="${w.id}" aria-label="Delete">🗑</button>
   </div>`;
 }
 const BANK_F={all:()=>true,new:w=>w.stage===0,learning:w=>w.stage>0&&w.stage<MASTER,master:w=>w.stage>=MASTER,hard:w=>(w.lapses||0)>0};
 function viewBank(){
   const ws=words().filter(BANK_F[bankFilter]).sort((a,b)=>a.due.localeCompare(b.due)||a.w.localeCompare(b.w));
-  const names={all:"全部 All",new:"未学 New",learning:"学习中 Learning",master:"已掌握 Mastered",hard:"易错词 Mistakes"};
-  return `<div class="card">
+  const names={all:"All",new:"Not learned yet",learning:"Learning",master:"Mastered",hard:"Tricky"};
+  return `<div class="card stack">
     <div class="filters">${Object.keys(names).map(k=>`<button class="${k===bankFilter?"on":""}" data-filter="${k}">${names[k]} · ${words().filter(BANK_F[k]).length}</button>`).join("")}</div>
-    ${ws.length?`<div class="bank-list">${ws.map(itemRow).join("")}</div>`:`<div class="empty">这里还没有单词。No words here yet.</div>`}
+    ${ws.length?`<div class="bank-list">${ws.map(itemRow).join("")}</div>`:`<div class="empty">No words here yet.</div>`}
+    ${words().length?`<div class="row" style="justify-content:flex-end"><button class="btn" id="delAll">🗑 Delete all words</button></div>`:""}
   </div>`;
 }
 
 function bind(){
-  bindKids();
-  $("#kid").onclick=()=>setTab("kids");
+  const go=async()=>{
+    const inp=$("#kidName"), name=inp.value.trim().slice(0,24); if(!name){inp.focus();return;}
+    await openKid(name);
+  };
+  const kg=$("#kidGo"); if(kg){kg.onclick=go;$("#kidName").onkeydown=e=>{if(e.key==="Enter")go();};}
+  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openKid(b.dataset.open));
   document.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{if(b.dataset.target)addTarget=b.dataset.target;setTab(b.dataset.go);});
   document.querySelectorAll("[data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say));
   document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{bankFilter=b.dataset.filter;render();});
   document.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.set;try{sessionStorage.setItem("pset",practiceSet)}catch(e){}render();});
   document.querySelectorAll("[data-set-go]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.setGo;setTab("practice");});
-  document.querySelectorAll("[data-cn]").forEach(i=>i.onchange=()=>{const w=state.words[i.dataset.cn];if(w){w.cn=i.value.trim();save();}});
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
-    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="确认删除 Delete?";setTimeout(()=>{b.classList.remove("confirm");b.textContent="🗑";},3000);return;}
+    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Delete?";setTimeout(()=>{b.classList.remove("confirm");b.textContent="🗑";},3000);return;}
     delete state.words[b.dataset.del];save();render();});
+  const da=$("#delAll"); if(da)da.onclick=()=>{
+    if(!da.classList.contains("danger")){da.classList.add("danger");da.textContent=`Tap again to delete all ${words().length} words`;setTimeout(()=>{if(document.body.contains(da)){da.classList.remove("danger");da.textContent="🗑 Delete all words";}},4000);return;}
+    state.words={};save();render();};
   document.querySelectorAll("input[name=tgt]").forEach(r=>r.onchange=()=>addTarget=r.value);
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
-    const a=b.dataset.act, d=dueOn(today());
-    if(a==="learn")startSession("learn",d.fresh.map(w=>w.id));
-    if(a==="review")startSession("review",d.review.map(w=>w.id));
+    const d=dueOn(today());
+    if(b.dataset.act==="learn")startSession("learn",d.fresh.map(w=>w.id));
+    if(b.dataset.act==="review")startSession("review",d.review.map(w=>w.id));
   });
   document.querySelectorAll("[data-quick]").forEach(b=>b.onclick=()=>startSession(b.dataset.quick,SETS.today.get().map(w=>w.id)));
   document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>startSession(b.dataset.mode,(SETS[practiceSet]||SETS.today).get().map(w=>w.id)));
-  const ta=$("#addText"); if(ta)ta.oninput=()=>{addDraft=ta.value;$("#pv").innerHTML=previewTable();};
+  const ta=$("#addText"); if(ta)ta.oninput=()=>{addDraft=ta.value;const it=parseInput(addDraft);$("#pv").innerHTML=previewList(it);$("#pvn").textContent=it.length;};
   const ab=$("#addBtn"); if(ab)ab.onclick=addWords;
+}
+async function openKid(name){
+  const b=$("#kidGo"); if(b){b.disabled=true;b.textContent="Loading…";}
+  await openBook(name);
+  kidMsg=syncState==="error"?"You're offline, so this uses the copy saved on this iPad. It will upload when the internet is back.":"";
+  addMsg="";
+  setTab(words().length?"today":"add");
 }
 
 async function addWords(){
   const btn=$("#addBtn"), items=parseInput($("#addText").value);
-  if(!items.length){addMsg="没有找到英文单词。No English words found. 例如 e.g. apple 苹果";render();return;}
+  if(!items.length){addMsg="No English words found. Type one word per line.";render();return;}
   const due=addTarget==="tomorrow"?addDays(today(),1):today();
-  let added=[],dup=[];
-  items.forEach(({w,cn})=>{
+  const added=[],dup=[];
+  items.forEach(w=>{
     const old=findWord(w);
-    if(old){ if(cn)old.cn=cn; if(old.stage===0)old.due=due; dup.push(w); return;}
+    if(old){if(old.stage===0)old.due=due;dup.push(w);return;}
     const id=uid();
-    state.words[id]={id,w,cn:cn||DICT[w.toLowerCase()]||"",ipa:"",ex:"",stage:0,due,added:today(),lapses:0};
+    state.words[id]={id,w,ipa:"",ex:"",stage:0,due,added:today(),lapses:0};
     added.push(state.words[id]);
   });
   save();
-  btn.disabled=true; btn.innerHTML=L("正在联网查询…","Looking up online…");
+  btn.disabled=true; btn.textContent="Saving…";
   await Promise.all(added.map(enrich));
   save();
-  const miss=added.filter(w=>!w.cn).length;
-  const where=addTarget==="tomorrow"?"明天 tomorrow":"今天 today";
-  addMsg=`已添加 ${added.length} 个新词到${where}的列表。Added ${added.length} words.`+(dup.length?` 已在词库 Already saved: ${dup.map(esc).join(", ")}。`:"")+(miss?` ${miss} 个词没查到中文，请在下面补上。Please add Chinese below.`:"");
+  addMsg=`Saved ${added.length} new word${added.length===1?"":"s"} for ${addTarget}.`+(dup.length?` Already in your list: ${dup.map(esc).join(", ")}.`:"");
   addDraft="";
   render();
 }
 
-/* ---------------- 学习流程 Session engine ---------------- */
+/* ---------------- Practice engine ---------------- */
 let S=null, timerH=null;
-const MODE_NAME={learn:["学新词","New Words"],review:["复习","Review"],full:["完整五步","Full 5 Steps"],dict:["听写","Dictation"],mx:["默写","Write from Memory"],game:["拼写游戏","Spelling Game"]};
+const MODE_NAME={learn:"New Words",review:"Review",full:"All 5 Steps",dict:"Dictation",lcwc:"Cover & Write",game:"Spelling Game"};
 function fullTasks(ids,tasks){
   const groups=[]; for(let i=0;i<ids.length;i+=5)groups.push(ids.slice(i,i+5));
   groups.forEach((g,k)=>{
-    tasks.push({t:"intro",zh:groups.length>1?`第 ${k+1} 组（共 ${groups.length} 组）`:`${g.length} 个新词`,en:groups.length>1?`Group ${k+1} of ${groups.length}`:`${g.length} new words`,sub:"先看一看、听一听，再认、拼、默写。Look and listen first, then match, build and write.",ids:g});
+    tasks.push({t:"intro",title:groups.length>1?`Group ${k+1} of ${groups.length}`:`${g.length} new word${g.length===1?"":"s"}`,sub:"First look and listen. Then pick, build and write.",ids:g});
     g.forEach(id=>tasks.push({t:"preview",id}));
-    shuffle(g).forEach(id=>tasks.push({t:"recog",id}));
+    shuffle(g).forEach(id=>tasks.push({t:"pick",id}));
     shuffle(g).forEach(id=>tasks.push({t:"tiles",id}));
     shuffle(g).forEach(id=>tasks.push({t:"lcwc",id}));
   });
-  tasks.push({t:"intro",zh:"最后：全部听写",en:"Final dictation",sub:`听发音写出单词，一共 ${ids.length} 个，写错的会再考一次。Listen and write all ${ids.length} words. Mistakes come back once more.`});
+  tasks.push({t:"intro",title:"Final dictation",sub:`Listen and write all ${ids.length} words. Any mistakes come back once more.`});
   shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
 }
 function startSession(mode,ids){
   ids=ids.filter(id=>state.words[id]); if(!ids.length)return;
-  const tasks=[], n=ids.length;
+  const tasks=[], n=ids.length, s=n===1?"":"s";
   if(mode==="learn"||mode==="full")fullTasks(ids,tasks);
   else if(mode==="review"){
-    tasks.push({t:"intro",zh:`复习 ${n} 个词`,en:`Review ${n} words`,sub:"先认一认，再听写。写错的词会再看一遍、再写一遍。Match first, then dictation. Mistakes get another look."});
-    shuffle(ids).forEach(id=>tasks.push({t:"recog",id}));
+    tasks.push({t:"intro",title:`Review ${n} word${s}`,sub:"Pick the right spelling, then write each word from dictation."});
+    shuffle(ids).forEach(id=>tasks.push({t:"pick",id}));
     shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
   }else if(mode==="dict"){
-    tasks.push({t:"intro",zh:`听写 ${n} 个词`,en:`Dictation · ${n} words`,sub:"听发音写出单词，按回车或「检查」提交。Listen, type, then press Enter or Check."});
+    tasks.push({t:"intro",title:`Dictation · ${n} word${s}`,sub:"Listen, type the word, then press Enter or Check. Tap Sentence to hear it used."});
     shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
-  }else if(mode==="mx"){
-    tasks.push({t:"intro",zh:`默写 ${n} 个词`,en:`Write from memory · ${n} words`,sub:"看中文写英文。想不起来可以点「听一听」或「首字母」提示。See the Chinese, write the English. Use a hint if you're stuck."});
-    shuffle(ids).forEach(id=>tasks.push({t:"mx",id}));
+  }else if(mode==="lcwc"){
+    tasks.push({t:"intro",title:`Cover & Write · ${n} word${s}`,sub:"Look carefully, cover the word, write it from memory, then check."});
+    shuffle(ids).forEach(id=>tasks.push({t:"lcwc",id}));
   }else if(mode==="game"){
-    tasks.push({t:"intro",zh:`拼写游戏 · ${n} 个词`,en:`Spelling Game · ${n} words`,sub:"听发音、看中文，按顺序点字母。连对有连击加分，点错会扣分。越快越好！Tap letters in order. Streaks earn bonus points, wrong taps cost points. Be quick!",game:true});
+    tasks.push({t:"intro",title:`Spelling Game · ${n} word${s}`,sub:"Listen and tap the letters in order. Streaks earn bonus points, wrong taps lose points. Be quick!",game:true});
     shuffle(ids).forEach(id=>tasks.push({t:"game",id,kind:Math.random()<.5?"build":"gap"}));
   }
   S={mode,ids,tasks,i:0,res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0}])),score:0,combo:0,hits:0,misses:0,t0:0};
@@ -763,97 +808,88 @@ function endSession(){S=null;clearInterval(timerH);$("#session").hidden=true;doc
 $("#quit").onclick=()=>{
   const b=$("#quit");
   if(!S||S.tasks[S.i]?.t==="done"){endSession();return;}
-  if(!b.classList.contains("confirm")){b.classList.add("confirm","del");b.textContent="退出? Quit?";setTimeout(()=>{b.classList.remove("confirm","del");b.textContent="✕";},2500);return;}
-  b.classList.remove("confirm","del");b.textContent="✕";endSession();
+  if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Quit?";setTimeout(()=>{b.classList.remove("confirm");b.textContent="✕";},2500);return;}
+  b.classList.remove("confirm");b.textContent="✕";endSession();
 };
 function next(){stopAudio();S.i++;renderTask();}
+const autoNext=ms=>{const i0=S.i;setTimeout(()=>{if(S&&S.i===i0)next();},ms);};
 
-const LABEL={preview:["看一看","Look & Listen"],recog:["认一认","Match"],tiles:["拼一拼","Build"],lcwc:["默一默","Cover & Write"],dict:["听写","Dictation"],mx:["默写","Write from Memory"],game:["拼写游戏","Spelling Game"],done:["完成","Done"]};
+const LABEL={preview:"Look & Listen",pick:"Pick",tiles:"Build",lcwc:"Cover & Write",dict:"Dictation",game:"Spelling Game",done:"Done"};
 function renderTask(){
   if(!S.tasks[S.i])S.tasks.push({t:"done"});
   const task=S.tasks[S.i];
-  const lab=LABEL[task.t]||MODE_NAME[S.mode];
-  $("#sLabel").innerHTML=L(lab[0],lab[1]);
+  $("#sLabel").textContent=LABEL[task.t]||MODE_NAME[S.mode];
   $("#sProg").style.width=Math.round(S.i/Math.max(1,S.tasks.length-1)*100)+"%";
   $(".s-body").scrollTop=0;
   updHud();
-  ({intro:tIntro,preview:tPreview,recog:tRecog,tiles:tTiles,lcwc:tLcwc,dict:tDict,mx:tDict,game:tGame,done:tDone})[task.t]($("#stage"),task,state.words[task.id]);
+  ({intro:tIntro,preview:tPreview,pick:tPick,tiles:tTiles,lcwc:tLcwc,dict:tDict,game:tGame,done:tDone})[task.t]($("#stage"),task,state.words[task.id]);
 }
 const panes=(a,b)=>`<div class="pa">${a}</div><div class="pb">${b}</div>`;
-function sayBtns(w,svg){
-  return `<div class="say"><button class="btn" data-s="n">${L("🔊 读","Play")}</button><button class="btn" data-s="slow">${L("🐢 慢读","Slow")}</button>${svg?`<button class="btn" data-s="spell">${L("🔤 拼读","Spell")}</button>`:""}${w.cn?`<button class="btn" data-s="zh">${L("中文","Chinese")}</button>`:""}</div>`;
+function sayBtns(w,{svg,sentence=true,slow=true}={}){
+  return `<div class="say"><button class="btn" data-s="n">🔊 Play</button>${slow?`<button class="btn" data-s="slow">🐢 Slow</button>`:""}${svg?`<button class="btn" data-s="spell">🔤 Spell</button>`:""}${sentence&&w.ex?`<button class="btn" data-s="ex">💬 Sentence</button>`:""}</div>`;
 }
 function bindSay(st,w,svg){
   st.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{
     const k=b.dataset.s;
     if(k==="n")say(w.w); if(k==="slow")say(w.w,{slow:true});
-    if(k==="spell")spellOut(w.w,"#"+svg); if(k==="zh")sayZh(w.cn);
+    if(k==="spell")spellOut(w.w,"#"+svg); if(k==="ex")say(w.ex);
   });
 }
 function focusIn(el){setTimeout(()=>{try{el.focus({preventScroll:true})}catch(e){}},60);}
 const inputAttrs=`type="text" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="done"`;
 
 function tIntro(st,task){
-  st.innerHTML=`<div class="full"><div style="height:4vh"></div><div class="kind">${MODE_NAME[S.mode][0]} · ${MODE_NAME[S.mode][1]}</div>
-    <h2 style="font-size:28px">${esc(task.zh)}<br><span class="enl" style="margin:0">${esc(task.en)}</span></h2><p class="muted">${esc(task.sub)}</p>
+  st.innerHTML=`<div class="full"><div style="height:4vh"></div><div class="kind">${MODE_NAME[S.mode]}</div>
+    <h2 style="font-size:32px">${esc(task.title)}</h2><p class="muted" style="font-size:19px">${esc(task.sub)}</p>
     ${task.ids?`<div class="words" style="justify-content:center">${task.ids.map(id=>`<span class="w">${esc(state.words[id].w)}</span>`).join("")}</div>`:""}
-    <div><button class="btn primary big" id="go">${L("开始","Start")}</button></div></div>`;
+    <div><button class="btn primary big" id="go">Start</button></div></div>`;
   $("#go").onclick=()=>{if(task.game){S.t0=Date.now();clearInterval(timerH);timerH=setInterval(updHud,500);}next();};
   focusIn($("#go"));
 }
 
 function tPreview(st,task,w){
-  st.innerHTML=panes(`<div class="kind">看一看 · 听一听 · 读一读 <span class="enl">Look, listen, say</span></div>
-    ${grid(w.w,{syl:w.syl,id:"pv"})}
-    ${w.ipa?`<div class="ipa">${esc(w.ipa)}</div>`:""}
-    <div class="meaning">${esc(w.cn||"（没有中文）")}</div>`,
-    `${sayBtns(w,true)}
-    ${w.ex?`<div class="ex"><div class="e">${esc(w.ex)}</div></div>`:""}
-    <div class="tip">跟着读 3 遍：先听，再拼读字母，最后自己大声读。<br>Say it 3 times: listen, spell the letters, then say it out loud.</div>
-    <div><button class="btn primary big" id="go">${L("记住了，下一个","Got it, next")}</button></div>`);
+  st.innerHTML=panes(`<div class="kind">Look · Listen · Say</div>
+    ${grid(w.w,{id:"pv"})}
+    ${sylHtml(w.w)}
+    ${w.ipa?`<div class="ipa">${esc(w.ipa)}</div>`:""}`,
+    `${sayBtns(w,{svg:"pv"})}
+    ${w.ex?`<div class="ex">${esc(w.ex)}</div>`:""}
+    <div class="tip">Say it 3 times: listen, spell the letters out loud, then say the whole word. Clap once for each coloured chunk.</div>
+    <div><button class="btn primary big" id="go">Got it, next</button></div>`);
   bindSay(st,w,"pv");
-  setTimeout(()=>say(w.w,{onend:()=>setTimeout(()=>spellOut(w.w,"#pv"),400)}),250);
+  say(w.w,{onend:()=>setTimeout(()=>{if(document.getElementById("pv"))spellOut(w.w,"#pv");},400)});
   $("#go").onclick=next;
 }
 
-function distractors(w,field,n){
-  const pool=new Set();
-  S.ids.forEach(id=>{const x=state.words[id]; if(x.id!==w.id&&x[field])pool.add(x[field]);});
-  words().forEach(x=>{if(pool.size<n*4&&x.id!==w.id&&x[field])pool.add(x[field]);});
-  if(pool.size<n)shuffle(Object.entries(DICT)).slice(0,20).forEach(([en,cn])=>pool.add(field==="w"?en:cn));
-  pool.delete(w[field]);
-  return shuffle([...pool]).slice(0,n);
-}
-function tRecog(st,task,w){
-  if(!w.cn){next();return;}
-  const en2cn=task.dir??(task.dir=Math.random()<.6);
-  const field=en2cn?"cn":"w";
-  const opts=shuffle([w[field],...distractors(w,field,3)]);
-  st.innerHTML=panes(`<div class="kind">认一认 · ${en2cn?"选出中文意思 <span class='enl'>Pick the Chinese</span>":"选出英文单词 <span class='enl'>Pick the English word</span>"}</div>
-    ${en2cn?grid(w.w,{id:"rc"}):`<div class="meaning huge">${esc(w.cn)}</div>`}
-    <div class="say"><button class="btn" data-s="n">${en2cn?L("🔊 读","Play"):L("🔊 听英文提示","Hear the English")}</button></div>`,
-    `<div class="opts">${opts.map(o=>`<button class="opt-btn ${en2cn?"":"en"}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+function tPick(st,task,w){
+  const opts=task.opts||(task.opts=shuffle([w.w,...misspellings(w.w)]));
+  st.innerHTML=panes(`<div class="kind">Pick the right spelling</div>
+    <div class="headphones">🎧</div>
+    ${sayBtns(w,{sentence:true})}`,
+    `<div class="opts">${opts.map(o=>`<button class="opt-btn" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
     <div id="fb"></div>`);
   bindSay(st,w);
-  if(en2cn)setTimeout(()=>say(w.w),200);
+  say(w.w);
   let done=false;
   st.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{
     if(done)return; done=true;
-    const ok=b.dataset.o===w[field];
-    st.querySelectorAll("[data-o]").forEach(x=>{if(x.dataset.o===w[field])x.classList.add("right");});
+    const ok=b.dataset.o===w.w;
+    st.querySelectorAll("[data-o]").forEach(x=>{if(x.dataset.o===w.w)x.classList.add("right");});
     beep(ok); say(w.w);
-    if(ok){b.classList.add("right");setTimeout(next,1000);}
+    if(S.res[w.id].first===null&&S.mode!=="learn"&&S.mode!=="full"&&S.mode!=="review")S.res[w.id].first=ok;
+    if(ok){b.classList.add("right");autoNext(1100);}
     else{b.classList.add("wrong");
-      $("#fb").innerHTML=`<div class="fb no"><b style="font:24px var(--word)">${esc(w.w)}</b> = ${esc(w.cn)}</div><div style="margin-top:12px"><button class="btn primary big" id="go">${L("知道了","OK")}</button></div>`;
-      S.tasks.splice(S.i+3,0,{t:"recog",id:w.id,dir:task.dir}); // 过一会儿再考一次
+      $("#fb").innerHTML=`<div class="fb no">The right spelling is <b style="font:28px var(--word)">${esc(w.w)}</b></div><div style="margin-top:12px"><button class="btn primary big" id="go">OK</button></div>`;
+      S.tasks.splice(S.i+3,0,{t:"pick",id:w.id}); // ask again a little later
       $("#go").onclick=next;}
   });
 }
 
-/* 字母块通用逻辑 Letter tiles (used by Build and the Spelling Game) */
+/* Letter tiles, used by Build and the Spelling Game */
+let kbHandler=null;
 function letterBoard(st,w,{blanks,extra=0,onHit,onMiss,onDone,hintAfter=3}){
   const letters=[...w.w];
-  const need=blanks.slice(); // 要填的位置（按顺序）
+  const need=blanks.slice();
   const pool=need.map(i=>letters[i]);
   const abc="abcdefghijklmnopqrstuvwxyz".split("").filter(c=>!letters.map(x=>x.toLowerCase()).includes(c));
   for(let k=0;k<extra;k++)pool.push(abc[Math.random()*abc.length|0]);
@@ -870,7 +906,7 @@ function letterBoard(st,w,{blanks,extra=0,onHit,onMiss,onDone,hintAfter=3}){
       b.classList.add("used"); filled.add(need[pos]); pos++; $("#slots").innerHTML=slotsHtml();
       st.querySelectorAll(".tile.hint").forEach(x=>x.classList.remove("hint"));
       onHit&&onHit();
-      if(pos===need.length){document.removeEventListener("keydown",kb);onDone(miss);}
+      if(pos===need.length){document.removeEventListener("keydown",kbHandler);onDone(miss);}
     }else{
       miss++; beep(false); b.classList.remove("bad"); void b.offsetWidth; b.classList.add("bad");
       onMiss&&onMiss();
@@ -878,26 +914,28 @@ function letterBoard(st,w,{blanks,extra=0,onHit,onMiss,onDone,hintAfter=3}){
     }
   };
   st.querySelectorAll(".tile").forEach(b=>b.onclick=()=>tap(b));
-  // 实体键盘也能玩 Physical keyboard support
-  const kb=e=>{if(!S||!document.body.contains(st))return; if(e.key.length!==1||!/[a-z'\-]/i.test(e.key))return;
-    const cand=[...st.querySelectorAll(".tile:not(.used)")];
-    const b=cand.find(x=>tiles[x.dataset.k].c.toLowerCase()===e.key.toLowerCase()&&e.key.toLowerCase()===letters[need[pos]].toLowerCase())||cand.find(x=>tiles[x.dataset.k].c.toLowerCase()===e.key.toLowerCase())||cand[0];
-    if(b)tap(b);};
-  document.removeEventListener("keydown",window.__kb||(()=>{})); window.__kb=kb; document.addEventListener("keydown",kb);
+  // a physical keyboard works too
+  if(kbHandler)document.removeEventListener("keydown",kbHandler);
+  kbHandler=e=>{if(!S||e.key.length!==1||!/[a-z'\-]/i.test(e.key))return;
+    const cand=[...st.querySelectorAll(".tile:not(.used)")]; if(!cand.length)return;
+    const b=cand.find(x=>tiles[x.dataset.k].c.toLowerCase()===e.key.toLowerCase()&&pos<need.length&&e.key.toLowerCase()===letters[need[pos]].toLowerCase())||cand.find(x=>tiles[x.dataset.k].c.toLowerCase()===e.key.toLowerCase())||cand[0];
+    tap(b);};
+  document.addEventListener("keydown",kbHandler);
 }
 
 function tTiles(st,task,w){
-  st.innerHTML=panes(`<div class="kind">拼一拼 · 按顺序点字母 <span class="enl">Tap the letters in order</span></div>
-    <div class="meaning">${esc(w.cn||"")}</div>
-    <div class="say"><button class="btn" data-s="n">${L("🔊 读","Play")}</button><button class="btn" data-s="slow">${L("🐢 慢读","Slow")}</button></div>`,
+  st.innerHTML=panes(`<div class="kind">Build the word</div>
+    <div class="headphones">🎧</div>
+    ${sayBtns(w,{sentence:false})}
+    ${sylHtml(w.w)}`,
     `<div class="slots" id="slots"></div><div class="tiles" id="tiles"></div>
-    <div id="fb" class="muted small">点错 3 次会有提示 · A hint appears after 3 wrong taps</div>`);
-  bindSay(st,w); setTimeout(()=>say(w.w),200);
+    <div id="fb" class="muted small">Tap the letters in order. A hint appears after 3 wrong taps.</div>`);
+  bindSay(st,w); say(w.w);
   const blanks=[...w.w].map((c,i)=>c===" "?-1:i).filter(i=>i>=0);
-  letterBoard(st,w,{blanks,onDone:()=>{beep(true);$("#fb").innerHTML=`<span class="ok-t">拼对了！Well done!</span>`;say(w.w);const i0=S.i;setTimeout(()=>{if(S&&S.i===i0)next();},1300);}});
+  letterBoard(st,w,{blanks,onDone:()=>{beep(true);$("#fb").innerHTML=`<span class="ok-t" style="font-size:20px">Well done!</span>`;say(w.w);autoNext(1300);}});
 }
 
-/* 拼写游戏 Spelling game: 连击加分、计时 */
+/* Spelling game: points, streaks and a timer */
 function updHud(){
   if(!S||S.mode!=="game")return;
   $("#hScore").textContent=`⭐ ${S.score}`;
@@ -910,19 +948,19 @@ function tGame(st,task,w){
   let blanks=idx;
   if(task.kind==="gap"&&idx.length>=3){const k=Math.min(idx.length-1,Math.max(2,Math.round(idx.length*.5)));blanks=shuffle(idx).slice(0,k).sort((a,b)=>a-b);}
   const n=S.tasks.filter(t=>t.t==="game").length, cur=S.tasks.slice(0,S.i+1).filter(t=>t.t==="game").length;
-  st.innerHTML=panes(`<div class="kind">第 ${cur} / ${n} 个 · Word ${cur} of ${n} · ${blanks.length===idx.length?"拼出整个单词 <span class='enl'>Spell the whole word</span>":"补全缺的字母 <span class='enl'>Fill the missing letters</span>"}</div>
-    <div class="meaning huge">${esc(w.cn||"🎧")}</div>
-    <div class="say"><button class="btn" data-s="n">${L("🔊 读","Play")}</button><button class="btn" data-s="slow">${L("🐢 慢读","Slow")}</button></div>`,
-    `<div class="slots" id="slots"></div><div class="tiles" id="tiles"></div><div id="fb" class="small muted">每个字母 +10，连击再加分；点错 −3。Each letter +10, streak bonus; wrong tap −3.</div>`);
-  bindSay(st,w); setTimeout(()=>say(w.w),150);
+  st.innerHTML=panes(`<div class="kind">Word ${cur} of ${n} · ${blanks.length===idx.length?"Spell the whole word":"Fill in the missing letters"}</div>
+    <div class="headphones">🎧</div>
+    ${sayBtns(w,{})}`,
+    `<div class="slots" id="slots"></div><div class="tiles" id="tiles"></div><div id="fb" class="small muted">Each letter +10, plus a streak bonus. A wrong tap is −3.</div>`);
+  bindSay(st,w); say(w.w);
   letterBoard(st,w,{blanks,extra:2,hintAfter:3,
-    onHit:()=>{S.hits++;S.combo++;S.score+=10+Math.min(S.combo,10)*2;beep(true);updHud();$("#hScore").classList.remove("pop");void $("#hScore").offsetWidth;$("#hScore").classList.add("pop");},
+    onHit:()=>{S.hits++;S.combo++;S.score+=10+Math.min(S.combo,10)*2;beep(true);updHud();const h=$("#hScore");h.classList.remove("pop");void h.offsetWidth;h.classList.add("pop");},
     onMiss:()=>{S.misses++;S.combo=0;S.score=Math.max(0,S.score-3);updHud();if(S.res[w.id].first===null)S.res[w.id].first=false;},
     onDone:miss=>{
       if(S.res[w.id].first===null)S.res[w.id].first=true;
-      const bonus=miss?0:20; S.score+=bonus; updHud();
-      $("#fb").innerHTML=`<span class="ok-t" style="font-size:18px">${miss?"完成 Done":"完美 Perfect! +20"}</span>`;
-      beep(true,!miss); say(w.w); const i0=S.i; setTimeout(()=>{if(S&&S.i===i0)next();},1100);
+      if(!miss)S.score+=20; updHud();
+      $("#fb").innerHTML=`<span class="ok-t" style="font-size:20px">${miss?"Done!":"Perfect! +20"}</span>`;
+      beep(true,!miss); say(w.w); autoNext(1100);
     }});
 }
 
@@ -936,32 +974,37 @@ function lcsMask(ans,cor){
 }
 function diffHtml(ans,cor){
   const {keepA,keepC}=lcsMask(ans,cor);
-  const a=[...norm(ans)].map((ch,i)=>keepA[i]?`<span class="k">${esc(ch)}</span>`:`<span class="x">${esc(ch)}</span>`).join("")||"<span class='muted'>（空 empty）</span>";
+  const a=[...norm(ans)].map((ch,i)=>keepA[i]?`<span class="k">${esc(ch)}</span>`:`<span class="x">${esc(ch)}</span>`).join("")||"<span class='muted'>(empty)</span>";
   const c=[...cor].map((ch,i)=>keepC[i]?esc(ch):`<span class="m">${esc(ch)}</span>`).join("");
-  return `<div class="muted small">你写的 You wrote</div><div class="diff">${a}</div><div class="muted small" style="margin-top:6px">正确的 Correct（红色 = 写错或漏掉 red = wrong or missing）</div><div class="diff" style="color:var(--fg)">${c}</div>`;
+  return `<div class="muted small">You wrote</div><div class="diff">${a}</div><div class="muted small" style="margin-top:6px">Correct spelling (red letters are the ones to fix)</div><div class="diff" style="color:var(--fg)">${c}</div>`;
 }
 
 function tLcwc(st,task,w){
   let phase="look", wrongOnce=false;
+  const r=S.res[w.id];
   const draw=()=>{
     if(phase==="look"){
-      st.innerHTML=panes(`<div class="kind">默一默 · 第 1 步：看仔细 <span class="enl">Step 1: Look</span></div>
-        ${grid(w.w,{syl:w.syl,id:"lk"})}<div class="meaning">${esc(w.cn||"")}</div>`,
-        `${sayBtns(w,true)}
-        <p class="muted" style="margin:0">${wrongOnce?"刚才写错的地方要特别看清楚。Look closely at the part you got wrong.":"注意每个字母的顺序，在心里拼一遍。Spell it in your head."}</p>
-        <div><button class="btn primary big" id="go">${L("盖住，我来写","Cover it, I'll write")}</button></div>`);
+      st.innerHTML=panes(`<div class="kind">Cover &amp; Write · Step 1: Look</div>
+        ${grid(w.w,{id:"lk"})}${sylHtml(w.w)}`,
+        `${sayBtns(w,{svg:"lk",sentence:false})}
+        <p class="muted" style="margin:0;font-size:18px">${wrongOnce?"Look closely at the letters you missed.":"Look at every letter. Spell it in your head."}</p>
+        <div><button class="btn primary big" id="go">Cover it, I'll write</button></div>`);
       bindSay(st,w,"lk"); $("#go").onclick=()=>{phase="write";draw();};
     }else{
-      st.innerHTML=panes(`<div class="kind">默一默 · 第 2 步：盖住后写 <span class="enl">Step 2: Cover &amp; Write</span></div>
-        <div class="cover">已经盖住了 🙈 Covered</div><div class="meaning">${esc(w.cn||"")}</div>`,
-        `<input ${inputAttrs} class="answer" id="ans" placeholder="在这里写 Type here">
-        <div><button class="btn primary big" id="chk">${L("检查","Check")}</button></div><div id="fb"></div>`);
+      st.innerHTML=panes(`<div class="kind">Cover &amp; Write · Step 2: Write</div>
+        <div class="cover">🙈 Covered</div>
+        <div class="say"><button class="btn" data-s="n">🔊 Play</button></div>`,
+        `<input ${inputAttrs} class="answer" id="ans" placeholder="Write the word">
+        <div><button class="btn primary big" id="chk">Check</button></div><div id="fb"></div>`);
+      bindSay(st,w);
       const inp=$("#ans"); focusIn(inp);
       const check=()=>{
         if(!inp.value.trim())return;
-        if(norm(inp.value)===norm(w.w)){beep(true);inp.classList.add("ok");$("#fb").innerHTML=`<div class="fb ok">写对了！Correct!</div>`;say(w.w);setTimeout(next,1000);}
+        const ok=norm(inp.value)===norm(w.w);
+        if(r.first===null&&S.mode==="lcwc")r.first=ok;
+        if(ok){beep(true);inp.classList.add("ok");$("#fb").innerHTML=`<div class="fb ok">Correct!</div>`;say(w.w);autoNext(1100);}
         else{beep(false);wrongOnce=true;inp.classList.add("no");
-          $("#fb").innerHTML=`<div class="fb no">${diffHtml(inp.value,w.w)}</div><div style="margin-top:12px"><button class="btn primary big" id="again">${L("再看一遍，重写","Look again and rewrite")}</button></div>`;
+          $("#fb").innerHTML=`<div class="fb no">${diffHtml(inp.value,w.w)}</div><div style="margin-top:12px"><button class="btn primary big" id="again">Look again and rewrite</button></div>`;
           $("#again").onclick=()=>{phase="look";draw();}; $("#chk").disabled=true;}
       };
       $("#chk").onclick=check; inp.onkeydown=e=>{if(e.key==="Enter")check();};
@@ -970,42 +1013,35 @@ function tLcwc(st,task,w){
   draw();
 }
 
-/* 听写 Dictation (dict) 与 默写 Write from memory (mx) */
+/* Dictation: hear it, write it. Mistakes are copied once, then asked again at the end. */
 function tDict(st,task,w){
-  const r=S.res[w.id], mx=task.t==="mx";
-  const left=mx
-    ?`<div class="kind">默写${task.retry?" · 再写一次":""} <span class="enl">Write from memory${task.retry?" · again":""}</span></div>
-      <div class="meaning huge">${esc(w.cn||"？")}</div>
-      <div class="say"><button class="btn" data-s="n">${L("🔊 听一听","Hint: listen")}</button><button class="btn" id="first">${L("首字母","First letter")}</button></div>
-      <div id="hint" class="muted"></div>`
-    :`<div class="kind">听写${task.retry?" · 再写一次":""} <span class="enl">Dictation${task.retry?" · again":""}</span></div>
+  const r=S.res[w.id];
+  st.innerHTML=panes(`<div class="kind">Dictation${task.retry?" · one more time":""}</div>
       <div class="headphones">🎧</div>
-      <div class="say"><button class="btn" data-s="n">${L("🔊 再听一遍","Play again")}</button><button class="btn" data-s="slow">${L("🐢 慢读","Slow")}</button></div>
-      <div class="meaning" style="font-size:20px">提示 Hint：${esc(w.cn||"听发音 listen")}</div>`;
-  st.innerHTML=panes(left,`<input ${inputAttrs} class="answer" id="ans" placeholder="${mx?"写出英文 Write the English":"听到什么写什么 Write what you hear"}">
-    <div><button class="btn primary big" id="chk">${L("检查","Check")}</button></div><div id="fb"></div>`);
+      ${sayBtns(w,{})}`,
+    `<input ${inputAttrs} class="answer" id="ans" placeholder="Write what you hear">
+    <div><button class="btn primary big" id="chk">Check</button></div><div id="fb"></div>`);
   bindSay(st,w);
-  if(!mx)setTimeout(()=>say(w.w),250);
-  const fb=$("#first"); if(fb)fb.onclick=()=>{$("#hint").innerHTML=`首字母 First letter: <b style="font:26px var(--word);color:var(--ink)">${esc(w.w[0])}</b> · ${w.w.replace(/ /g,"").length} 个字母 letters`;};
+  say(w.w);
   const inp=$("#ans"); focusIn(inp);
   let copying=false;
   const check=()=>{
     if(!inp.value.trim())return;
     const ok=norm(inp.value)===norm(w.w);
     if(copying){
-      if(ok){beep(true);S.tasks.push({t:task.t,id:w.id,retry:true});next();}
+      if(ok){beep(true);S.tasks.push({t:"dict",id:w.id,retry:true});next();}
       else{beep(false);inp.classList.add("no");}
       return;
     }
     r.tries++;
     if(r.first===null)r.first=ok;
-    if(ok){beep(true);inp.classList.add("ok");$("#fb").innerHTML=`<div class="fb ok">正确！Correct! <b style="font:24px var(--word)">${esc(w.w)}</b></div>`;say(w.w);setTimeout(next,1000);}
+    if(ok){beep(true);inp.classList.add("ok");$("#fb").innerHTML=`<div class="fb ok">Correct! <b style="font:28px var(--word)">${esc(w.w)}</b></div>`;say(w.w);autoNext(1100);}
     else{
       beep(false);inp.classList.add("no");say(w.w,{slow:true});
       const canRetry=r.tries<3;
       $("#fb").innerHTML=`<div class="fb no">${diffHtml(inp.value,w.w)}</div>
-        ${canRetry?`<p class="muted">看着正确的单词，在上面照着写一遍，这个词待会儿还要再考。<br>Copy the correct word into the box above. It will come back later.</p>`:`<div style="margin-top:12px"><button class="btn primary big" id="go">${L("下一个","Next")}</button></div>`}`;
-      if(canRetry){copying=true;inp.value="";inp.classList.remove("no");$("#chk").innerHTML=L("照着写好了","Copied it");focusIn(inp);}
+        ${canRetry?`<p class="muted">Copy the correct spelling into the box above. This word will come back later.</p>`:`<div style="margin-top:12px"><button class="btn primary big" id="go">Next</button></div>`}`;
+      if(canRetry){copying=true;inp.value="";inp.classList.remove("no");$("#chk").textContent="I copied it";focusIn(inp);}
       else $("#go").onclick=next;
     }
   };
@@ -1014,9 +1050,10 @@ function tDict(st,task,w){
 
 function tDone(st){
   clearInterval(timerH);
-  const t=today(), ids=S.ids, list=ids.map(id=>state.words[id]);
+  const t=today(), ids=S.ids.filter(id=>state.words[id]), list=ids.map(id=>state.words[id]);
   const right=ids.filter(id=>S.res[id].first===true).length;
-  if(S.mode==="learn"||S.mode==="review"){ // 更新复习计划 Update review plan
+  const schedule=S.mode==="learn"||S.mode==="review";
+  if(schedule){ // update the review plan
     list.forEach(w=>{
       const ok=S.res[w.id].first===true;
       if(S.mode==="learn"){w.stage=1;w.due=addDays(t,INTERVAL[1]);w.learnedOn=t;if(!ok)w.lapses=(w.lapses||0)+1;}
@@ -1030,28 +1067,30 @@ function tDone(st){
   if(S.mode==="game"){
     const sec=Math.round((Date.now()-S.t0)/1000), acc=Math.round(S.hits/Math.max(1,S.hits+S.misses)*100);
     const rec=S.score>(state.best||0); if(rec)state.best=S.score;
-    extra=`<div class="stat-row"><div class="stat"><b>${S.score}</b>分数 Score</div><div class="stat"><b>${Math.floor(sec/60)}:${pad(sec%60)}</b>用时 Time</div><div class="stat"><b>${acc}%</b>准确率 Accuracy</div></div>
-      ${rec?`<div class="fb ok" style="font-size:18px">🏆 新纪录！New best score!</div>`:`<div class="muted">最高分 Best: ${state.best}</div>`}`;
+    extra=`<div class="stat-row"><div class="stat"><b>${S.score}</b>Score</div><div class="stat"><b>${Math.floor(sec/60)}:${pad(sec%60)}</b>Time</div><div class="stat"><b>${acc}%</b>Accuracy</div></div>
+      ${rec?`<div class="fb ok" style="font-size:20px">🏆 New best score!</div>`:`<div class="muted">Best score: ${state.best}</div>`}`;
   }
   save();
   const ratio=right/Math.max(1,ids.length), stars=ratio>=.95?3:ratio>=.7?2:1;
-  const schedule=S.mode==="learn"||S.mode==="review";
   st.innerHTML=`<div class="full"><div class="stars">${"★".repeat(stars)}<span style="opacity:.25">${"★".repeat(3-stars)}</span></div>
-    <h2 style="font-size:28px">${stars===3?"太棒了！":stars===2?"很不错！":"坚持就是进步！"}<br><span class="enl" style="margin:0">${stars===3?"Excellent!":stars===2?"Great job!":"Keep going!"}</span></h2>
-    <p class="muted" style="margin:0">第一次就对 <b>${right}</b> / ${ids.length} · First try correct${schedule?"":"（练习，不改变复习计划 Practice only）"}</p>
+    <h2 style="font-size:34px">${stars===3?"Excellent!":stars===2?"Great job!":"Keep going, you're improving!"}</h2>
+    <p class="muted" style="margin:0;font-size:18px">Right the first time: <b>${right}</b> of ${ids.length}${schedule?"":" · practice only"}</p>
     ${extra}
     <div class="card res-list"><div class="bank-list">${list.map(w=>{const ok=S.res[w.id].first===true;
-      return `<div class="item"><span class="${ok?"ok-t":"no-t"}">${ok?"✔":"✘"}</span><div><span style="font:21px var(--word);color:var(--ink)">${esc(w.w)}</span> <span class="muted">${esc(w.cn||"")}</span></div>
-      <span class="muted" style="font-size:12px">${schedule?(dayDiff(t,w.due)===1?"明天复习 Tomorrow":dayDiff(t,w.due)+" 天后 in "+dayDiff(t,w.due)+" days"):""}</span></div>`;}).join("")}</div></div>
+      const dd=dayDiff(t,w.due);
+      return `<div class="item"><span class="${ok?"ok-t":"no-t"}">${ok?"✔":"✘"}</span><div><span style="font:23px var(--word);color:var(--ink)">${esc(w.w)}</span></div>
+      <span class="muted" style="font-size:13px">${schedule?(dd===1?"Review tomorrow":`Review in ${dd} days`):""}</span></div>`;}).join("")}</div></div>
     <div class="row" style="justify-content:center">
-      ${S.mode==="game"?`<button class="btn sun big" id="again">${L("再玩一次","Play again")}</button>`:""}
-      <button class="btn primary big" id="fin">${L("完成","Finish")}</button></div></div>`;
+      ${S.mode==="game"?`<button class="btn sun big" id="again">Play again</button>`:""}
+      <button class="btn primary big" id="fin">Finish</button></div></div>`;
   $("#fin").onclick=endSession;
-  const ag=$("#again"); if(ag)ag.onclick=()=>{const ids2=S.ids;startSession("game",ids2);};
+  const ag=$("#again"); if(ag)ag.onclick=()=>startSession("game",S.ids);
   beep(true,true);
 }
 
 render();
+/* On start, fetch the newest copy of the current child's words from the cloud */
+if(root.current){(async()=>{const name=state.name||root.current;await openBook(name);if(!S)render();})();}
 </script>
 </body>
 </html>

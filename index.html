@@ -61,7 +61,7 @@
   <div class="s-top">
     <button class="icon-btn" id="quit" aria-label="Quit"></button>
     <span class="s-label" id="sLabel"></span>
-    <div class="prog"><i id="sProg"></i></div>
+    <div class="prog scrub" id="sScrub" role="slider" tabindex="0" aria-label="Jump to a step"><i id="sProg"></i><b class="thumb" id="sThumb"></b><span class="tip" id="sTip" hidden></span></div>
     <div class="hud" id="hud" hidden><span id="hScore"></span><span class="combo" id="hCombo" hidden></span><span id="hTime"></span></div>
   </div>
   <div class="s-body"><div class="stage" id="stage"></div></div>
@@ -502,7 +502,7 @@ function viewToday(){
   </div>`;
 }
 
-const SUBSETS={all:["All words",ws=>ws],new:["Not learned yet",ws=>ws.filter(w=>w.stage===0)],hard:["Tricky",ws=>ws.filter(w=>(w.lapses||0)>0)]};
+const SUBSETS={all:["All words",ws=>ws],new:["Not learned yet",ws=>ws.filter(w=>w.stage===0)],unseen:["Not practised yet",ws=>ws.filter(w=>!(w.seen>0))],hard:["Tricky",ws=>ws.filter(w=>(w.lapses||0)>0)]};
 function practiceWords(){const d=curDate();if(!d||!listOpen(B().lists[d]))return [];return (SUBSETS[practiceSet]||SUBSETS.all)[1](wordsIn(B(),d));}
 function viewPractice(){
   const cur=curDate();
@@ -969,7 +969,7 @@ async function startSession(mode,ids,opt={}){
     tasks.push({t:"intro",title:`Spelling Game · ${n} word${s}`,sub:"Listen and tap or drag the letters. Streaks earn bonus points, wrong letters lose points. Be quick!",game:true});
     shuffle(ids).forEach(id=>tasks.push({t:"game",id,kind:Math.random()<.5?"build":"gap"}));
   }
-  S={mode,ids,tasks,i:0,res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0,ans:""}])),score:0,combo:0,hits:0,misses:0,t0:0,listDate:opt.listDate||null};
+  S={mode,ids,tasks,i:0,shown:new Set(),res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0,ans:""}])),score:0,combo:0,hits:0,misses:0,t0:0,listDate:opt.listDate||null};
   window.__busy=true;
   $("#hud").hidden=mode!=="game";
   $("#session").hidden=false; document.body.style.overflow="hidden";
@@ -985,13 +985,32 @@ $("#quit").onclick=()=>{
 function next(){stopAudio();S.i++;renderTask();}
 const autoNext=ms=>{const i0=S.i;setTimeout(()=>{if(S&&S.i===i0)next();},ms);};
 
+/* Progress bar: tap or drag it to jump to any step */
+function setProg(i){const p=Math.min(1,i/Math.max(1,S.tasks.length-1))*100+"%";$("#sProg").style.width=p;$("#sThumb").style.left=p;}
+function scrubAt(x){const r=$("#sScrub").getBoundingClientRect();return Math.round(Math.min(1,Math.max(0,(x-r.left)/r.width))*(S.tasks.length-1));}
+function jumpTo(i){
+  if(!S||S.tasks[S.i]?.t==="done")return;
+  i=Math.max(0,Math.min(S.tasks.length-1,i)); if(i===S.i)return;
+  stopAudio(); S.i=i; renderTask();
+}
+(()=>{
+  const bar=$("#sScrub"), tip=$("#sTip"); let drag=null;
+  const show=i=>{setProg(i);const t=S.tasks[i];tip.textContent=`${LABEL[t?.t]||"Start"} · ${i+1} / ${S.tasks.length}`;const f=i/Math.max(1,S.tasks.length-1);tip.style.left=f*100+"%";tip.style.transform=`translateX(${f<.2?"-10%":f>.8?"-90%":"-50%"})`;tip.hidden=false;};
+  bar.addEventListener("pointerdown",e=>{if(!S||S.tasks[S.i]?.t==="done")return;e.preventDefault();bar.setPointerCapture(e.pointerId);drag=scrubAt(e.clientX);bar.classList.add("on");show(drag);});
+  bar.addEventListener("pointermove",e=>{if(drag===null)return;drag=scrubAt(e.clientX);show(drag);});
+  const end=()=>{if(drag===null)return;const i=drag;drag=null;bar.classList.remove("on");tip.hidden=true;if(S){if(i===S.i)setProg(S.i);else jumpTo(i);}};
+  bar.addEventListener("pointerup",end); bar.addEventListener("pointercancel",end);
+  bar.addEventListener("keydown",e=>{if(!S)return;if(e.key==="ArrowRight"){e.preventDefault();jumpTo(S.i+1);}if(e.key==="ArrowLeft"){e.preventDefault();jumpTo(S.i-1);}});
+})();
+
 const LABEL={preview:"Sound it out",pick:"Pick",chunks:"Chunks",tiles:"Build",lcwc:"Cover & Write",dict:"Dictation",game:"Spelling Game",mock:"Practice Test",done:"Done"};
 function renderTask(){
   if(!S.tasks[S.i])S.tasks.push({t:"done"});
   const task=S.tasks[S.i];
   if(task.id&&!B().words[task.id]){S.i++;return renderTask();} // word deleted on another device
   $("#sLabel").textContent=LABEL[task.t]||MODE_NAME[S.mode];
-  $("#sProg").style.width=Math.round(S.i/Math.max(1,S.tasks.length-1)*100)+"%";
+  if(task.id)S.shown.add(task.id);
+  setProg(S.i);
   $(".s-body").scrollTop=0;
   updHud();
   ({intro:tIntro,preview:tPreview,pick:tPick,chunks:tChunks,tiles:tTiles,lcwc:tLcwc,dict:tDict,mock:tDict,game:tGame,done:tDone})[task.t]($("#stage"),task,B().words[task.id]);
@@ -1323,9 +1342,12 @@ function tDict(st,task,w){
   }});
 }
 
+// modes that mark each word right or wrong; in the others a word counts once it has been shown
+const GRADED={learn:1,review:1,full:1,dict:1,lcwc:1,mock:1,game:1};
 function tDone(st){
   clearInterval(timerH);
-  const t=today(), now=Date.now(), ids=S.ids.filter(id=>B().words[id]), list=ids.map(id=>B().words[id]);
+  const t=today(), now=Date.now(), all=S.ids.filter(id=>B().words[id]), ids=all.filter(id=>S.res[id].first!==null||(S.shown.has(id)&&!GRADED[S.mode])), list=ids.map(id=>B().words[id]);
+  const skipped=all.length-ids.length;
   const right=ids.filter(id=>S.res[id].first===true).length;
   const schedule=S.mode==="learn"||S.mode==="review";
   list.forEach(w=>{
@@ -1355,7 +1377,7 @@ function tDone(st){
   const wrongIds=ids.filter(id=>S.res[id].first!==true);
   st.innerHTML=`<div class="full"><div class="stars">${"★".repeat(stars)}<span style="opacity:.25">${"★".repeat(3-stars)}</span></div>
     <h2 style="font-size:34px">${stars===3?"Excellent!":stars===2?"Great job!":"Keep going, you're improving!"}</h2>
-    <p class="muted" style="margin:0;font-size:18px">Right the first time: <b>${right}</b> of ${ids.length}${schedule?"":" · practice only"}</p>
+    <p class="muted" style="margin:0;font-size:18px">Right the first time: <b>${right}</b> of ${ids.length}${schedule?"":" · practice only"}${skipped?` · ${skipped} skipped`:""}</p>
     ${extra}
     <div class="card res-list"><div class="bank-list">${list.map(w=>{const rr=S.res[w.id],ok=rr.first===true;
       const dd=dayDiff(t,w.due);

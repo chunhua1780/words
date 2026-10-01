@@ -551,3 +551,14 @@ body[data-sec="maths"]{--sec:var(--c-teal)}
 @media (min-width:900px){.m-text{font-size:28px}}
 .mfb{animation:rise .25s ease}
 .m-fig .cutl{fill:var(--muted)}
+
+/* draggable session progress */
+.prog.scrub{position:relative;overflow:visible;height:8px;cursor:pointer;touch-action:none}
+.prog.scrub::before{content:"";position:absolute;left:-10px;right:-10px;top:-16px;bottom:-16px}
+.prog.scrub i{border-radius:99px}
+.prog.scrub.on i{transition:none}
+.scrub .thumb{position:absolute;top:50%;left:0;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;
+  background:var(--paper);border:2px solid var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.25);transition:left .35s ease;pointer-events:none}
+.prog.scrub.on .thumb{transition:none;transform:scale(1.15)}
+.scrub .tip{position:absolute;top:22px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:13px;font-weight:600;
+  padding:4px 10px;border-radius:9px;white-space:nowrap;pointer-events:none;z-index:5}

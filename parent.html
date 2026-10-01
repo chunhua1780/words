@@ -35,6 +35,11 @@ details.list[open] .chev{transform:rotate(90deg)}
 .status{font:600 12px var(--body);border-radius:980px;padding:3px 9px;display:inline-flex;align-items:center;gap:4px;text-transform:uppercase;letter-spacing:.04em}
 .status .ic{width:12px;height:12px}
 .status.lock{background:var(--soft);color:var(--muted)} .status.open{background:var(--green-soft);color:var(--green)} .status.test{background:var(--orange-soft);color:var(--orange)} .status.past{background:var(--soft);color:var(--faint)}
+.act.teal div{background:var(--c-teal)}
+.tacc{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 0;font-size:14px}
+.tacc .bar{height:8px;border-radius:99px;background:var(--soft);overflow:hidden}.tacc .bar i{display:block;height:100%;border-radius:99px;background:var(--c-teal)}
+.tacc .v{font:600 13px var(--round);color:var(--muted);font-variant-numeric:tabular-nums;min-width:86px;text-align:right}
+.miss{padding:10px 0;border-bottom:1px solid var(--sep);font-size:14px;line-height:1.45}.miss:last-child{border-bottom:0}
 .wcell .acc{font:600 13px var(--round);color:var(--muted);font-variant-numeric:tabular-nums}
 </style>
 </head>
@@ -53,6 +58,8 @@ details.list[open] .chev{transform:rotate(90deg)}
 </div>
 <script src="core.js"></script>
 <script src="readings.js"></script>
+<script src="maths-bank.js"></script>
+<script src="maths.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -98,6 +105,24 @@ function readingBlock(){
     <div class="muted small">Today ${mins(t)} of 10 minutes · ${done.length} of ${READINGS.length} stories finished</div>
     ${done.length?`<div>${done.slice(0,6).map(x=>`<div class="rrow"><div><b>${esc(x.r.title)}</b><div class="muted tiny">${esc(x.r.kind)} · ${shortDate(x.date)}</div></div><span class="score ${x.score>=x.n-1?"good":x.score>=x.n-3?"ok":""}">${x.score}/${x.n}</span></div>`).join("")}</div>`:""}
     ${looked.length?`<div><div class="muted small" style="margin-bottom:8px">Words looked up while reading</div><div class="words">${looked.map(l=>`<span class="w" title="${esc(l.def||"")}">${esc(l.w)}</span>`).join("")}</div></div>`:""}
+  </div>`;
+}
+
+function mathsBlock(){
+  const M=MB(), t=today(), days=[...Array(14)].map((_,k)=>addDays(t,k-13));
+  const sc=d=>M.days[d]?dayScore(M.days[d]):null;
+  const week=days.slice(-7).map(sc).filter(Boolean), wn=week.reduce((a,s)=>a+s.done,0), wr=week.reduce((a,s)=>a+s.right,0);
+  const ts=topicStats(), tops=MATHS_TOPICS.filter(x=>ts[x].n);
+  const miss=Object.entries(M.q).filter(([id,s])=>s.ok===false&&MQ[id]).sort((a,c)=>(c[1].u||0)-(a[1].u||0)).slice(0,8).map(([id])=>MQ[id]);
+  const today20=sc(t);
+  return `<div class="card stack">
+    <div class="row" style="justify-content:space-between"><h3>Maths</h3><span class="muted small">${wn?`${wr}/${wn} correct this week`:"No maths yet this week"}</span></div>
+    <div class="muted small">Today: ${today20&&today20.done?`${today20.done} of ${today20.n} answered, ${today20.right} correct`:"not started"} · ${Object.keys(M.q).length} of ${MATHS.length} bank questions tried</div>
+    <div class="act teal">${days.map(d=>{const s=sc(d);return `<div title="${d}: ${s?s.right+"/"+s.n+" correct":"no daily set"}" style="height:${s?s.right/MDAY*100:0}%"></div>`;}).join("")}</div>
+    <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
+    <div class="muted tiny">Bars show the daily ${MDAY}: correct answers out of ${MDAY}.</div>
+    ${tops.length?`<div><div class="muted small" style="margin-bottom:4px">Correct by topic</div>${tops.map(x=>{const s=ts[x],p=Math.round(s.r/s.n*100);return `<div class="tacc"><span>${esc(x)}</span><span class="bar"><i style="width:${p}%"></i></span><span class="v">${p}% · ${s.n} tried</span></div>`;}).join("")}</div>`:""}
+    ${miss.length?`<div><div class="muted small" style="margin-bottom:4px">Recent mistakes (these come back in later daily sets)</div>${miss.map(q=>`<div class="miss"><div>${mt(q.q)}</div><div class="muted small">${esc(q.t)} · answer <b>${esc(showAns(q))}</b></div></div>`).join("")}</div>`:""}
   </div>`;
 }
 
@@ -172,6 +197,7 @@ function viewDash(){
       <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
     </div>
     ${readingBlock()}
+    ${mathsBlock()}
 
     <details class="card"><summary><b>Change password</b></summary>
       <form class="stack" id="pwForm" style="margin-top:14px;gap:12px">

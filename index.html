@@ -29,6 +29,7 @@
   <nav class="tabs" role="tablist" hidden>
     <button role="tab" data-tab="today"></button>
     <button role="tab" data-tab="read"></button>
+    <button role="tab" data-tab="maths"></button>
     <button role="tab" data-tab="practice"></button>
     <button role="tab" data-tab="words"></button>
   </nav>
@@ -47,6 +48,15 @@
   <div class="r-body" id="rBody"></div>
 </section>
 
+<section id="maths" hidden aria-label="Maths">
+  <div class="s-top">
+    <button class="icon-btn" id="mClose" aria-label="Close"></button>
+    <span class="s-label" id="mLabel"></span>
+    <div class="prog"><i id="mProg"></i></div>
+  </div>
+  <div class="s-body" id="mBody"></div>
+</section>
+
 <section id="session" hidden>
   <div class="s-top">
     <button class="icon-btn" id="quit" aria-label="Quit"></button>
@@ -61,6 +71,8 @@
 <script src="phonics.js"></script>
 <script src="readings.js"></script>
 <script src="illustrations.js"></script>
+<script src="maths-bank.js"></script>
+<script src="maths.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -369,20 +381,20 @@ function dueText(w){
 /* ================= Pages ================= */
 let tab="today", bankFilter="all", addTarget="today", addDate=null, practiceSet="all", authMode="login", authErr="";
 try{tab=sessionStorage.getItem("tab")||"today";}catch(e){}
-if(!["today","read","practice","words"].includes(tab))tab="today";
+if(!["today","read","maths","practice","words"].includes(tab))tab="today";
 function setTab(t){tab=t;try{sessionStorage.setItem("tab",t)}catch(e){}render();window.scrollTo(0,0);}
-const TABS={today:["Today","sparkle"],read:["Read","book"],practice:["Practice","game"],words:["Words","abc"]};
+const TABS={today:["Today","sparkle"],read:["Read","book"],maths:["Maths","maths"],practice:["Practice","game"],words:["Words","abc"]};
 document.querySelectorAll("nav.tabs button").forEach(b=>{const [l,i]=TABS[b.dataset.tab];b.innerHTML=ic(i)+l;b.onclick=()=>setTab(b.dataset.tab);});
 $("#soundTest").innerHTML=ic("speaker")+`<span class="lbl">Test sound</span>`;
 $("#soundTest").onclick=()=>say("Hello! Let's practise some spellings.");
-$("#quit").innerHTML=ic("x");
+$("#quit").innerHTML=ic("x"); $("#mClose").innerHTML=ic("x"); $("#mClose").onclick=()=>closeMaths();
 $("#kid").onclick=()=>{
   const b=$("#kid");
   if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Tap again to log out";setTimeout(()=>{b.classList.remove("warn");if(Store.book)render();},3000);return;}
   b.classList.remove("warn");Store.logout(); selDate=null; authErr=""; render();
 };
 Store.onStatus=s=>{const c=$("#sync");c.innerHTML=s&&SYNC_TEXT[s]?`<i class="dot"></i>${SYNC_TEXT[s]}`:"";c.hidden=!Store.user||!SYNC_TEXT[s];c.className="chip "+(s==="saved"?"ok":/error|auth/.test(s)?"warn":"");};
-Store.onRemote=()=>{if(!S&&!RD)render();enrichAll();};
+Store.onRemote=()=>{if(!S&&!RD&&!MS)render();enrichAll();};
 
 function render(){
   const logged=!!Store.book;
@@ -394,7 +406,7 @@ function render(){
     if(!$("#kid").classList.contains("warn"))$("#kid").innerHTML=`${ic("person")}<span class="lbl">${esc(B().name)}</span>`;
     const s=streakOf(B().log); $("#streak").innerHTML=`${ic("flame")}${s?`${s}<span class="lbl"> day${s===1?"":"s"}</span>`:`<span class="lbl">Start a streak</span>`}`;
   }
-  $("#view").innerHTML=({login:viewLogin,today:viewToday,read:viewRead,practice:viewPractice,words:viewWords})[tab]();
+  $("#view").innerHTML=({login:viewLogin,today:viewToday,read:viewRead,maths:viewMaths,practice:viewPractice,words:viewWords})[tab]();
   bind(); scrollStrip();
 }
 
@@ -485,6 +497,7 @@ function viewToday(){
     ${others.length?`<div class="section"><div class="section-title"><h3>Other lists to practise</h3></div><div class="group">${others.map(({l,p})=>`<button class="cell" data-list="${l.date}">
       <div class="badge ${l.test?"orange":""}">${ic(l.test?"doc":"calendar")}</div><div class="grow"><div class="ttl">${esc(niceDate(l.date))}${l.title?` · ${esc(l.title)}`:""}</div><div class="sub">${p.fresh.length?`${p.fresh.length} new`:""}${p.fresh.length&&p.review.length?" · ":""}${p.review.length?`${p.review.length} to review`:""}</div></div>
       <span class="pill-count">${p.fresh.length+p.review.length}</span><span class="chev">${ic("chevron")}</span></button>`).join("")}</div></div>`:""}
+    ${mathsCard()}
     ${readingCard()}
   </div>`;
 }
@@ -816,7 +829,7 @@ function closeReaderQuiet(){stopListen();clearInterval(rTimer);closeSheet();RD=n
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.querySelector(".sheet"))closeSheet();});
 
 function bind(){
-  bindLogin();
+  bindLogin(); bindMaths();
   document.querySelectorAll("#view [data-go]").forEach(b=>b.onclick=()=>setTab(b.dataset.go));
   document.querySelectorAll("#view [data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say));
   document.querySelectorAll("#view [data-sayw]").forEach(b=>b.onclick=()=>say(b.dataset.sayw));

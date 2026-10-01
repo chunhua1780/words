@@ -67,7 +67,7 @@ function normBook(d,name){
   d=d&&typeof d==="object"?d:{};
   const rd=d.reading||{};
   return {name:d.name||name||"",words:d.words||{},tests:d.tests||{},lists:d.lists||{},listsV:d.listsV||0,deleted:d.deleted||{},log:d.log||{},best:d.best||0,prefs:d.prefs||{},
-    reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},updated:d.updated||0};
+    reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},maths:{q:(d.maths||{}).q||{},days:(d.maths||{}).days||{},log:(d.maths||{}).log||{}},updated:d.updated||0};
 }
 function mergeBooks(a,b){
   a=normBook(a);b=normBook(b);
@@ -86,12 +86,19 @@ function mergeBooks(a,b){
   for(const [d,v] of Object.entries(a.reading.log)){const o=rlog[d];rlog[d]=!o?v:{secs:Math.max(o.secs||0,v.secs||0),ids:[...new Set([...(o.ids||[]),...(v.ids||[])])]};}
   const newer=(x,y)=>{const out={...y};for(const [k,v] of Object.entries(x))if(!out[k]||(v.u||0)>=(out[k].u||0))out[k]=v;return out;};
   const reading={log:rlog,done:newer(a.reading.done,b.reading.done),looked:newer(a.reading.looked,b.reading.looked)};
+  // maths: per question and per day keep the newer copy (a daily set keeps the one with more answers); per-day counts keep the larger
+  const mdays={...b.maths.days};
+  for(const [d,v] of Object.entries(a.maths.days)){const o=mdays[d],na=Object.keys(v.ans||{}).length,no=o?Object.keys(o.ans||{}).length:-1;
+    if(!o||na>no||(na===no&&(v.u||0)>=(o.u||0)))mdays[d]=v;}
+  const mlog={...b.maths.log};
+  for(const [d,v] of Object.entries(a.maths.log)){const o=mlog[d];mlog[d]=!o?v:{n:Math.max(o.n||0,v.n||0),r:Math.max(o.r||0,v.r||0)};}
+  const maths={q:newer(a.maths.q,b.maths.q),days:mdays,log:mlog};
   const lists={};
   for(const k of new Set([...Object.keys(a.lists),...Object.keys(b.lists)])){
     const p=a.lists[k],q=b.lists[k],it=!p?q:!q?p:((q.u||0)>(p.u||0)?q:p);
     if(del["L:"+k]&&del["L:"+k]>=(it.u||0))continue; lists[k]=it;
   }
-  return {name:a.name||b.name,words:mergeMap(a.words,b.words),tests:mergeMap(a.tests,b.tests),lists,listsV:Math.max(a.listsV,b.listsV),deleted:del,log,reading,
+  return {name:a.name||b.name,words:mergeMap(a.words,b.words),tests:mergeMap(a.tests,b.tests),lists,listsV:Math.max(a.listsV,b.listsV),deleted:del,log,reading,maths,
     best:Math.max(a.best,b.best),prefs:((a.prefs.u||0)>=(b.prefs.u||0)?a.prefs:b.prefs),updated:Math.max(a.updated,b.updated)};
 }
 
@@ -263,6 +270,7 @@ const ICON_PATHS={
   sparkle:'<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/>',
   lock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M6 18l1.6-1.6M16.4 7.6L18 6"/>',
+  maths:'<rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M7 8.2h3.6M8.8 6.4V10M13.6 8.2h3.6M7.4 14.4l2.8 2.8M10.2 14.4l-2.8 2.8M13.6 14.6h3.6M13.6 17h3.6"/>',
   calendar:'<rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>',
 };
 const ic=(name,cls="")=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||""}</svg>`;

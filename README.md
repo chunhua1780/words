@@ -13,3 +13,9 @@ An English spelling trainer for children (iPad, landscape works best), with a ph
 ## One-time setup
 
 In Supabase → **SQL Editor**, run [`setup-accounts.sql`](setup-accounts.sql). It creates the accounts table and password-checked functions, and brings over any word list saved under the same name by the earlier version ([`setup.sql`](setup.sql)).
+
+## Phonics sounds
+
+`phonics.js` splits each word into spelling chunks and gives every chunk its real sound, taken from the
+[CMU Pronouncing Dictionary](https://github.com/cmusphinx/cmudict) (`cmu.txt`, US English, BSD licence, see `CMU-LICENSE.txt`).
+Chunk sounds and letter names are read by Google's voice or the device voice, never by the dictionary voice (which is only used for whole words).

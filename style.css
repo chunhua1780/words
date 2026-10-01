@@ -220,3 +220,6 @@ label.opt:has(input:checked){background:var(--ink-soft);color:var(--ink)}
 .mchip.mastered{background:var(--green);color:#fff}
 @media (prefers-color-scheme:dark){.mchip.learning{color:var(--sun)}}
 .legend{display:flex;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.chunk.st b{text-decoration:underline;text-decoration-thickness:3px;text-underline-offset:5px}
+.chunk small{font:600 13px var(--round);opacity:.85}
+.stress-note{font-size:13px;color:var(--muted)}

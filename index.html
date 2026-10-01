@@ -49,6 +49,7 @@
 </section>
 
 <script src="core.js"></script>
+<script src="phonics.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -85,8 +86,10 @@ function pickVoice(){
 }
 if("speechSynthesis" in window){pickVoice(); speechSynthesis.onvoiceschanged=pickVoice;}
 let speakId=0;
+/* Continue a sound chain (letters, chunks) only if no other sound was started in between */
+const thenIfQuiet=(fn,ms)=>()=>{const id=speakId;setTimeout(()=>{if(id===speakId)fn();},ms);};
 function stopAudio(){speakId++;try{player.pause();}catch(e){} if("speechSynthesis" in window)speechSynthesis.cancel();}
-function tts(text,{rate=.85,onend,id=++speakId}={}){
+function tts(text,{rate=.85,onend,onstart,id=++speakId}={}){
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
   try{player.pause();}catch(e){}
   if(!("speechSynthesis" in window)){setTimeout(fire,300);return;}
@@ -94,13 +97,22 @@ function tts(text,{rate=.85,onend,id=++speakId}={}){
   const u=new SpeechSynthesisUtterance(text); u.lang=accent==="uk"?"en-GB":"en-US"; u.rate=rate;
   if(voice)u.voice=voice;
   u.onend=fire; u.onerror=fire;
+  let st=false; const start=()=>{if(!st&&id===speakId){st=true;onstart&&onstart();}};
+  u.onstart=start; setTimeout(start,400);
   speechSynthesis.speak(u);
   if(onend)setTimeout(fire,1500+text.length*180/rate);
 }
-function sources(text){
-  const q=encodeURIComponent(text), uk=accent==="uk";
-  return ["https://dict.youdao.com/dictvoice?type="+(uk?1:2)+"&audio="+q,
-          "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+(uk?"en-GB":"en-US")+"&q="+q];
+/* Whole words: Youdao's recorded dictionary voice first. Chunks and letters are not dictionary words,
+   so they go to Google's reading voice only (Youdao can return a different word's sound for them). */
+const googleUrl=text=>"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+(accent==="uk"?"en-GB":"en-US")+"&q="+encodeURIComponent(text);
+function sources(text,fragment){
+  if(fragment)return [googleUrl(text)];
+  return ["https://dict.youdao.com/dictvoice?type="+(accent==="uk"?1:2)+"&audio="+encodeURIComponent(text),googleUrl(text)];
+}
+const warmed=new Set();
+function warm(texts){ // fetch chunk sounds early so they play without a gap
+  if(navigator.onLine===false)return;
+  texts.forEach(t=>{const u=googleUrl(t);if(warmed.has(u))return;warmed.add(u);try{fetch(u,{mode:"no-cors"}).catch(()=>{});}catch(e){}});
 }
 let tipShown=false;
 function showSoundTip(){
@@ -108,27 +120,28 @@ function showSoundTip(){
   t.textContent="No sound? Tap any 🔊 button. Check the iPad isn't on Silent (swipe down from the top right, look at the bell) and the volume is up.";
   t.hidden=false; setTimeout(()=>t.hidden=true,8000);
 }
-function say(text,{slow=false,onend}={}){
+function say(text,{slow=false,onend,onstart,fragment=false}={}){
   if(!text)return;
   if("speechSynthesis" in window)speechSynthesis.cancel();
   const id=++speakId;
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
-  const list=navigator.onLine===false?[]:sources(text);
-  const w=findWord(text); if(w&&w.audio)list.push(w.audio);
+  const list=navigator.onLine===false?[]:sources(text,fragment);
+  const w=!fragment&&findWord(text); if(w&&w.audio)list.push(w.audio);
+  let begun=false; const begin=()=>{if(!begun&&id===speakId){begun=true;onstart&&onstart();}};
   let k=-1, started=false;
   const tryNext=()=>{
     if(id!==speakId)return;
     k++; started=false;
-    if(k>=list.length){tts(text,{rate:slow?.5:.85,onend,id});return;}
+    if(k>=list.length){tts(text,{rate:slow?.5:.85,onend,onstart:begin,id});return;}
     player.onended=fire;
-    player.onplaying=()=>{started=true;};
+    player.onplaying=()=>{started=true;begin();};
     player.onerror=()=>{if(id===speakId&&k<list.length)tryNext();};
     player.src=list[k];
     try{player.playbackRate=slow?.65:1;player.defaultPlaybackRate=slow?.65:1;player.preservesPitch=true;}catch(e){}
     const kk=k;
     player.play().then(()=>{try{player.playbackRate=slow?.65:1;}catch(e){}}).catch(err=>{
       if(id!==speakId||kk!==k)return;
-      if(err&&err.name==="NotAllowedError"){showSoundTip();k=list.length;tts(text,{rate:slow?.5:.85,onend,id});}
+      if(err&&err.name==="NotAllowedError"){showSoundTip();k=list.length;tts(text,{rate:slow?.5:.85,onend,onstart:begin,id});}
       else tryNext();
     });
     setTimeout(()=>{if(id===speakId&&kk===k&&!started)tryNext();},4000);
@@ -136,16 +149,21 @@ function say(text,{slow=false,onend}={}){
   tryNext();
   if(onend)setTimeout(fire,slow?9000:7000);
 }
+/* Spell letter by letter. Each letter is said by its name (A = "ay", S = "ess"); it lights up when its sound starts. */
+function sayLetter(ch,{onend,onstart}={}){
+  const l=ch.toLowerCase();
+  if(voice)tts(Phonics.LETTER_NAMES[l]||ch,{rate:.75,onend,onstart});
+  else say(Phonics.LETTER_NAMES[l]||ch,{fragment:true,onend,onstart});
+}
 function spellOut(w,svgSel){
   const letters=[...w]; let i=0;
+  const clear=()=>document.querySelectorAll(svgSel+" tspan").forEach(t=>t.classList.remove("hl"));
   const step=()=>{
-    document.querySelectorAll(svgSel+" tspan").forEach(t=>t.classList.remove("hl"));
-    if(i>=letters.length){say(w);return;}
-    const t=document.querySelector(`${svgSel} tspan[data-i="${i}"]`); if(!t)return; t.classList.add("hl");
-    const ch=letters[i++];
+    if(!document.querySelector(svgSel))return;
+    if(i>=letters.length){clear();say(w);return;}
+    const k=i++, ch=letters[k];
     if(!/[a-z]/i.test(ch)){setTimeout(step,250);return;}
-    if(voice)tts(ch.toUpperCase(),{rate:.8,onend:()=>setTimeout(step,120)});
-    else say(ch.toUpperCase(),{onend:()=>setTimeout(step,120)});
+    sayLetter(ch,{onstart:()=>{clear();const t=document.querySelector(`${svgSel} tspan[data-i="${k}"]`);if(t)t.classList.add("hl");},onend:thenIfQuiet(step,150)});
   };
   step();
 }
@@ -161,78 +179,54 @@ function beep(ok,big){
 }
 
 /* ================= Phonics: syllables, sound chunks, tricky bits ================= */
-function syllables(word){
-  if(/[^a-z']/i.test(word)||word.length<4)return [word];
-  const lw=word.toLowerCase(), n=lw.length;
-  const isV=i=>"aeiou".includes(lw[i])||(lw[i]==="y"&&i>0&&!"aeiou".includes(lw[i-1]));
-  const g=[]; for(let i=0;i<n;){if(isV(i)){let j=i;while(j<n&&isV(j))j++;g.push([i,j]);i=j;}else i++;}
-  if(g.length>1){const last=g[g.length-1];
-    if(last[0]===n-1&&lw[n-1]==="e"&&!(lw[n-2]==="l"&&n>2&&!isV(n-3)))g.pop();
-    else if(last[0]===n-2&&/e[sd]$/.test(lw)&&!/[td]ed$|[sxz]es$|[cs]hes$/.test(lw))g.pop();}
-  if(g.length<2)return [word];
-  const DI=["ch","sh","th","ph","wh","gh"], AFTER=["ck","ng"], BL=["bl","br","cl","cr","dr","fl","fr","gl","gr","pl","pr","tr","wr"];
-  const cuts=[];
-  for(let k=0;k<g.length-1;k++){
-    const s=g[k][1], e=g[k+1][0], num=e-s; let cut;
-    if(k===g.length-2&&e===n-1&&lw[n-1]==="e"&&lw[n-2]==="l")cut=e-2;
-    else if(num<=1)cut=lw[s]==="x"?s+1:s;
-    else{const p=lw.slice(s,s+2);
-      if(num===2&&(DI.includes(p)||BL.includes(p)))cut=s;
-      else if(AFTER.includes(p))cut=(p==="ng"&&"eiy".includes(lw[s+2]))?s+1:s+2;
-      else cut=s+1;}
-    if(cut>(cuts[cuts.length-1]||0)&&cut<n)cuts.push(cut);
-  }
-  const out=[];let p=0;cuts.forEach(c=>{out.push(word.slice(p,c));p=c;});out.push(word.slice(p));
-  return out.filter(Boolean);
-}
-/* Word endings that are spelled differently from how they sound */
-const SUFFIX=[["tial","shul"],["cial","shul"],["tion","shun"],["sion","shun"],["cious","shus"],["tious","shus"],["ture","cher"],["sure","zher"],
-  ["ible","ih-bul"],["able","uh-bul"],["ous","us"],["ence","ence"],["ance","ance"],["ment","ment"],["ness","ness"],["less","less"],["ful","ful"],["ing","ing"]];
+/* Chunks and their sounds come from phonics.js (CMU pronunciation dictionary). Results are saved on each word. */
 const SUFFIX_ALT={tial:["cial"],cial:["tial"],tion:["sion"],sion:["tion"],cious:["tious"],tious:["cious"],ture:["cher"],
   ible:["able"],able:["ible"],ence:["ance"],ance:["ence"],ous:["us"],ment:["mant"],ful:["full"],less:["les"]};
-function chunksOf(word){
-  if(/\s/.test(word))return word.split(/\s+/).flatMap(chunksOf);
-  const lw=word.toLowerCase();
-  for(const [s] of SUFFIX)if(lw.endsWith(s)&&lw.length>=s.length+3)return [...syllables(word.slice(0,-s.length)),word.slice(-s.length)];
-  return syllables(word);
+const phCache=new Map();
+function phon(word){
+  const w=Store.book&&findWord(word);
+  if(w&&w.pa&&w.pa.v===Phonics.PH_VERSION)return w.pa;
+  if(phCache.has(word))return phCache.get(word);
+  const a=Phonics.analyse(word);
+  if(Phonics.lookup("the")){ // dictionary loaded: the result is final
+    phCache.set(word,a);
+    if(w){w.pa={v:a.v,c:a.c,s:a.s,st:a.st,src:a.src};}
+  }
+  return a;
 }
-function soundOf(chunk,last){
-  if(last){const s=SUFFIX.find(([x])=>x===chunk.toLowerCase());if(s)return s[1];}
-  return chunk;
-}
-function trickyOf(word){
-  const lw=word.toLowerCase(), out=[];
-  const ch=chunksOf(word), last=ch[ch.length-1].toLowerCase(), suf=SUFFIX.find(([x])=>x===last);
-  if(ch.length>1&&suf&&suf[1]!==last)out.push(`<b>${esc(last)}</b> sounds like “${esc(suf[1])}”`);
-  [...new Set(lw.match(/([a-z])\1/g)||[])].forEach(d=>out.push(`Double letters: <b>${esc(d)}</b>`));
-  if(/^kn/.test(lw))out.push(`<b>k</b> is silent in <b>kn</b>`);
-  if(/^wr/.test(lw))out.push(`<b>w</b> is silent in <b>wr</b>`);
-  if(/mb$/.test(lw))out.push(`<b>b</b> is silent at the end`);
-  if(/igh|ght/.test(lw))out.push(`<b>gh</b> is silent`);
-  if(/ei/.test(lw))out.push(`<b>ei</b>: e before i here`);
-  if(/ie/.test(lw)&&!/ie$/.test(lw))out.push(`<b>ie</b>: i before e here`);
-  return out.slice(0,3);
-}
+const chunksOf=word=>phon(word).c;
+function trickyOf(word){return Phonics.tricky(word,phon(word)).map(t=>esc(t).replace(/“([^”]+)”/g,"“<b>$1</b>”"));}
 function chunkRow(word,id){
-  const ch=chunksOf(word);
-  return `<div class="chunks" id="${id}">${ch.map((c,k)=>{const s=soundOf(c,k===ch.length-1);
-    return `<button class="chunk" data-k="${k}" data-say="${esc(s)}"><b>${esc(c)}</b><small>${s.toLowerCase()!==c.toLowerCase()?"says “"+esc(s)+"”":""}</small></button>`;}).join("")}</div>`;
+  const a=phon(word);
+  warm(a.s);
+  return `<div class="chunks" id="${id}">${a.c.map((c,k)=>`<button class="chunk ${k===a.st&&a.c.length>1?"st":""}" data-k="${k}" data-say="${esc(a.s[k])}" aria-label="${esc(c)}, sounds like ${esc(a.s[k])}"><b>${esc(c)}</b><small>“${esc(a.s[k])}”</small></button>`).join("")}</div>`;
 }
-/* Sound it out: each chunk, then the whole word */
+/* Sound it out: each chunk (lit up while it plays), then the whole word */
 function soundOut(word,rowId){
-  const ch=chunksOf(word); let k=0;
+  const a=phon(word); let k=0;
   const row=()=>document.getElementById(rowId);
+  const clear=()=>row()&&row().querySelectorAll(".chunk").forEach(b=>b.classList.remove("hl"));
   const step=()=>{
     if(!row())return;
-    row().querySelectorAll(".chunk").forEach(b=>b.classList.remove("hl"));
-    if(k>=ch.length){setTimeout(()=>say(word),250);return;}
-    const b=row().querySelector(`[data-k="${k}"]`); if(b)b.classList.add("hl");
-    const s=soundOf(ch[k],k===ch.length-1); k++;
-    say(s,{onend:()=>setTimeout(step,250)});
+    if(k>=a.c.length){clear();thenIfQuiet(()=>{if(row())say(word);},250)();return;}
+    const kk=k++;
+    say(a.s[kk],{fragment:true,onstart:()=>{clear();const b=row()&&row().querySelector(`[data-k="${kk}"]`);if(b)b.classList.add("hl");},onend:thenIfQuiet(step,300)});
   };
   step();
 }
-function bindChunks(st){st.querySelectorAll(".chunk[data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say));}
+function bindChunks(st){st.querySelectorAll(".chunk[data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say,{fragment:true}));}
+/* Load the pronunciation dictionary once, then work out chunks and sounds for every saved word */
+let dictReady=null;
+function ensureDict(){
+  if(!dictReady)dictReady=Phonics.loadDict("cmu.txt").then(()=>{
+    phCache.clear();
+    let changed=false;
+    if(Store.book)words().forEach(w=>{if(!w.pa||w.pa.v!==Phonics.PH_VERSION){phon(w.w);w.u=Date.now();changed=true;}});
+    if(changed)Store.save();
+    return true;
+  }).catch(()=>{dictReady=null;return false;});
+  return dictReady;
+}
 
 /* ================= Four-line handwriting grid ================= */
 function grid(word,{id="g"}={}){
@@ -270,6 +264,7 @@ async function enrich(word){
 let enriching=false;
 async function enrichAll(){ // words added on the parent page are looked up here, a few at a time
   if(enriching||!Store.book)return; enriching=true;
+  ensureDict();
   const todo=words().filter(w=>!w.enr).slice(0,30);
   for(let i=0;i<todo.length;i+=5)await Promise.all(todo.slice(i,i+5).map(enrich));
   if(todo.length){todo.forEach(w=>w.u=Date.now());Store.save();}
@@ -639,8 +634,10 @@ function fullTasks(ids,tasks){
   tasks.push({t:"intro",title:"Final dictation",sub:`Listen and spell all ${ids.length} words. Any mistakes come back once more.`});
   shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
 }
-function startSession(mode,ids,opt={}){
+async function startSession(mode,ids,opt={}){
   ids=ids.filter(id=>B().words[id]); if(!ids.length)return;
+  if(!Phonics.lookup("the")){const t=$("#soundTip");t.textContent="Loading word sounds…";t.className="notice";t.hidden=false;
+    await Promise.race([ensureDict(),new Promise(r=>setTimeout(r,8000))]);t.hidden=true;t.className="notice warn";}
   const tasks=[], n=ids.length, s=n===1?"":"s";
   if(mode==="learn"||mode==="full")fullTasks(ids,tasks);
   else if(mode==="review"){
@@ -722,14 +719,15 @@ function tPreview(st,task,w){
   st.innerHTML=panes(`<div class="kind">Look · Listen · Sound it out</div>
     ${grid(w.w,{id:"pv"})}
     ${w.ipa?`<div class="ipa">${esc(w.ipa)}</div>`:""}
-    ${chunkRow(w.w,"ck")}`,
+    ${chunkRow(w.w,"ck")}
+    ${phon(w.w).c.length>1&&phon(w.w).st>=0?`<div class="stress-note">The underlined chunk is said a little louder.</div>`:""}`,
     `${sayBtns(w,{svg:"pv",sound:true})}
     ${tr.length?`<div class="tricky"><span class="muted small">Watch out for:</span>${tr.map(x=>`<div>${x}</div>`).join("")}</div>`:""}
     ${w.ex&&!task.quick?`<div class="ex">${esc(w.ex)}</div>`:""}
     <div class="tip">Tap each chunk to hear it. Say the chunks out loud, then the whole word. Then spell it out loud.</div>
     <div><button class="btn primary big" id="go">Got it, next</button></div>`);
   bindSay(st,w,"pv","ck"); bindChunks(st);
-  say(w.w,{onend:()=>setTimeout(()=>{if(document.getElementById("ck"))soundOut(w.w,"ck");},400)});
+  say(w.w,{onend:thenIfQuiet(()=>{if(document.getElementById("ck"))soundOut(w.w,"ck");},400)});
   $("#go").onclick=next;
 }
 
@@ -779,8 +777,8 @@ function tChunks(st,task,w){
     if(slotK!=null&&slotK!==pos)return;
     const t=tiles[el.dataset.i];
     if(t.c===ch[pos]){
-      el.classList.add("used"); pos++; drawSlots(); say(soundOf(ch[pos-1],pos===ch.length));
-      if(pos===ch.length){beep(true);$("#fb").innerHTML=`<span class="ok-t" style="font-size:20px">Well done!</span>`;setTimeout(()=>{if(S)say(w.w);},800);autoNext(2000);}
+      el.classList.add("used"); pos++; drawSlots(); say(phon(w.w).s[pos-1],{fragment:true});
+      if(pos===ch.length){beep(true);$("#fb").innerHTML=`<span class="ok-t" style="font-size:20px">Well done!</span>`;thenIfQuiet(()=>{if(S)say(w.w);},800)();autoNext(2000);}
     }else{
       miss++;beep(false);el.classList.remove("bad");void el.offsetWidth;el.classList.add("bad");
       if(miss>=2)$("#hintBox").hidden=false;
@@ -988,7 +986,7 @@ function tDict(st,task,w){
       ${sayBtns(w,{})}`,
     `<div id="ansBox" class="stack"></div><div id="fb"></div>`);
   bindSay(st,w);
-  if(mock&&w.ex)say(w.w,{onend:()=>setTimeout(()=>say(w.ex,{onend:()=>setTimeout(()=>say(w.w),300)}),300)}); else say(w.w);
+  if(mock&&w.ex)say(w.w,{onend:thenIfQuiet(()=>say(w.ex,{onend:thenIfQuiet(()=>say(w.w),300)}),300)}); else say(w.w);
   let copying=false;
   const A=answerArea($("#ansBox"),w,{label:mock?"Next":"Check",placeholder:"Write what you hear",submit:ans=>{
     if(mock){ // no feedback during a test

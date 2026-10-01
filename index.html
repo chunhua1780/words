@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Word Speller">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,26 +21,36 @@
       Word Speller
     </div>
     <span class="spacer"></span>
-    <button class="chip kid" id="kid" hidden></button>
     <span class="chip" id="sync" hidden></span>
     <span class="chip" id="streak" hidden></span>
-    <button class="chip" id="soundTest">🔊 Test sound</button>
-    <button class="chip" id="accent"></button>
+    <button class="chip" id="soundTest" title="Test sound"></button>
+    <button class="chip" id="accent" title="Voice"></button>
+    <button class="chip kid" id="kid" hidden></button>
   </header>
   <nav class="tabs" role="tablist" hidden>
-    <button role="tab" data-tab="today">Today</button>
-    <button role="tab" data-tab="practice">Practice</button>
-    <button role="tab" data-tab="tomorrow">Tomorrow</button>
-    <button role="tab" data-tab="add">Add Words</button>
-    <button role="tab" data-tab="bank">My Words</button>
+    <button role="tab" data-tab="today"></button>
+    <button role="tab" data-tab="read"></button>
+    <button role="tab" data-tab="practice"></button>
+    <button role="tab" data-tab="words"></button>
   </nav>
   <main id="view"></main>
 </div>
 <div id="soundTip" class="notice warn" hidden></div>
 
+<section id="reader" hidden aria-label="Reading">
+  <div class="r-top">
+    <button class="icon-btn" id="rClose" aria-label="Close"></button>
+    <div class="r-title" id="rTitle"></div>
+    <span class="timer" id="rTimer"></span>
+    <button class="icon-btn" id="rListen" aria-label="Listen"></button>
+    <button class="icon-btn" id="rSize" aria-label="Text size"></button>
+  </div>
+  <div class="r-body" id="rBody"></div>
+</section>
+
 <section id="session" hidden>
   <div class="s-top">
-    <button class="icon-btn" id="quit" aria-label="Quit">✕</button>
+    <button class="icon-btn" id="quit" aria-label="Quit"></button>
     <span class="s-label" id="sLabel"></span>
     <div class="prog"><i id="sProg"></i></div>
     <div class="hud" id="hud" hidden><span id="hScore"></span><span class="combo" id="hCombo" hidden></span><span id="hTime"></span></div>
@@ -50,6 +60,7 @@
 
 <script src="core.js"></script>
 <script src="phonics.js"></script>
+<script src="readings.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -117,7 +128,7 @@ function warm(texts){ // fetch chunk sounds early so they play without a gap
 let tipShown=false;
 function showSoundTip(){
   if(tipShown)return; tipShown=true; const t=$("#soundTip");
-  t.textContent="No sound? Tap any 🔊 button. Check the iPad isn't on Silent (swipe down from the top right, look at the bell) and the volume is up.";
+  t.textContent="No sound? Tap any Play button. Check the iPad isn't on Silent (swipe down from the top right, look at the bell) and the volume is up.";
   t.hidden=false; setTimeout(()=>t.hidden=true,8000);
 }
 function say(text,{slow=false,onend,onstart,fragment=false}={}){
@@ -300,7 +311,7 @@ const SETS={
   recent:{name:"Last 3 days",get:()=>{const t=today();return words().filter(w=>w.added&&dayDiff(w.added,t)<=2);}},
   all:{name:"All words",get:()=>words()},
 };
-const METHODS=[["type","⌨️ Type"],["tiles","🔤 Letter tiles"],["write","✍️ Handwriting"]];
+const METHODS=[["type","Type","pencil"],["tiles","Letter tiles","layers"],["write","Handwriting","pencil"]];
 const method=()=>(B()&&B().prefs.method)||"type";
 function setMethod(m){B().prefs={...B().prefs,method:m,u:Date.now()};Store.save();}
 function methodPicker(){
@@ -311,17 +322,21 @@ function bindMethod(root){root.querySelectorAll("[data-method]").forEach(b=>b.on
 /* ================= Pages ================= */
 let tab="today", bankFilter="all", addTarget="today", practiceSet="today", authMode="login", authErr="";
 try{tab=sessionStorage.getItem("tab")||"today";practiceSet=sessionStorage.getItem("pset")||"today";}catch(e){}
+if(!["today","read","practice","words"].includes(tab))tab="today";
 function setTab(t){tab=t;try{sessionStorage.setItem("tab",t)}catch(e){}render();window.scrollTo(0,0);}
-document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.tab));
+const TABS={today:["Today","sparkle"],read:["Read","book"],practice:["Practice","game"],words:["Words","abc"]};
+document.querySelectorAll("nav.tabs button").forEach(b=>{const [l,i]=TABS[b.dataset.tab];b.innerHTML=ic(i)+l;b.onclick=()=>setTab(b.dataset.tab);});
 $("#accent").onclick=()=>{accent=accent==="uk"?"us":"uk";try{localStorage.setItem("ws-accent",accent)}catch(e){}pickVoice();render();say("hello");};
+$("#soundTest").innerHTML=ic("speaker")+`<span class="lbl">Sound</span>`;
 $("#soundTest").onclick=()=>say("Hello! Let's spell some words.");
+$("#quit").innerHTML=ic("x");
 $("#kid").onclick=()=>{
   const b=$("#kid");
   if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Tap again to log out";setTimeout(()=>{b.classList.remove("warn");if(Store.book)render();},3000);return;}
   b.classList.remove("warn");Store.logout(); authErr=""; render();
 };
 Store.onStatus=s=>{const c=$("#sync");c.textContent=SYNC_TEXT[s]||"";c.hidden=!Store.user||!c.textContent;c.className="chip "+(s==="saved"?"ok":/error|auth/.test(s)?"warn":"");};
-Store.onRemote=()=>{if(!S)render();enrichAll();};
+Store.onRemote=()=>{if(!S&&!RD)render();enrichAll();};
 
 function chipList(ws,empty,mastery){
   if(!ws.length)return `<p class="muted" style="margin:0">${empty}</p>`;
@@ -333,26 +348,27 @@ function render(){
   $("nav.tabs").hidden=!logged; ["#streak","#kid"].forEach(x=>$(x).hidden=!logged); if(!logged)$("#sync").hidden=true;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   if(logged){
-    if(!$("#kid").classList.contains("warn"))$("#kid").textContent=`👤 ${B().name} · Log out`;
-    const s=streakOf(B().log); $("#streak").textContent=s?`🔥 ${s}-day streak`:"Start your streak today";
+    if(!$("#kid").classList.contains("warn"))$("#kid").innerHTML=`${ic("person")}${esc(B().name)}`;
+    const s=streakOf(B().log); $("#streak").innerHTML=`${ic("flame")}${s?`${s}<span class="lbl">-day streak</span>`:`<span class="lbl">Start a streak</span>`}`;
   }
-  $("#accent").textContent=accent==="uk"?"🇬🇧 UK voice":"🇺🇸 US voice";
-  $("#view").innerHTML=({login:viewLogin,today:viewToday,practice:viewPractice,tomorrow:viewTomorrow,add:viewAdd,bank:viewBank})[tab]();
+  $("#accent").textContent=accent==="uk"?"UK voice":"US voice";
+  $("#view").innerHTML=({login:viewLogin,today:viewToday,read:viewRead,practice:viewPractice,words:viewWords})[tab]();
   bind();
 }
 
 function viewLogin(){
   const create=authMode==="create";
   return `<form class="card auth" id="authForm" autocomplete="on">
-    <h2>${create?"Create your account":"Log in"}</h2>
-    <p class="muted" style="margin:0">${create?"Choose a username and a password. Your parents can use the same ones on their phone to see your progress.":"Your words and progress are saved in your account, on any iPad or phone."}</p>
+    <div class="badge" style="width:56px;height:56px;border-radius:16px">${ic("book")}</div>
+    <h2>${create?"Create your account":"Welcome back"}</h2>
+    <p class="muted" style="margin:0">${create?"Choose a username and a password. Your parents can use the same ones on their phone to follow your progress.":"Log in to carry on with your spelling and reading."}</p>
     <label>Username<input type="text" id="aUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" required></label>
     <label>Password<input type="password" id="aPass" name="password" autocomplete="${create?"new-password":"current-password"}" maxlength="64" required></label>
     ${create?`<label>Password again<input type="password" id="aPass2" autocomplete="new-password" maxlength="64" required></label>`:""}
     <div class="err" id="aErr">${esc(authErr)}</div>
     <button class="btn primary big" type="submit" id="aGo">${create?"Create account":"Log in"}</button>
     <button class="linkish" type="button" id="aSwitch">${create?"I already have an account":"New here? Create an account"}</button>
-    <p class="muted small" style="margin:0">Parents: open the parent page on your phone to set test dates and see progress. <a href="parent.html">Parent page →</a></p>
+    <p class="muted small" style="margin:0;text-align:center">Parents: <a href="parent.html">open the parent page</a> to set tests and see progress.</p>
   </form>`;
 }
 function bindLogin(){
@@ -363,7 +379,7 @@ function bindLogin(){
     const u=$("#aUser").value.trim(), p=$("#aPass").value;
     if(authMode==="create"&&p!==$("#aPass2").value){$("#aErr").textContent="The two passwords are different.";return;}
     const btn=$("#aGo"); btn.disabled=true; btn.textContent="Please wait…";
-    try{await Store.open(u,p,authMode==="create");authErr="";tab=words().length?"today":"add";render();enrichAll();}
+    try{await Store.open(u,p,authMode==="create");authErr="";tab="today";render();enrichAll();}
     catch(err){authErr=authMsg(err);render();$("#aUser").value=u;}
   };
 }
@@ -373,61 +389,81 @@ function testCard(x){
   const d=dayDiff(today(),x.date), m=ws.filter(w=>w.stage>=3).length;
   const best=(x.mocks||[]).reduce((a,r)=>Math.max(a,r.s/r.n),0);
   return `<div class="card stack test-card">
-    <div><h3 style="margin:0">📝 ${esc(x.title||"Spelling test")}</h3>
-      <div class="muted">${niceDate(x.date)} · <b>${d===0?"Today!":inDays(d)}</b> · ${ws.length} words · ${m} strong${(x.mocks||[]).length?` · best practice test ${Math.round(best*100)}%`:""}</div></div>
+    <div class="tile-head"><div class="badge orange">${ic("doc")}</div><div><h3 style="margin:0">${esc(x.title||"Spelling test")}</h3>
+      <div class="muted small">${niceDate(x.date)} · <b>${d===0?"Today":inDays(d)}</b> · ${m} of ${ws.length} words strong${(x.mocks||[]).length?` · best practice ${Math.round(best*100)}%`:""}</div></div></div>
     ${chipList(ws,"No words in this test yet.",true)}
     <div class="legend"><span class="mchip">new</span><span class="mchip learning">learning</span><span class="mchip strong">strong</span><span class="mchip mastered">mastered</span></div>
-    ${ws.length?`<div class="row"><button class="btn primary" data-test-learn="${x.id}">Practise these words</button><button class="btn sun" data-test-mock="${x.id}">Practice test</button></div>`:""}
+    ${ws.length?`<div class="row"><button class="btn primary" data-test-learn="${x.id}">Practise these words</button><button class="btn" data-test-mock="${x.id}">Practice test</button></div>`:""}
+  </div>`;
+}
+function readingCard(){
+  const t=today(), r=todaysReading(), secs=readSecs(t), done=B().reading.done[r.id], readToday=(B().reading.log[t]||{}).ids||[];
+  const p=Math.min(100,Math.round(secs/600*100)), finished=secs>=600;
+  return `<div class="card read-hero">
+    <div class="passage-card">
+      <span class="kind-tag">${ic("book")}Daily reading · ${esc(r.kind)}</span>
+      <h3>${esc(r.title)}</h3>
+      <div class="muted small">${readMinutes(r)} min read · ${r.questions.length} questions${done?` · last score ${done.score}/${done.n}`:""}</div>
+      <div class="row"><button class="btn primary big" data-read="${r.id}">${done&&done.date===t?"Read again":readToday.includes(r.id)?"Continue reading":"Start reading"}</button>
+      <button class="btn" data-go="read">All stories</button></div>
+    </div>
+    <div style="text-align:center"><div class="ring lg" style="--p:${p}"><span>${Math.floor(secs/60)}′</span></div>
+      <div class="muted small" style="margin-top:6px">${finished?"10 minutes done!":"of 10 minutes"}</div></div>
   </div>`;
 }
 function viewToday(){
   const t=today(), {fresh,review}=dueOn(B(),t), log=B().log[t];
+  const tm=dueOn(B(),addDays(t,1));
   const fc=[...Array(7)].map((_,k)=>{const d=addDays(t,k);const x=dueOn(B(),d);return {d,n:x.fresh.length+x.review.length};});
   const max=Math.max(1,...fc.map(f=>f.n));
   const learnedToday=words().filter(w=>w.learnedOn===t);
   const tests=upcomingTests(B(),30);
   const all=SETS.today.get();
-  if(!words().length)return `<div class="card stack" style="text-align:center;padding:40px 20px">
-    <h2>Hi ${esc(B().name)}! Your word list is empty.</h2>
-    <p class="muted" style="margin:0">Add the words you want to learn. They are saved in your account for every day.</p>
-    <div><button class="btn primary big" data-go="add">Add words</button></div></div>`;
+  const hour=new Date().getHours(), hi=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
   return `<div class="stack">
-    <div class="row" style="justify-content:space-between;align-items:flex-end"><div><div class="muted">Hi ${esc(B().name)}, let's go!</div><div class="date">${niceDate(t)}</div></div>
-      ${log?`<span class="chip ok">✔ ${log.done||0} words practised today</span>`:""}</div>
+    <div><div class="eyebrow">${niceDate(t)}</div><div class="date">${hi}, ${esc(B().name)}</div></div>
+    ${readingCard()}
     ${tests.map(testCard).join("")}
+    ${!words().length?`<div class="card stack" style="text-align:center;padding:36px 20px">
+      <div class="badge" style="margin:0 auto">${ic("abc")}</div>
+      <h3 style="margin:0">Your spelling list is empty</h3>
+      <p class="muted" style="margin:0">Add the words you want to learn. They are saved in your account for every day.</p>
+      <div><button class="btn primary" data-go="words">Add words</button></div></div>`:`
     <div class="grid-home">
       <div class="card stack">
-        <div class="row"><div class="big-num">${fresh.length}</div><div><h3 style="margin:0">New words</h3><div class="muted small">Sound it out · Chunks · Build · Write · Dictation</div></div></div>
+        <div class="tile-head"><div class="badge">${ic("sparkle")}</div><div><h3 style="margin:0">New words</h3><div class="muted small">Sound it out · Chunks · Build · Write · Dictation</div></div><span class="spacer"></span><div class="big-num">${fresh.length}</div></div>
         ${chipList(fresh,"No new words for today.")}
-        <div class="row">${fresh.length?`<button class="btn primary big" data-act="learn">Start learning</button>`:`<button class="btn" data-go="add">Add words</button>`}</div>
+        <div class="row">${fresh.length?`<button class="btn primary" data-act="learn">Start learning</button>`:`<button class="btn" data-go="words">Add words</button>`}</div>
       </div>
       <div class="card stack">
-        <div class="row"><div class="big-num">${review.length}</div><div><h3 style="margin:0">Review</h3><div class="muted small">Words to practise again today</div></div></div>
+        <div class="tile-head"><div class="badge green">${ic("check")}</div><div><h3 style="margin:0">Review</h3><div class="muted small">Words to practise again today</div></div><span class="spacer"></span><div class="big-num">${review.length}</div></div>
         ${chipList(review,"Nothing to review today.")}
-        <div class="row">${review.length?`<button class="btn primary big" data-act="review">Start review</button>`:""}</div>
+        <div class="row">${review.length?`<button class="btn primary" data-act="review">Start review</button>`:""}</div>
       </div>
-      <div class="card stack" style="background:var(--sun-soft)">
-        <div class="row"><div class="big-num" style="color:var(--fg)">🎮</div><div><h3 style="margin:0">Spelling Game</h3><div class="muted small">Spell all of today's words</div></div></div>
-        ${chipList(all.slice(0,12),"Add words first.")}
-        <div class="row">${all.length?`<button class="btn sun big" data-quick="game">Play</button>`:""}<button class="btn" data-go="practice">More practice</button></div>
+      <div class="card stack">
+        <div class="tile-head"><div class="badge orange">${ic("game")}</div><div><h3 style="margin:0">Spelling Game</h3><div class="muted small">Spell all of today’s words</div></div></div>
+        ${chipList(all.slice(0,10),"Add words first.")}
+        <div class="row">${all.length?`<button class="btn primary" data-quick="game">Play</button>`:""}<button class="btn" data-go="practice">More practice</button></div>
       </div>
     </div>
     ${learnedToday.length&&!fresh.length?`<div class="card row" style="justify-content:space-between"><div><h3 style="margin:0">You learned ${learnedToday.length} words today</h3><div class="muted small">One more dictation before bed helps them stick.</div></div><button class="btn" data-quick="dict">Dictation</button></div>`:""}
-    <div>
-      <h3>5 steps for every new word</h3>
-      <div class="steps">
-        <div class="step"><b>Sound it out</b>Hear each chunk, then the whole word</div>
-        <div class="step"><b>Chunks</b>Put the sound chunks in order</div>
-        <div class="step"><b>Build</b>Tap or drag the letters</div>
-        <div class="step"><b>Cover &amp; Write</b>Look, cover, write, check</div>
-        <div class="step"><b>Dictation</b>Hear it and spell it</div>
-      </div>
-      <p class="muted small" style="margin:8px 0 0">New words are learned 5 at a time. Learned words come back after 1, 2, 4, 7, 15, 30 and 60 days. Words in a test are practised every day in the week before it.</p>
+    <div class="card row" style="justify-content:space-between">
+      <div class="tile-head"><div class="badge purple">${ic("calendar")}</div><div><h3 style="margin:0">Tomorrow</h3><div class="muted small">${tm.fresh.length} new · ${tm.review.length} to review</div></div></div>
+      <div class="row"><button class="btn" data-go="words" data-target="tomorrow">Add words for tomorrow</button>${tm.fresh.length?`<button class="btn" data-set-go="tomorrow">Practise now</button>`:""}</div>
+    </div>
+    <div class="section-title"><h3 style="margin:0">How you learn each new word</h3></div>
+    <div class="steps">
+      <div class="step"><b>Sound it out</b>Hear each chunk, then the whole word</div>
+      <div class="step"><b>Chunks</b>Put the sound chunks in order</div>
+      <div class="step"><b>Build</b>Tap or drag the letters</div>
+      <div class="step"><b>Cover &amp; Write</b>Look, cover, write, check</div>
+      <div class="step"><b>Dictation</b>Hear it and spell it</div>
     </div>
     <div class="card">
       <h3>Next 7 days</h3>
       <div class="forecast">${fc.map((f,k)=>`<div><div class="n">${f.n}</div><div class="bar"><i style="height:${f.n/max*100}%"></i></div><div class="muted">${k===0?"Today":k===1?"Tmrw":WEEK[pdate(f.d).getDay()]}</div></div>`).join("")}</div>
-    </div>
+      <p class="muted small" style="margin:12px 0 0">Learned words come back after 1, 2, 4, 7, 15, 30 and 60 days. Test words are practised every day in the week before the test.</p>
+    </div>`}
   </div>`;
 }
 
@@ -436,98 +472,335 @@ function viewPractice(){
   const ws=(SETS[practiceSet]||SETS.today).get();
   const dis=ws.length?"":"disabled";
   const sets=Object.entries(SETS).filter(([k])=>k!=="test"||upcomingTests(B()).length);
+  const M=(mode,icn,color,title,d)=>`<button class="mode" data-mode="${mode}" ${dis}><div class="badge ${color}">${ic(icn)}</div><b>${title}</b><span class="d">${d}</span></button>`;
   return `<div class="stack">
+    <div><div class="eyebrow">Practice</div><h2>Choose your words</h2></div>
     <div class="card stack">
-      <h2>Choose words</h2>
       <div class="seg">${sets.map(([k,s])=>`<button class="${k===practiceSet?"on":""}" data-set="${k}">${s.name} · ${s.get().length}</button>`).join("")}</div>
       ${chipList(ws,"No words in this group.",true)}
     </div>
-    <div class="card stack"><h3 style="margin:0">How do you want to spell?</h3>${methodPicker()}
-      <p class="muted small" style="margin:0">Letter tiles: tap them or drag them into place. Handwriting: write with your finger or Apple Pencil, then check it yourself. With Type, you can also write in the box with Apple Pencil.</p></div>
+    <div class="card stack" style="text-align:center"><div class="muted small">How do you want to spell?</div>${methodPicker()}
+      <p class="muted small" style="margin:0">Letter tiles: tap or drag them. Handwriting: use your finger or Apple Pencil, then check it yourself.</p></div>
     <div class="modes">
-      <button class="mode game" data-mode="game" ${dis}><span class="ic">🎮</span><b>Spelling Game</b><span class="d">All the words in one game. Points, streaks and a timer.</span></button>
-      <button class="mode" data-mode="dict" ${dis}><span class="ic">🎧</span><b>Dictation</b><span class="d">Hear the word and a sentence, then spell it.</span></button>
-      <button class="mode" data-mode="phonics" ${dis}><span class="ic">🧩</span><b>Phonics Chunks</b><span class="d">Sound it out, then put the chunks in order.</span></button>
-      <button class="mode" data-mode="lcwc" ${dis}><span class="ic">✍️</span><b>Cover &amp; Write</b><span class="d">Look, cover, write, check.</span></button>
-      <button class="mode" data-mode="mock" ${dis}><span class="ic">📝</span><b>Practice Test</b><span class="d">Like the school test: no help until the end.</span></button>
-      <button class="mode" data-mode="full" ${dis}><span class="ic">📘</span><b>All 5 Steps</b><span class="d">Sound it out, chunks, build, write, dictation.</span></button>
+      ${M("game","game","orange","Spelling Game","All the words in one game, with points and a timer.")}
+      ${M("dict","headphones","","Dictation","Hear the word and a sentence, then spell it.")}
+      ${M("phonics","puzzle","purple","Phonics Chunks","Sound it out, then put the chunks in order.")}
+      ${M("lcwc","eyeoff","green","Cover & Write","Look, cover, write, check.")}
+      ${M("mock","doc","red","Practice Test","Like the school test: marks at the end.")}
+      ${M("full","layers","","All 5 Steps","Sound it out, chunks, build, write, dictation.")}
     </div>
-    <p class="muted small" style="margin:0">Practice does not change the review plan. Misspelled words go to Tricky words.${B().best?` · Best game score: <b>${B().best}</b>`:""}</p>
-  </div>`;
-}
-
-function viewTomorrow(){
-  const t=addDays(today(),1), {fresh,review}=dueOn(B(),t);
-  return `<div class="stack">
-    <div><div class="muted">Tomorrow</div><div class="date">${niceDate(t)}</div></div>
-    <div class="grid-home" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
-    <div class="card stack"><h3>New words · ${fresh.length}</h3>${chipList(fresh,"No new words planned yet.")}
-      <div class="row"><button class="btn primary" data-go="add" data-target="tomorrow">Add words for tomorrow</button>
-      ${fresh.length?`<button class="btn" data-set-go="tomorrow">Practise now</button>`:""}</div></div>
-    <div class="card stack"><h3>Review · ${review.length}</h3>${chipList(review,"Nothing to review tomorrow.")}</div>
-    </div>
+    <p class="muted small" style="margin:0">Practice does not change the review plan. Misspelled words go to Tricky words.${B().best?` Best game score: <b>${B().best}</b>.`:""}</p>
   </div>`;
 }
 
 let addMsg="", addDraft="";
-function viewAdd(){
-  const items=parseWords(addDraft);
-  return `<div class="add-grid">
-      <div class="card stack">
-        <div><h2>Add words</h2><div class="muted small">One word per line, or separate them with commas. They are saved in ${esc(B().name)}'s account.</div></div>
-        <textarea id="addText" placeholder="apple&#10;elephant&#10;beautiful&#10;library&#10;Wednesday" autocapitalize="none" autocorrect="off" spellcheck="false">${esc(addDraft)}</textarea>
-        <div class="row">
-          <span class="muted">Learn them:</span>
-          <label class="opt"><input type="radio" name="tgt" value="today" ${addTarget==="today"?"checked":""}> Today</label>
-          <label class="opt"><input type="radio" name="tgt" value="tomorrow" ${addTarget==="tomorrow"?"checked":""}> Tomorrow</label>
-        </div>
-        <div class="row"><button class="btn primary big" id="addBtn">Save words</button></div>
-        ${addMsg?`<div class="notice">${addMsg}</div>`:""}
-      </div>
-      <div class="card stack"><h3>Words found · <span id="pvn">${items.length}</span></h3><div id="pv">${previewList(items)}</div>
-        <p class="muted small" style="margin:0">Only English letters are kept. Delete words in My Words. Test words with a date are added on the parent page.</p></div>
-    </div>`;
-}
 function previewList(items){
-  if(!items.length)return `<div class="empty small">The words you type will show here.</div>`;
-  return `<div class="words">${items.map(w=>`<span class="w">${esc(w)}${findWord(w)?` <small class="muted">(already saved)</small>`:""}</span>`).join("")}</div>`;
+  if(!items.length)return `<div class="muted small">The words you type will show here.</div>`;
+  return `<div class="words">${items.map(w=>`<span class="w">${esc(w)}${findWord(w)?` <small class="muted">· saved</small>`:""}</span>`).join("")}</div>`;
 }
 function itemRow(w){
   const t=today(), dd=dayDiff(t,w.due);
-  let when = w.stage===0?(dd<=0?"Learn today":dd===1?"Learn tomorrow":"Learn on "+shortDate(w.due))
+  let when = w.stage===0?(dd<=0?"Learn today":dd===1?"Learn tomorrow":"Learn "+shortDate(w.due))
     : dd<=0?"Review today":dd===1?"Review tomorrow":`Review in ${dd} days`;
   if(w.stage>=MASTER)when="Mastered · "+when;
   return `<div class="item">
-    <button class="icon-btn" data-say="${esc(w.w)}" aria-label="Play">🔊</button>
-    <div style="min-width:0"><div class="en">${esc(w.w)} <span class="ipa">${esc(w.ipa||"")}</span></div>
-      <div class="row" style="gap:8px"><span class="dots">${[...Array(MASTER)].map((_,k)=>`<i class="${k<w.stage?"on":""}"></i>`).join("")}</span><span class="muted" style="font-size:13px">${when}${w.seen?` · right ${w.right||0}/${w.seen}`:""}${w.lapses?` · missed ${w.lapses}×`:""}</span></div></div>
-    <button class="icon-btn" data-del="${w.id}" aria-label="Delete">🗑</button>
+    <button class="icon-btn" data-say="${esc(w.w)}" aria-label="Play ${esc(w.w)}">${ic("speaker")}</button>
+    <div style="min-width:0"><div class="en">${esc(w.w)}</div>
+      <div class="row" style="gap:8px"><span class="dots">${[...Array(MASTER)].map((_,k)=>`<i class="${k<w.stage?"on":""}"></i>`).join("")}</span><span class="muted" style="font-size:13px">${when}${w.seen?` · ${w.right||0}/${w.seen} right`:""}${w.lapses?` · missed ${w.lapses}×`:""}</span></div></div>
+    <button class="icon-btn" data-del="${w.id}" aria-label="Delete ${esc(w.w)}">${ic("trash")}</button>
   </div>`;
 }
 const BANK_F={all:()=>true,new:w=>w.stage===0,learning:w=>w.stage>0&&w.stage<MASTER,master:w=>w.stage>=MASTER,hard:w=>(w.lapses||0)>0};
-function viewBank(){
+function viewWords(){
+  const items=parseWords(addDraft);
   const ws=words().filter(BANK_F[bankFilter]).sort((a,b)=>a.due.localeCompare(b.due)||a.w.localeCompare(b.w));
-  const names={all:"All",new:"Not learned yet",learning:"Learning",master:"Mastered",hard:"Tricky"};
-  return `<div class="card stack">
-    <div class="filters">${Object.keys(names).map(k=>`<button class="${k===bankFilter?"on":""}" data-filter="${k}">${names[k]} · ${words().filter(BANK_F[k]).length}</button>`).join("")}</div>
-    ${ws.length?`<div class="bank-list">${ws.map(itemRow).join("")}</div>`:`<div class="empty">No words here yet.</div>`}
-    ${words().length?`<div class="row" style="justify-content:flex-end"><button class="btn" id="delAll">🗑 Delete all words</button></div>`:""}
+  const names={all:"All",new:"Not learned",learning:"Learning",master:"Mastered",hard:"Tricky"};
+  return `<div class="stack">
+    <div><div class="eyebrow">Words</div><h2>Your spelling list</h2></div>
+    <div class="add-grid">
+      <div class="card stack">
+        <h3 style="margin:0">Add words</h3>
+        <textarea id="addText" style="min-height:150px" placeholder="One word per line&#10;or separated by commas" autocapitalize="none" autocorrect="off" spellcheck="false">${esc(addDraft)}</textarea>
+        <div class="row">
+          <label class="opt"><input type="radio" name="tgt" value="today" ${addTarget==="today"?"checked":""}> Learn today</label>
+          <label class="opt"><input type="radio" name="tgt" value="tomorrow" ${addTarget==="tomorrow"?"checked":""}> Learn tomorrow</label>
+          <span class="spacer"></span><button class="btn primary" id="addBtn">${ic("plus")}Save</button>
+        </div>
+        ${addMsg?`<div class="notice">${addMsg}</div>`:""}
+      </div>
+      <div class="card stack"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Words found</h3><span class="muted small" id="pvn">${items.length}</span></div><div id="pv">${previewList(items)}</div>
+        <p class="muted small" style="margin:0">Only English letters are kept. Test words with a date are added on the parent page.</p></div>
+    </div>
+    <div class="card stack">
+      <div class="filters">${Object.keys(names).map(k=>`<button class="${k===bankFilter?"on":""}" data-filter="${k}">${names[k]} · ${words().filter(BANK_F[k]).length}</button>`).join("")}</div>
+      ${ws.length?`<div class="bank-list">${ws.map(itemRow).join("")}</div>`:`<div class="empty">No words here yet.</div>`}
+      ${words().length?`<div class="row" style="justify-content:flex-end"><button class="btn plain" id="delAll" style="color:var(--red)">Delete all words</button></div>`:""}
+    </div>
   </div>`;
 }
+
+/* ================= Reading: 10 minutes every day ================= */
+const READ_GOAL=600;
+const readSecs=d=>((B().reading.log[d]||{}).secs)||0;
+const readMinutes=r=>Math.max(2,Math.round(r.text.join(" ").split(/\s+/).length/130));
+function todaysReading(){
+  const R=B().reading, t=today(), ids=(R.log[t]||{}).ids||[];
+  if(ids.length){const last=READINGS.find(r=>r.id===ids[ids.length-1]);if(last&&!R.done[last.id])return last;}
+  return READINGS.find(r=>!R.done[r.id])||READINGS[Math.floor(Date.now()/864e5)%READINGS.length];
+}
+function viewRead(){
+  const t=today(), secs=readSecs(t), R=B().reading, r=todaysReading();
+  const p=Math.min(100,Math.round(secs/READ_GOAL*100));
+  const days=Object.keys(R.log).filter(d=>R.log[d].secs>=60).length;
+  const week=[...Array(7)].map((_,k)=>addDays(t,k-6));
+  const looked=Object.values(R.looked).sort((a,b)=>(b.u||0)-(a.u||0)).slice(0,24);
+  return `<div class="stack">
+    <div><div class="eyebrow">Reading</div><h2>Ten minutes a day</h2></div>
+    <div class="card read-hero">
+      <div class="stack" style="gap:10px">
+        <div class="muted">Read today’s story carefully, then answer the questions. Tap any word you don’t know to hear it and see what it means.</div>
+        <div class="row" style="gap:16px">${week.map(d=>{const s=readSecs(d);return `<div style="text-align:center"><div class="ring" style="--p:${Math.min(100,s/READ_GOAL*100)};width:34px;height:34px"><span style="font-size:11px">${s>=READ_GOAL?"✓":""}</span></div><div class="muted" style="font-size:12px;margin-top:4px">${d===t?"Today":WEEK[pdate(d).getDay()]}</div></div>`;}).join("")}</div>
+        <div class="muted small">${days} reading day${days===1?"":"s"} so far · ${Object.keys(R.done).length} of ${READINGS.length} stories finished</div>
+      </div>
+      <div style="text-align:center"><div class="ring lg" style="--p:${p}"><span>${Math.floor(secs/60)}′</span></div><div class="muted small" style="margin-top:6px">${secs>=READ_GOAL?"Goal reached":"of 10 minutes"}</div></div>
+    </div>
+    <div class="card passage-card">
+      <span class="kind-tag">${ic("sparkle")}Today · ${esc(r.kind)}</span>
+      <h3 style="font-size:30px">${esc(r.title)}</h3>
+      <div class="muted">${esc(r.text[0].replace(/\n/g," ").slice(0,150))}…</div>
+      <div class="row"><button class="btn primary big" data-read="${r.id}">${ic("book")}Start reading</button><span class="muted small">${readMinutes(r)} min read · ${r.questions.length} questions</span></div>
+    </div>
+    ${looked.length?`<div class="card stack"><h3 style="margin:0">Words you looked up</h3><div class="looked">${looked.map(l=>`<button data-sayw="${esc(l.w)}">${esc(l.w)}${ic("speaker")}</button>`).join("")}</div></div>`:""}
+    <div class="section-title"><h3 style="margin:0">All stories</h3><span class="muted small">${READINGS.length} to read</span></div>
+    <div class="lib">${READINGS.map(x=>{const d=R.done[x.id];return `<button data-read="${x.id}"><span class="kind-tag">${esc(x.kind)}</span><b>${esc(x.title)}</b>
+      <span class="muted small">${readMinutes(x)} min${d?"":" · not read yet"}</span>${d?`<span class="done">${ic("check")}${d.score}/${d.n} correct</span>`:""}</button>`;}).join("")}</div>
+  </div>`;
+}
+
+/* ---- The reader ---- */
+let RD=null, rTimer=null, rFs=21;
+try{rFs=+localStorage.getItem("ws-fs")||21;}catch(e){}
+$("#rClose").innerHTML=ic("x"); $("#rSize").innerHTML=ic("textsize");
+$("#rListen").hidden=!("speechSynthesis" in window);
+function openReader(id){
+  const r=READINGS.find(x=>x.id===id); if(!r)return;
+  RD={r,phase:"read",qi:0,score:0,answers:[],orders:r.questions.map(q=>shuffle(q.o.map((_,i)=>i))),looked:new Set()};
+  window.__busy=true;
+  const t=today(), L=B().reading.log; L[t]=L[t]||{secs:0,ids:[]}; if(!L[t].ids.includes(id))L[t].ids.push(id);
+  $("#rTitle").textContent=r.title;
+  $("#reader").hidden=false; document.body.style.overflow="hidden";
+  renderReader(); tickTimer();
+  clearInterval(rTimer); rTimer=setInterval(tickTimer,1000);
+}
+function closeReader(){
+  stopListen(); clearInterval(rTimer); closeSheet();
+  RD=null; window.__busy=false; $("#reader").hidden=true; document.body.style.overflow="";
+  Store.save(); render();
+}
+$("#rClose").onclick=closeReader;
+$("#rSize").onclick=()=>{rFs=rFs>=27?18:rFs+3;try{localStorage.setItem("ws-fs",rFs)}catch(e){}const a=$(".article");if(a)a.style.setProperty("--fs",rFs+"px");};
+let savedAt=0, goalShown=false;
+function tickTimer(){
+  if(!RD)return;
+  const t=today(), L=B().reading.log; L[t]=L[t]||{secs:0,ids:[]};
+  if(document.visibilityState==="visible"){L[t].secs=(L[t].secs||0)+1;}
+  const s=L[t].secs, p=Math.min(100,s/READ_GOAL*100);
+  $("#rTimer").innerHTML=`<span class="ring" style="--p:${p}"></span>${s>=READ_GOAL?"10:00 ✓":`${Math.floor(s/60)}:${pad(s%60)}`}`;
+  if(s>=READ_GOAL&&!goalShown&&s<READ_GOAL+2){goalShown=true;toast("10 minutes of reading today. Brilliant!");beep(true,true);}
+  if(Date.now()-savedAt>30000){savedAt=Date.now();Store.save();}
+}
+function toast(msg){const t=document.createElement("div");t.className="toast";t.innerHTML=ic("check")+esc(msg);document.body.appendChild(t);setTimeout(()=>t.remove(),3500);}
+
+/* Wrap every word so it can be tapped. Glossary words get a dotted underline. */
+function wrapText(text,gloss){
+  const multi=Object.keys(gloss).filter(k=>/\s/.test(k)).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  const re=new RegExp(`${multi.length?`(${multi.join("|")})|`:""}([A-Za-z][A-Za-z’']*(?:-[A-Za-z][A-Za-z’']*)*)`,"gi");
+  return esc(text).replace(re,(m)=>{const k=m.toLowerCase().replace(/’/g,"'");const g=gloss[k]||gloss[m.toLowerCase()];
+    return `<span class="rw${g?" g":""}" data-w="${m}">${m}</span>`;});
+}
+function renderReader(){
+  const b=$("#rBody"), r=RD.r;
+  if(RD.phase==="read"){
+    $("#rListen").innerHTML=ic("play");
+    const gl=Object.fromEntries(Object.entries(r.glossary).map(([k,v])=>[k.toLowerCase(),v]));
+    b.innerHTML=`<article class="article ${r.kind==="Poem"?"poem":""}" style="--fs:${rFs}px">
+      <span class="kind-tag">${esc(r.kind)}</span>
+      <h1>${esc(r.title)}</h1>
+      <div class="meta">${ic("clock")}${readMinutes(r)} min read · Tap any word to hear it and see what it means</div>
+      ${r.text.map((p,i)=>`<p data-p="${i}">${wrapText(p,gl)}</p>`).join("")}
+      <div class="finish"><button class="btn primary big" id="rDone">I’ve finished reading${ic("chevron")}</button></div>
+    </article>`;
+    b.scrollTop=0;
+    b.querySelectorAll(".rw").forEach(s=>s.onclick=e=>{e.stopPropagation();openWord(s);});
+    $("#rDone").onclick=()=>{stopListen();RD.phase="quiz";RD.qi=0;renderReader();};
+  }else if(RD.phase==="quiz")renderQuestion();
+  else renderReadResult();
+}
+
+/* ---- Tap a word: hear it, see a simple explanation ---- */
+const defCache=new Map();
+function lemmas(w){
+  const out=[w];
+  const add=x=>{if(x&&x.length>2&&!out.includes(x))out.push(x);};
+  if(/ies$/.test(w))add(w.slice(0,-3)+"y");
+  if(/ied$/.test(w))add(w.slice(0,-3)+"y");
+  if(/ing$/.test(w)){const s=w.slice(0,-3);add(s);add(s+"e");if(/(.)\1$/.test(s))add(s.slice(0,-1));}
+  if(/ed$/.test(w)){const s=w.slice(0,-2);add(s);add(w.slice(0,-1));if(/(.)\1$/.test(s))add(s.slice(0,-1));}
+  if(/es$/.test(w))add(w.slice(0,-2));
+  if(/s$/.test(w)&&!/ss$/.test(w))add(w.slice(0,-1));
+  if(/ly$/.test(w)){add(w.slice(0,-2));if(/ily$/.test(w))add(w.slice(0,-3)+"y");}
+  if(/er$/.test(w))add(w.slice(0,-2));
+  if(/est$/.test(w))add(w.slice(0,-3));
+  return out.slice(0,6);
+}
+async function lookupDef(word){
+  const w=word.toLowerCase().replace(/’/g,"'");
+  if(defCache.has(w))return defCache.get(w);
+  let res=null;
+  for(const c of lemmas(w)){
+    const j=await fetchJSON("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(c),5000);
+    if(Array.isArray(j)&&j[0]){
+      const cand=[];
+      j.forEach(e=>(e.meanings||[]).forEach(m=>(m.definitions||[]).slice(0,3).forEach(d=>cand.push({pos:m.partOfSpeech,def:d.definition}))));
+      const good=cand.slice(0,8).filter(x=>x.def.length>12);
+      const pick=good.sort((a,b)=>a.def.length-b.def.length)[0]||cand[0];
+      if(pick){res={pos:pick.pos,def:pick.def.replace(/\s*\(.*?\)\s*/g," ").trim(),base:c};break;}
+    }
+  }
+  defCache.set(w,res);
+  return res;
+}
+function closeSheet(){document.querySelectorAll(".sheet,.sheet-bg").forEach(x=>x.remove());document.querySelectorAll(".rw.on").forEach(x=>x.classList.remove("on"));}
+async function openWord(span){
+  closeSheet();
+  const word=span.dataset.w, r=RD.r, key=word.toLowerCase().replace(/’/g,"'");
+  span.classList.add("on");
+  say(word.replace(/’/g,"'"));
+  const gl=Object.fromEntries(Object.entries(r.glossary).map(([k,v])=>[k.toLowerCase(),v]));
+  const g=gl[key];
+  const a=/\s/.test(word)?null:Phonics.analyse(word);
+  const bg=document.createElement("div"); bg.className="sheet-bg"; bg.onclick=closeSheet;
+  const sh=document.createElement("div"); sh.className="sheet"; sh.setAttribute("role","dialog");
+  const inList=!!findWord(word);
+  sh.innerHTML=`<div class="sw"><b>${esc(word)}</b><button class="play" aria-label="Play">${ic("speaker")}</button></div>
+    ${a&&a.c.length>1?`<div class="muted small">Sound it out: ${a.c.map((c,k)=>k===a.st?`<b style="color:var(--fg)">${esc(c)}</b>`:esc(c)).join(" · ")}</div>`:""}
+    <div class="def" id="sDef">${g?esc(g):`<span class="muted">Looking it up…</span>`}</div>
+    <div class="row" style="justify-content:space-between"><span class="src" id="sSrc">${g?"Word help":""}</span>
+      <button class="btn" id="sAdd" ${inList?"disabled":""}>${inList?ic("check")+"In my spelling list":ic("plus")+"Add to my spelling list"}</button></div>`;
+  document.body.append(bg,sh);
+  sh.querySelector(".play").onclick=()=>say(word.replace(/’/g,"'"));
+  sh.querySelector("#sAdd").onclick=e=>{
+    const w=word.replace(/’/g,"'");
+    addWordsToBook(B(),[w],{due:today()}); Store.save();
+    e.currentTarget.disabled=true; e.currentTarget.innerHTML=ic("check")+"Added";
+  };
+  let def=g;
+  span.classList.add("seen"); RD.looked.add(word);
+  const rec=B().reading.looked[key]={w:word.replace(/’/g,"'"),def:g||"",rid:r.id,date:today(),u:Date.now()};
+  if(!g){
+    const d=await lookupDef(word);
+    if(d)rec.def=d.def;
+    if(!document.body.contains(sh))return;
+    if(d){def=d.def;sh.querySelector("#sDef").innerHTML=`${d.pos?`<span class="pos">${esc(d.pos)}</span> `:""}${esc(d.def)}`;sh.querySelector("#sSrc").textContent=d.base!==key?`From “${d.base}”`:"Dictionary";}
+    else sh.querySelector("#sDef").innerHTML=/^[A-Z]/.test(word)?`<span class="muted">This looks like a name.</span>`:`<span class="muted">No explanation found. Try reading the sentence again to work out what it means.</span>`;
+  }
+}
+
+/* ---- Read aloud (device voice), paragraph by paragraph ---- */
+let listening=false;
+function stopListen(){listening=false;try{speechSynthesis.cancel();}catch(e){}document.querySelectorAll("p.reading").forEach(p=>p.classList.remove("reading"));$("#rListen").innerHTML=ic("play");}
+$("#rListen").onclick=()=>{
+  if(!RD||RD.phase!=="read")return;
+  if(listening){stopListen();return;}
+  listening=true; $("#rListen").innerHTML=ic("pause");
+  const ps=[...document.querySelectorAll(".article p")]; let i=0;
+  const nextP=()=>{
+    document.querySelectorAll("p.reading").forEach(p=>p.classList.remove("reading"));
+    if(!listening||i>=ps.length){stopListen();return;}
+    const p=ps[i++]; p.classList.add("reading"); p.scrollIntoView({behavior:"smooth",block:"center"});
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(p.textContent.replace(/\n/g," ")); u.lang=accent==="uk"?"en-GB":"en-US"; u.rate=.92; if(voice)u.voice=voice;
+    u.onend=()=>{if(listening)setTimeout(nextP,250);}; u.onerror=()=>stopListen();
+    speechSynthesis.speak(u);
+  };
+  nextP();
+};
+
+/* ---- Questions ---- */
+function renderQuestion(){
+  const r=RD.r, q=r.questions[RD.qi], order=RD.orders[RD.qi], b=$("#rBody");
+  b.innerHTML=`<div class="stage" style="max-width:700px"><div class="full q-card">
+    <div class="row" style="justify-content:space-between"><span class="skill">${esc(q.skill)}</span><span class="muted small">Question ${RD.qi+1} of ${r.questions.length}</span></div>
+    <div class="prog" style="flex:none"><i style="width:${RD.qi/r.questions.length*100}%"></i></div>
+    <div class="q">${esc(q.q)}</div>
+    <div class="q-opts">${order.map((oi,k)=>`<button data-oi="${oi}"><span class="k">${"ABCD"[k]}</span><span>${esc(q.o[oi])}</span></button>`).join("")}</div>
+    <div id="qWhy"></div>
+    <div class="row" style="justify-content:space-between;margin-top:18px"><button class="btn plain" id="qBack">${ic("back")}Look at the story</button><button class="btn primary" id="qNext" hidden>${RD.qi+1<r.questions.length?"Next question":"See my results"}${ic("chevron")}</button></div>
+  </div></div>`;
+  b.scrollTop=0;
+  let answered=false;
+  b.querySelectorAll("[data-oi]").forEach(btn=>btn.onclick=()=>{
+    if(answered)return; answered=true;
+    const oi=+btn.dataset.oi, ok=oi===q.a;
+    b.querySelectorAll("[data-oi]").forEach(x=>{if(+x.dataset.oi===q.a)x.classList.add("right");});
+    if(!ok)btn.classList.add("wrong");
+    beep(ok); if(ok)RD.score++;
+    RD.answers[RD.qi]=ok;
+    $("#qWhy").innerHTML=`<div class="why"><b style="color:${ok?"var(--green)":"var(--red)"}">${ok?"Correct!":"Not quite."}</b> ${esc(q.why)}</div>`;
+    $("#qNext").hidden=false; $("#qNext").focus();
+  });
+  $("#qNext").onclick=()=>{RD.qi++;if(RD.qi>=r.questions.length){finishReading();}else renderQuestion();};
+  $("#qBack").onclick=()=>{ // peek at the story, then come back to the same question
+    const keep=RD.qi;RD.phase="read";renderReader();
+    const d=$("#rDone");d.innerHTML=`Back to question ${keep+1}${ic("chevron")}`;d.onclick=()=>{RD.phase="quiz";RD.qi=keep;renderReader();};
+  };
+}
+function finishReading(){
+  const r=RD.r, t=today();
+  B().reading.done[r.id]={score:RD.score,n:r.questions.length,date:t,u:Date.now(),answers:RD.answers};
+  RD.phase="result"; Store.save(); renderReader();
+}
+function renderReadResult(){
+  const r=RD.r, n=r.questions.length, s=RD.score, secs=readSecs(today());
+  const stars=s>=n?3:s>=n-2?2:1;
+  const looked=[...RD.looked];
+  const next=READINGS.find(x=>!B().reading.done[x.id]);
+  $("#rBody").innerHTML=`<div class="stage" style="max-width:720px"><div class="full">
+    <div class="stars">${"★".repeat(stars)}<span style="opacity:.25">${"★".repeat(3-stars)}</span></div>
+    <h2 style="font-size:34px">${stars===3?"Superb reading!":stars===2?"Great reading!":"Good effort! Keep reading."}</h2>
+    <div class="stat-row"><div class="stat"><b>${s}/${n}</b>questions right</div><div class="stat"><b>${Math.floor(secs/60)} min</b>read today</div><div class="stat"><b>${looked.length}</b>words looked up</div></div>
+    ${looked.length?`<div class="card stack" style="text-align:left"><h3 style="margin:0">Words you looked up</h3><div class="looked">${looked.map(w=>`<button data-sayw="${esc(w)}">${esc(w)}${ic("speaker")}</button>`).join("")}</div>
+      <p class="muted small" style="margin:0">Add the tricky ones to your spelling list by tapping them in the story.</p></div>`:""}
+    ${secs<READ_GOAL?`<p class="muted" style="margin:0">You have ${Math.ceil((READ_GOAL-secs)/60)} more minute${Math.ceil((READ_GOAL-secs)/60)===1?"":"s"} to reach today’s 10 minutes. Read the story again, or try another one.</p>`:`<p class="muted" style="margin:0">You’ve read for 10 minutes today. Well done!</p>`}
+    <div class="row" style="justify-content:center">
+      <button class="btn" id="rAgain">${ic("book")}Read it again</button>
+      ${next&&next.id!==r.id?`<button class="btn" data-read="${next.id}">Next story</button>`:""}
+      <button class="btn primary big" id="rFin">Done</button></div>
+  </div></div>`;
+  $("#rFin").onclick=closeReader;
+  $("#rAgain").onclick=()=>{RD.phase="read";RD.score=0;RD.answers=[];renderReader();};
+  $("#rBody").querySelectorAll("[data-sayw]").forEach(b=>b.onclick=()=>say(b.dataset.sayw));
+  $("#rBody").querySelectorAll("[data-read]").forEach(b=>b.onclick=()=>{const id=b.dataset.read;closeReaderQuiet();openReader(id);});
+  beep(true,true);
+}
+function closeReaderQuiet(){stopListen();clearInterval(rTimer);closeSheet();RD=null;}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.querySelector(".sheet"))closeSheet();});
 
 function bind(){
   bindLogin();
   document.querySelectorAll("#view [data-go]").forEach(b=>b.onclick=()=>{if(b.dataset.target)addTarget=b.dataset.target;setTab(b.dataset.go);});
   document.querySelectorAll("#view [data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say));
+  document.querySelectorAll("#view [data-sayw]").forEach(b=>b.onclick=()=>say(b.dataset.sayw));
+  document.querySelectorAll("#view [data-read]").forEach(b=>b.onclick=()=>openReader(b.dataset.read));
   document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{bankFilter=b.dataset.filter;render();});
   document.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.set;try{sessionStorage.setItem("pset",practiceSet)}catch(e){}render();});
   document.querySelectorAll("[data-set-go]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.setGo;setTab("practice");});
   bindMethod($("#view"));
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
-    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Delete?";setTimeout(()=>{b.classList.remove("confirm");b.textContent="🗑";},3000);return;}
+    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Delete";setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("confirm");b.innerHTML=ic("trash");}},3000);return;}
     deleteWord(B(),b.dataset.del);Store.save();render();});
   const da=$("#delAll"); if(da)da.onclick=()=>{
-    if(!da.classList.contains("danger")){da.classList.add("danger");da.textContent=`Tap again to delete all ${words().length} words`;setTimeout(()=>{if(document.body.contains(da)){da.classList.remove("danger");da.textContent="🗑 Delete all words";}},4000);return;}
+    if(!da.classList.contains("danger")){da.classList.add("danger");da.style.color="";da.textContent=`Tap again to delete all ${words().length} words`;setTimeout(()=>{if(document.body.contains(da)){da.classList.remove("danger");da.style.color="var(--red)";da.textContent="Delete all words";}},4000);return;}
     Object.keys(B().words).forEach(id=>deleteWord(B(),id));Store.save();render();};
   document.querySelectorAll("input[name=tgt]").forEach(r=>r.onchange=()=>addTarget=r.value);
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
@@ -558,7 +831,7 @@ async function addWords(){
   btn.disabled=true; btn.textContent="Saving…";
   await Promise.all(added.map(enrich));
   Store.save();
-  addMsg=`Saved ${added.length} new word${added.length===1?"":"s"} for ${addTarget}.`+(reused.length?` Already in your list: ${reused.map(w=>esc(w.w)).join(", ")}.`:"");
+  addMsg=`Saved ${added.length} new word${added.length===1?"":"s"} to learn ${addTarget}.`+(reused.length?` Already in your list: ${reused.map(w=>esc(w.w)).join(", ")}.`:"");
   addDraft="";
   render();
 }
@@ -670,8 +943,8 @@ function endSession(){S=null;window.__busy=false;clearInterval(timerH);$("#sessi
 $("#quit").onclick=()=>{
   const b=$("#quit");
   if(!S||S.tasks[S.i]?.t==="done"){endSession();return;}
-  if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Quit?";setTimeout(()=>{b.classList.remove("confirm");b.textContent="✕";},2500);return;}
-  b.classList.remove("confirm");b.textContent="✕";endSession();
+  if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Quit?";setTimeout(()=>{b.classList.remove("confirm");b.innerHTML=ic("x");},2500);return;}
+  b.classList.remove("confirm");b.innerHTML=ic("x");endSession();
 };
 function next(){stopAudio();S.i++;renderTask();}
 const autoNext=ms=>{const i0=S.i;setTimeout(()=>{if(S&&S.i===i0)next();},ms);};
@@ -689,7 +962,7 @@ function renderTask(){
 }
 const panes=(a,b)=>`<div class="pa">${a}</div><div class="pb">${b}</div>`;
 function sayBtns(w,{svg,sentence=true,slow=true,sound=false}={}){
-  return `<div class="say"><button class="btn" data-s="n">🔊 Play</button>${slow?`<button class="btn" data-s="slow">🐢 Slow</button>`:""}${sound?`<button class="btn" data-s="out">🗣 Sound it out</button>`:""}${svg?`<button class="btn" data-s="spell">🔤 Spell</button>`:""}${sentence&&w.ex?`<button class="btn" data-s="ex">💬 Sentence</button>`:""}</div>`;
+  return `<div class="say"><button class="btn" data-s="n">${ic("speaker")}Play</button>${slow?`<button class="btn" data-s="slow">${ic("slow")}Slow</button>`:""}${sound?`<button class="btn" data-s="out">${ic("wave")}Sound it out</button>`:""}${svg?`<button class="btn" data-s="spell">${ic("abc")}Spell</button>`:""}${sentence&&w.ex?`<button class="btn" data-s="ex">${ic("quote")}Sentence</button>`:""}</div>`;
 }
 function bindSay(st,w,svg,chunkId){
   st.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{
@@ -734,7 +1007,7 @@ function tPreview(st,task,w){
 function tPick(st,task,w){
   const opts=task.opts||(task.opts=shuffle([w.w,...misspellings(w.w)]));
   st.innerHTML=panes(`<div class="kind">Pick the right spelling</div>
-    <div class="headphones">🎧</div>
+    <div class="headphones">${ic("headphones")}</div>
     ${sayBtns(w,{})}`,
     `<div class="opts">${opts.map(o=>`<button class="opt-btn" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
     <div id="fb"></div>`);
@@ -763,7 +1036,7 @@ function tChunks(st,task,w){
   const tiles=shuffle([...ch.map(c=>({c})),...[...extra].slice(0,2).map(c=>({c}))]);
   let pos=0, miss=0;
   st.innerHTML=panes(`<div class="kind">Put the chunks in order</div>
-    <div class="headphones">🎧</div>
+    <div class="headphones">${ic("headphones")}</div>
     ${sayBtns(w,{sentence:false,sound:true})}
     <div id="hintBox" hidden>${chunkRow(w.w,"ckh")}</div>`,
     `<div class="cslots" id="cslots"></div><div class="ctiles" id="ctiles"></div><div id="fb" class="muted small">Tap or drag the chunks in order. Watch out for look-alikes!</div>`);
@@ -856,7 +1129,7 @@ function freeBoard(box,w,onChange){
 
 function tTiles(st,task,w){
   st.innerHTML=panes(`<div class="kind">Build the word</div>
-    <div class="headphones">🎧</div>
+    <div class="headphones">${ic("headphones")}</div>
     ${sayBtns(w,{sentence:false})}
     ${chunkRow(w.w,"tck")}`,
     `<div class="slots" id="slots"></div><div class="tiles" id="tiles"></div>
@@ -868,10 +1141,10 @@ function tTiles(st,task,w){
 
 function updHud(){
   if(!S||S.mode!=="game")return;
-  $("#hScore").textContent=`⭐ ${S.score}`;
-  $("#hCombo").hidden=S.combo<2; $("#hCombo").textContent=`🔥 ×${S.combo}`;
+  $("#hScore").innerHTML=`${ic("star")}${S.score}`;
+  $("#hCombo").hidden=S.combo<2; $("#hCombo").innerHTML=`${ic("flame")}×${S.combo}`;
   const sec=S.t0?Math.floor((Date.now()-S.t0)/1000):0;
-  $("#hTime").textContent=`⏱ ${Math.floor(sec/60)}:${pad(sec%60)}`;
+  $("#hTime").innerHTML=`${ic("clock")}${Math.floor(sec/60)}:${pad(sec%60)}`;
 }
 function tGame(st,task,w){
   const idx=[...w.w].map((c,i)=>c===" "?-1:i).filter(i=>i>=0);
@@ -879,7 +1152,7 @@ function tGame(st,task,w){
   if(task.kind==="gap"&&idx.length>=3){const k=Math.min(idx.length-1,Math.max(2,Math.round(idx.length*.5)));blanks=shuffle(idx).slice(0,k).sort((a,b)=>a-b);}
   const n=S.tasks.filter(t=>t.t==="game").length, cur=S.tasks.slice(0,S.i+1).filter(t=>t.t==="game").length;
   st.innerHTML=panes(`<div class="kind">Word ${cur} of ${n} · ${blanks.length===idx.length?"Spell the whole word":"Fill in the missing letters"}</div>
-    <div class="headphones">🎧</div>
+    <div class="headphones">${ic("headphones")}</div>
     ${sayBtns(w,{})}`,
     `<div class="slots" id="slots"></div><div class="tiles" id="tiles"></div><div id="fb" class="small muted">Tap or drag. Each letter +10, plus a streak bonus. A wrong letter is −3.</div>`);
   bindSay(st,w); say(w.w);
@@ -927,7 +1200,7 @@ function answerArea(box,w,{submit,label="Check",placeholder="Spell the word"}){
     box.querySelector(".chk").onclick=()=>submit(ans);
     return {mark(){},reset:build,setLabel:t=>box.querySelector(".chk").textContent=t};
   }
-  box.innerHTML=`<div class="padBox"></div><div class="pad-tools"><button class="btn clr">🧽 Clear</button><button class="btn primary big chk">${label}</button></div>`;
+  box.innerHTML=`<div class="padBox"></div><div class="pad-tools"><button class="btn clr">Clear</button><button class="btn primary big chk">${label}</button></div>`;
   let pad=writePad(box.querySelector(".padBox"));
   box.querySelector(".clr").onclick=()=>pad.clear();
   box.querySelector(".chk").onclick=()=>{if(!pad.empty())submit(null);};
@@ -936,7 +1209,7 @@ function answerArea(box,w,{submit,label="Check",placeholder="Spell the word"}){
 /* Handwriting check: show the correct word and let the child mark it */
 function selfCheck(fbEl,w,cb){
   fbEl.innerHTML=`<div class="card stack" style="padding:12px"><div class="muted">Check every letter against the word:</div>${grid(w.w,{id:"chkg"})}
-    <div class="row" style="justify-content:center"><button class="btn primary big sYes">✔ All correct</button><button class="btn big sNo">✘ Not yet</button></div></div>`;
+    <div class="row" style="justify-content:center"><button class="btn primary big sYes">${ic("check")}All correct</button><button class="btn big sNo">Not yet</button></div></div>`;
   say(w.w);
   fbEl.querySelector(".sYes").onclick=()=>cb(true);
   fbEl.querySelector(".sNo").onclick=()=>cb(false);
@@ -955,8 +1228,8 @@ function tLcwc(st,task,w){
       bindSay(st,w,"lk","lck"); bindChunks(st); $("#go").onclick=()=>{phase="write";draw();};
     }else{
       st.innerHTML=panes(`<div class="kind">Cover &amp; Write · Step 2: Write</div>
-        <div class="cover">🙈 Covered</div>
-        <div class="say"><button class="btn" data-s="n">🔊 Play</button></div>`,
+        <div class="cover"><div>${ic("eyeoff")}<br>Covered</div></div>
+        <div class="say"><button class="btn" data-s="n">${ic("speaker")}Play</button></div>`,
         `<div id="ansBox" class="stack"></div><div id="fb"></div>`);
       bindSay(st,w);
       const done=ok=>{
@@ -982,7 +1255,7 @@ function tDict(st,task,w){
   const r=S.res[w.id], mock=task.t==="mock";
   const n=S.tasks.filter(t=>t.t==="mock").length, cur=S.tasks.slice(0,S.i+1).filter(t=>t.t==="mock").length;
   st.innerHTML=panes(`<div class="kind">${mock?`Practice Test · ${cur} of ${n}`:"Dictation"}${task.retry?" · one more time":""}</div>
-      <div class="headphones">🎧</div>
+      <div class="headphones">${ic("headphones")}</div>
       ${sayBtns(w,{})}`,
     `<div id="ansBox" class="stack"></div><div id="fb"></div>`);
   bindSay(st,w);
@@ -1034,7 +1307,7 @@ function tDone(st){
     const sec=Math.round((now-S.t0)/1000), acc=Math.round(S.hits/Math.max(1,S.hits+S.misses)*100);
     const rec=S.score>(B().best||0); if(rec)B().best=S.score;
     extra=`<div class="stat-row"><div class="stat"><b>${S.score}</b>Score</div><div class="stat"><b>${Math.floor(sec/60)}:${pad(sec%60)}</b>Time</div><div class="stat"><b>${acc}%</b>Accuracy</div></div>
-      ${rec?`<div class="fb ok" style="font-size:20px">🏆 New best score!</div>`:`<div class="muted">Best score: ${B().best}</div>`}`;
+      ${rec?`<div class="fb ok" style="font-size:20px">${ic("star")} New best score!</div>`:`<div class="muted">Best score: ${B().best}</div>`}`;
   }
   if(S.mode==="mock"){
     const x=S.testId&&B().tests[S.testId];
@@ -1050,7 +1323,7 @@ function tDone(st){
     ${extra}
     <div class="card res-list"><div class="bank-list">${list.map(w=>{const rr=S.res[w.id],ok=rr.first===true;
       const dd=dayDiff(t,w.due);
-      return `<div class="item"><span class="${ok?"ok-t":"no-t"}">${ok?"✔":"✘"}</span><div><span style="font:23px var(--word);color:var(--ink)">${esc(w.w)}</span>
+      return `<div class="item"><span class="${ok?"ok-t":"no-t"}">${ic(ok?"check":"x")}</span><div><span style="font:23px var(--word);color:var(--ink)">${esc(w.w)}</span>
         ${S.mode==="mock"&&!ok&&rr.ans?`<div class="diff" style="font-size:20px">${youWrote(rr.ans,w.w)}</div>`:""}</div>
       <span class="muted" style="font-size:13px">${schedule?(dd===1?"Review tomorrow":`Review in ${dd} days`):""}</span></div>`;}).join("")}</div></div>
     <div class="row" style="justify-content:center">

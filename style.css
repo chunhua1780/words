@@ -562,3 +562,7 @@ body[data-sec="maths"]{--sec:var(--c-teal)}
 .prog.scrub.on .thumb{transition:none;transform:scale(1.15)}
 .scrub .tip{position:absolute;top:22px;transform:translateX(-50%);background:var(--fg);color:var(--bg);font-size:13px;font-weight:600;
   padding:4px 10px;border-radius:9px;white-space:nowrap;pointer-events:none;z-index:5}
+
+/* practise a single word from a word list */
+.wprac{font:600 13px var(--body);color:var(--ink-text);background:var(--ink-soft);border:0;border-radius:99px;padding:6px 12px;margin-left:4px;cursor:pointer;white-space:nowrap}
+.wprac:active{transform:scale(.96)}

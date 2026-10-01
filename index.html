@@ -363,12 +363,12 @@ function meter(ws){
   return `<div class="meter" aria-hidden="true"><i class="m1" style="width:${c("mastered")/n*100}%"></i><i class="m2" style="width:${c("strong")/n*100}%"></i><i class="m3" style="width:${c("learning")/n*100}%"></i></div>
     <div class="legend"><span><i class="mdot mastered"></i>Mastered ${c("mastered")}</span><span><i class="mdot strong"></i>Strong ${c("strong")}</span><span><i class="mdot learning"></i>Learning ${c("learning")}</span><span><i class="mdot"></i>New ${c("new")}</span></div>`;
 }
-function wordGrid(ws,{tools=false,meta=false}={}){
+function wordGrid(ws,{tools=false,meta=false,practise=false}={}){
   const sorted=ws.slice().sort((a,b)=>a.w.localeCompare(b.w,"en",{sensitivity:"base"}));
   return `<div class="wgrid">${sorted.map(w=>`<div class="wcell">
     <i class="mdot ${masteryOf(w)}" title="${MASTERY_LABEL[masteryOf(w)]}"></i>
     <span class="wt">${esc(w.w)}</span>
-    <span class="tools">${meta?`<span class="wm">${esc(dueText(w))}</span>`:""}<button class="icon-btn ghost" data-say="${esc(w.w)}" aria-label="Play ${esc(w.w)}">${ic("speaker")}</button>${tools?`<button class="icon-btn ghost" data-del="${w.id}" aria-label="Delete ${esc(w.w)}">${ic("trash")}</button>`:""}</span>
+    <span class="tools">${meta?`<span class="wm">${esc(dueText(w))}</span>`:""}<button class="icon-btn ghost" data-say="${esc(w.w)}" aria-label="Play ${esc(w.w)}">${ic("speaker")}</button>${practise?`<button class="wprac" data-practise="${w.id}" aria-label="Practise ${esc(w.w)}">Practise</button>`:""}${tools?`<button class="icon-btn ghost" data-del="${w.id}" aria-label="Delete ${esc(w.w)}">${ic("trash")}</button>`:""}</span>
   </div>`).join("")}</div>`;
 }
 function dueText(w){
@@ -479,8 +479,8 @@ function listCard(date){
       ${first==="dict"?A("dict","headphones","teal","Dictation","Hear it, spell it",null,true):""}
     </div>
     <div class="section">
-      <div class="section-title" style="padding:0"><h4>Words in this list</h4><span class="muted tiny">Tap ${ic("speaker")} to hear a word</span></div>
-      ${wordGrid(ws)}
+      <div class="section-title" style="padding:0"><h4>Words in this list</h4><span class="muted tiny">Tap ${ic("speaker")} to hear a word, or Practise to practise just that word</span></div>
+      ${wordGrid(ws,{practise:true})}
     </div>
   </div>`;
 }
@@ -515,7 +515,7 @@ function viewPractice(){
     ${!listOpen(l)?`<div class="card lock-note"><div class="badge grey lg">${ic("lock")}</div><div><h4>This list opens on ${esc(niceDate(openDay(l)))}</h4><div class="muted small">Pick a list from today or before to practise.</div></div></div>`:`
     <div class="card stack">
       <div class="row" style="justify-content:space-between"><h4>Words to practise</h4><div class="seg">${Object.entries(SUBSETS).map(([k,[n,f]])=>`<button class="${k===practiceSet?"on":""}" data-set="${k}">${n} · ${f(all).length}</button>`).join("")}</div></div>
-      ${ws.length?wordGrid(ws):`<div class="muted">No words in this group.</div>`}
+      ${ws.length?wordGrid(ws,{practise:true}):`<div class="muted">No words in this group.</div>`}
     </div>
     <div class="card stack" style="text-align:center;gap:14px"><div class="muted small">How do you want to spell?</div>${methodPicker()}
       <p class="muted tiny" style="margin:0">Letter tiles: tap or drag them. Handwriting: use your finger or Apple Pencil, then check it yourself.</p></div>
@@ -851,6 +851,11 @@ function bind(){
     else if(a==="review")startSession("review",p.review.map(w=>w.id),{listDate:d});
     else startSession(a,p.all.map(w=>w.id),{listDate:d});
   });
+  document.querySelectorAll("[data-practise]").forEach(b=>b.onclick=()=>{
+    const w=B().words[b.dataset.practise]; if(!w)return;
+    // a new word gets the full learning steps and counts as learned; a known word gets all 5 steps as practice
+    startSession(w.stage===0?"learn":"full",[w.id],{listDate:w.list||curDate()});
+  });
   document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>startSession(b.dataset.mode,practiceWords().map(w=>w.id),{listDate:curDate()}));
   const ad=$("#addDate"); if(ad)ad.onchange=()=>{if(ad.value){addDate=ad.value;addMsg="";render();}};
   document.querySelectorAll("[data-adddate]").forEach(b=>b.onclick=()=>{addDate=b.dataset.adddate;addMsg="";render();});
@@ -940,7 +945,7 @@ function fullTasks(ids,tasks){
     shuffle(g).forEach(id=>tasks.push({t:"tiles",id}));
     shuffle(g).forEach(id=>tasks.push({t:"lcwc",id}));
   });
-  tasks.push({t:"intro",title:"Final dictation",sub:`Listen and spell all ${ids.length} words. Any mistakes come back once more.`});
+  tasks.push({t:"intro",final:true,title:"Final dictation",sub:`Listen and spell all ${ids.length} words. Any mistakes come back once more.`});
   shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
 }
 async function startSession(mode,ids,opt={}){
@@ -969,7 +974,7 @@ async function startSession(mode,ids,opt={}){
     tasks.push({t:"intro",title:`Spelling Game · ${n} word${s}`,sub:"Listen and tap or drag the letters. Streaks earn bonus points, wrong letters lose points. Be quick!",game:true});
     shuffle(ids).forEach(id=>tasks.push({t:"game",id,kind:Math.random()<.5?"build":"gap"}));
   }
-  S={mode,ids,tasks,i:0,shown:new Set(),res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0,ans:""}])),score:0,combo:0,hits:0,misses:0,t0:0,listDate:opt.listDate||null};
+  S={mode,ids,tasks,i:0,shown:new Set(),visited:new Set(),res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0,ans:""}])),score:0,combo:0,hits:0,misses:0,t0:0,listDate:opt.listDate||null};
   window.__busy=true;
   $("#hud").hidden=mode!=="game";
   $("#session").hidden=false; document.body.style.overflow="hidden";
@@ -980,8 +985,24 @@ $("#quit").onclick=()=>{
   const b=$("#quit");
   if(!S||S.tasks[S.i]?.t==="done"){endSession();return;}
   if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Quit?";setTimeout(()=>{b.classList.remove("confirm");b.innerHTML=ic("x");},2500);return;}
-  b.classList.remove("confirm");b.innerHTML=ic("x");endSession();
+  b.classList.remove("confirm");b.innerHTML=ic("x");savePartial();endSession();
 };
+/* Quitting a learning session part-way keeps the words whose steps were all done,
+   so the next "Learn new words" starts with the words that are still new. */
+function savePartial(){
+  if(!S||!(S.mode==="learn"||S.mode==="full"))return;
+  const fin=S.tasks.findIndex(x=>x.final), t=today(), now=Date.now();
+  let n=0;
+  S.ids.forEach(id=>{
+    const w=B().words[id]; if(!w)return;
+    const steps=[]; S.tasks.forEach((x,k)=>{if(x.id===id&&(fin<0||k<fin))steps.push(k);});
+    if(!steps.length||!steps.every(k=>k<S.i&&S.visited.has(k)))return;
+    n++;
+    if(S.mode==="learn"&&w.stage===0){w.stage=1;w.due=addDays(t,INTERVAL[1]);w.learnedOn=t;}
+    w.seen=(w.seen||0)+1; w.last=t; w.u=now;
+  });
+  if(n){const lg=B().log[t]||(B().log[t]={done:0,right:0});lg.done+=n;Store.save();}
+}
 function next(){stopAudio();S.i++;renderTask();}
 const autoNext=ms=>{const i0=S.i;setTimeout(()=>{if(S&&S.i===i0)next();},ms);};
 
@@ -1010,6 +1031,7 @@ function renderTask(){
   if(task.id&&!B().words[task.id]){S.i++;return renderTask();} // word deleted on another device
   $("#sLabel").textContent=LABEL[task.t]||MODE_NAME[S.mode];
   if(task.id)S.shown.add(task.id);
+  S.visited.add(S.i);
   setProg(S.i);
   $(".s-body").scrollTop=0;
   updHud();

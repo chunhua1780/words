@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Word Speller</title>
-<meta name="theme-color" content="#2742a8">
+<meta name="theme-color" content="#eef1f5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Word Speller">
@@ -17,14 +17,13 @@
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="3" width="24" height="26" rx="4" fill="var(--ink)"/><g stroke="var(--paper)" stroke-width="1.4" opacity=".9"><line x1="8" y1="11" x2="24" y2="11"/><line x1="8" y1="15" x2="24" y2="15"/><line x1="8" y1="19" x2="24" y2="19"/><line x1="8" y1="23" x2="24" y2="23"/></g><path d="M9 20.5l3-6 3 6M10 18.8h4" stroke="var(--sun)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="3" width="26" height="26" rx="7" fill="var(--ink)"/><g stroke="#fff" stroke-width="1.5" opacity=".95" stroke-linecap="round"><line x1="9" y1="12" x2="23" y2="12"/><line x1="9" y1="16" x2="23" y2="16"/><line x1="9" y1="20" x2="18" y2="20"/></g></svg>
       Word Speller
     </div>
     <span class="spacer"></span>
     <span class="chip" id="sync" hidden></span>
     <span class="chip" id="streak" hidden></span>
     <button class="chip" id="soundTest" title="Test sound"></button>
-    <button class="chip" id="accent" title="Voice"></button>
     <button class="chip kid" id="kid" hidden></button>
   </header>
   <nav class="tabs" role="tablist" hidden>
@@ -66,7 +65,7 @@
 const B=()=>Store.book;
 const words=()=>wordsOf(B());
 function findWord(w){w=norm(w);return Store.book?words().find(x=>norm(x.w)===w):null;}
-let accent="us"; try{accent=localStorage.getItem("ws-accent")||"us";}catch(e){}
+const accent="uk"; // standard British English throughout
 
 /* ================= Pronunciation: online human voice (Youdao, then Google), then the device voice ================= */
 const player=new Audio(); player.preload="auto"; player.setAttribute("playsinline","");
@@ -90,10 +89,11 @@ document.addEventListener("keydown",unlock,{capture:true});
 let voice=null;
 function pickVoice(){
   if(!("speechSynthesis" in window))return;
-  const want=accent==="uk"?/en[-_]GB/i:/en[-_]US/i;
-  const vs=speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang));
-  const pref=["Samantha","Google US English","Microsoft Aria","Microsoft Jenny","Daniel","Karen","Alex"];
-  voice=vs.find(v=>want.test(v.lang)&&pref.some(n=>v.name.includes(n)))||vs.find(v=>want.test(v.lang))||vs[0]||null;
+  // British voices only, best quality first (iPad: Daniel, Kate, Serena, Arthur, Martha; Chrome/Windows: Google UK, Libby, Sonia, Ryan)
+  const vs=speechSynthesis.getVoices().filter(v=>/^en[-_]GB/i.test(v.lang));
+  const pref=["Premium","Enhanced","Daniel","Arthur","Martha","Kate","Serena","Oliver","Stephanie","Google UK English Female","Google UK English Male","Libby","Sonia","Ryan","Hazel","George"];
+  const score=v=>{const i=pref.findIndex(n=>v.name.includes(n));return i<0?99:i;};
+  voice=vs.sort((a,b)=>score(a)-score(b))[0]||null;
 }
 if("speechSynthesis" in window){pickVoice(); speechSynthesis.onvoiceschanged=pickVoice;}
 let speakId=0;
@@ -105,7 +105,7 @@ function tts(text,{rate=.85,onend,onstart,id=++speakId}={}){
   try{player.pause();}catch(e){}
   if(!("speechSynthesis" in window)){setTimeout(fire,300);return;}
   speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text); u.lang=accent==="uk"?"en-GB":"en-US"; u.rate=rate;
+  const u=new SpeechSynthesisUtterance(text); u.lang="en-GB"; u.rate=rate;
   if(voice)u.voice=voice;
   u.onend=fire; u.onerror=fire;
   let st=false; const start=()=>{if(!st&&id===speakId){st=true;onstart&&onstart();}};
@@ -115,10 +115,11 @@ function tts(text,{rate=.85,onend,onstart,id=++speakId}={}){
 }
 /* Whole words: Youdao's recorded dictionary voice first. Chunks and letters are not dictionary words,
    so they go to Google's reading voice only (Youdao can return a different word's sound for them). */
-const googleUrl=text=>"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="+(accent==="uk"?"en-GB":"en-US")+"&q="+encodeURIComponent(text);
-function sources(text,fragment){
-  if(fragment)return [googleUrl(text)];
-  return ["https://dict.youdao.com/dictvoice?type="+(accent==="uk"?1:2)+"&audio="+encodeURIComponent(text),googleUrl(text)];
+/* British English sources. "Slow" asks the voice to speak slowly instead of slowing the recording down (which distorts it). */
+const googleUrl=(text,slow)=>"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB"+(slow?"&ttsspeed=0.35":"")+"&q="+encodeURIComponent(text);
+function sources(text,fragment,slow){
+  if(fragment||slow)return [googleUrl(text,slow)];
+  return ["https://dict.youdao.com/dictvoice?type=1&audio="+encodeURIComponent(text),googleUrl(text)];
 }
 const warmed=new Set();
 function warm(texts){ // fetch chunk sounds early so they play without a gap
@@ -136,8 +137,8 @@ function say(text,{slow=false,onend,onstart,fragment=false}={}){
   if("speechSynthesis" in window)speechSynthesis.cancel();
   const id=++speakId;
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
-  const list=navigator.onLine===false?[]:sources(text,fragment);
-  const w=!fragment&&findWord(text); if(w&&w.audio)list.push(w.audio);
+  const list=navigator.onLine===false?[]:sources(text,fragment,slow);
+  const w=!fragment&&!slow&&findWord(text); if(w&&w.audio&&/-uk\./.test(w.audio))list.push(w.audio);
   let begun=false; const begin=()=>{if(!begun&&id===speakId){begun=true;onstart&&onstart();}};
   let k=-1, started=false;
   const tryNext=()=>{
@@ -148,9 +149,9 @@ function say(text,{slow=false,onend,onstart,fragment=false}={}){
     player.onplaying=()=>{started=true;begin();};
     player.onerror=()=>{if(id===speakId&&k<list.length)tryNext();};
     player.src=list[k];
-    try{player.playbackRate=slow?.65:1;player.defaultPlaybackRate=slow?.65:1;player.preservesPitch=true;}catch(e){}
+    try{player.playbackRate=1;player.defaultPlaybackRate=1;}catch(e){}
     const kk=k;
-    player.play().then(()=>{try{player.playbackRate=slow?.65:1;}catch(e){}}).catch(err=>{
+    player.play().catch(err=>{
       if(id!==speakId||kk!==k)return;
       if(err&&err.name==="NotAllowedError"){showSoundTip();k=list.length;tts(text,{rate:slow?.5:.85,onend,onstart:begin,id});}
       else tryNext();
@@ -265,7 +266,7 @@ async function enrich(word){
   const e=j[0]; const phs=e.phonetics||[];
   const ph=e.phonetic||phs.map(p=>p.text).find(Boolean);
   if(ph&&!word.ipa)word.ipa=ph.startsWith("/")?ph:"/"+ph+"/";
-  const au=phs.find(p=>p.audio&&/-us\./.test(p.audio))||phs.find(p=>p.audio);
+  const au=phs.find(p=>p.audio&&/-uk\./.test(p.audio));
   if(au&&!word.audio)word.audio=au.audio;
   if(!word.ex){
     for(const m of e.meanings||[])for(const d of m.definitions||[])
@@ -303,15 +304,7 @@ function misspellings(w,n=3){
 }
 
 /* ================= Lists ================= */
-const SETS={
-  today:{name:"Today's words",get:()=>{const t=today(),d=dueOn(B(),t);return [...new Set([...d.fresh,...d.review,...words().filter(w=>w.learnedOn===t)])];}},
-  test:{name:"Next test",get:()=>{const x=upcomingTests(B())[0];return x?(x.wordIds||[]).map(id=>B().words[id]).filter(Boolean):[];}},
-  tomorrow:{name:"Tomorrow's words",get:()=>{const d=dueOn(B(),addDays(today(),1));return [...d.fresh,...d.review];}},
-  hard:{name:"Tricky words",get:()=>words().filter(w=>(w.lapses||0)>0)},
-  recent:{name:"Last 3 days",get:()=>{const t=today();return words().filter(w=>w.added&&dayDiff(w.added,t)<=2);}},
-  all:{name:"All words",get:()=>words()},
-};
-const METHODS=[["type","Type","pencil"],["tiles","Letter tiles","layers"],["write","Handwriting","pencil"]];
+const METHODS=[["type","Type"],["tiles","Letter tiles"],["write","Handwriting"]];
 const method=()=>(B()&&B().prefs.method)||"type";
 function setMethod(m){B().prefs={...B().prefs,method:m,u:Date.now()};Store.save();}
 function methodPicker(){
@@ -319,56 +312,97 @@ function methodPicker(){
 }
 function bindMethod(root){root.querySelectorAll("[data-method]").forEach(b=>b.onclick=()=>{setMethod(b.dataset.method);root.querySelectorAll("[data-method]").forEach(x=>x.classList.toggle("on",x===b));});}
 
+/* ================= Which word list is being studied ================= */
+let selDate=null;
+const selKey=()=>"ws-sel-"+Store.user;
+function defaultList(){
+  const t=today(), ls=listsOf(B()), open=ls.filter(listOpen);
+  if(B().lists[t]&&wordsIn(B(),t).length)return t;
+  const busy=open.filter(l=>{const p=listPlan(B(),l.date);return p.fresh.length||p.review.length;});
+  if(busy.length)return busy[busy.length-1].date;
+  if(open.length)return open[open.length-1].date;
+  return ls.length?ls[0].date:null;
+}
+function curDate(){
+  if(!selDate){try{selDate=localStorage.getItem(selKey());}catch(e){}}
+  if(selDate&&B().lists[selDate]&&wordsIn(B(),selDate).length)return selDate;
+  selDate=defaultList(); return selDate;
+}
+function selectList(d){selDate=d;try{localStorage.setItem(selKey(),d);}catch(e){}render();}
+function dateStrip(cur){
+  const t=today(), ls=listsOf(B());
+  return `<div class="dates" id="dates" role="tablist" aria-label="Word lists">${ls.map(l=>{
+    const d=pdate(l.date), p=listPlan(B(),l.date), todo=p.fresh.length+p.review.length, lock=!listOpen(l);
+    const tag=lock?`${ic("lock")}Locked`:l.test?"Test":todo?`${todo} to do`:`${ic("check")}Done`;
+    return `<button class="dpill ${l.date===cur?"on":""} ${lock?"locked":""} ${l.date===t?"today":""}" data-list="${l.date}" role="tab" aria-selected="${l.date===cur}" aria-label="${esc(listName(l))}${lock?", locked":""}">
+      <span class="wd">${l.date===t?"Today":WEEK[d.getDay()]}</span><span class="dn">${d.getDate()}</span><span class="mo">${MONTH[d.getMonth()].slice(0,3)}</span>
+      <span class="tag ${l.test?"test":todo?"due":""}">${tag}</span></button>`;}).join("")}</div>`;
+}
+function scrollStrip(){const s=$("#dates"),on=s&&s.querySelector(".on");if(on)s.scrollLeft=on.offsetLeft-s.clientWidth/2+on.clientWidth/2;}
+function meter(ws){
+  const n=Math.max(1,ws.length), c=k=>ws.filter(w=>masteryOf(w)===k).length;
+  return `<div class="meter" aria-hidden="true"><i class="m1" style="width:${c("mastered")/n*100}%"></i><i class="m2" style="width:${c("strong")/n*100}%"></i><i class="m3" style="width:${c("learning")/n*100}%"></i></div>
+    <div class="legend"><span><i class="mdot mastered"></i>Mastered ${c("mastered")}</span><span><i class="mdot strong"></i>Strong ${c("strong")}</span><span><i class="mdot learning"></i>Learning ${c("learning")}</span><span><i class="mdot"></i>New ${c("new")}</span></div>`;
+}
+function wordGrid(ws,{tools=false,meta=false}={}){
+  const sorted=ws.slice().sort((a,b)=>a.w.localeCompare(b.w,"en",{sensitivity:"base"}));
+  return `<div class="wgrid">${sorted.map(w=>`<div class="wcell">
+    <i class="mdot ${masteryOf(w)}" title="${MASTERY_LABEL[masteryOf(w)]}"></i>
+    <span class="wt">${esc(w.w)}</span>
+    <span class="tools">${meta?`<span class="wm">${esc(dueText(w))}</span>`:""}<button class="icon-btn ghost" data-say="${esc(w.w)}" aria-label="Play ${esc(w.w)}">${ic("speaker")}</button>${tools?`<button class="icon-btn ghost" data-del="${w.id}" aria-label="Delete ${esc(w.w)}">${ic("trash")}</button>`:""}</span>
+  </div>`).join("")}</div>`;
+}
+function dueText(w){
+  const dd=dayDiff(today(),w.due);
+  if(w.stage===0)return "New";
+  if(w.stage>=MASTER)return "Mastered";
+  return dd<=0?"Review today":dd===1?"Tomorrow":`In ${dd} days`;
+}
+
 /* ================= Pages ================= */
-let tab="today", bankFilter="all", addTarget="today", practiceSet="today", authMode="login", authErr="";
-try{tab=sessionStorage.getItem("tab")||"today";practiceSet=sessionStorage.getItem("pset")||"today";}catch(e){}
+let tab="today", bankFilter="all", addTarget="today", addDate=null, practiceSet="all", authMode="login", authErr="";
+try{tab=sessionStorage.getItem("tab")||"today";}catch(e){}
 if(!["today","read","practice","words"].includes(tab))tab="today";
 function setTab(t){tab=t;try{sessionStorage.setItem("tab",t)}catch(e){}render();window.scrollTo(0,0);}
 const TABS={today:["Today","sparkle"],read:["Read","book"],practice:["Practice","game"],words:["Words","abc"]};
 document.querySelectorAll("nav.tabs button").forEach(b=>{const [l,i]=TABS[b.dataset.tab];b.innerHTML=ic(i)+l;b.onclick=()=>setTab(b.dataset.tab);});
-$("#accent").onclick=()=>{accent=accent==="uk"?"us":"uk";try{localStorage.setItem("ws-accent",accent)}catch(e){}pickVoice();render();say("hello");};
-$("#soundTest").innerHTML=ic("speaker")+`<span class="lbl">Sound</span>`;
-$("#soundTest").onclick=()=>say("Hello! Let's spell some words.");
+$("#soundTest").innerHTML=ic("speaker")+`<span class="lbl">Test sound</span>`;
+$("#soundTest").onclick=()=>say("Hello! Let's practise some spellings.");
 $("#quit").innerHTML=ic("x");
 $("#kid").onclick=()=>{
   const b=$("#kid");
   if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Tap again to log out";setTimeout(()=>{b.classList.remove("warn");if(Store.book)render();},3000);return;}
-  b.classList.remove("warn");Store.logout(); authErr=""; render();
+  b.classList.remove("warn");Store.logout(); selDate=null; authErr=""; render();
 };
-Store.onStatus=s=>{const c=$("#sync");c.textContent=SYNC_TEXT[s]||"";c.hidden=!Store.user||!c.textContent;c.className="chip "+(s==="saved"?"ok":/error|auth/.test(s)?"warn":"");};
+Store.onStatus=s=>{const c=$("#sync");c.innerHTML=s&&SYNC_TEXT[s]?`<i class="dot"></i>${SYNC_TEXT[s]}`:"";c.hidden=!Store.user||!SYNC_TEXT[s];c.className="chip "+(s==="saved"?"ok":/error|auth/.test(s)?"warn":"");};
 Store.onRemote=()=>{if(!S&&!RD)render();enrichAll();};
 
-function chipList(ws,empty,mastery){
-  if(!ws.length)return `<p class="muted" style="margin:0">${empty}</p>`;
-  return `<div class="words">${ws.map(w=>`<span class="${mastery?"mchip "+masteryOf(w):"w"}">${esc(w.w)}</span>`).join("")}</div>`;
-}
 function render(){
   const logged=!!Store.book;
   if(!logged)tab="login"; else if(tab==="login")tab="today";
   $("nav.tabs").hidden=!logged; ["#streak","#kid"].forEach(x=>$(x).hidden=!logged); if(!logged)$("#sync").hidden=true;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   if(logged){
-    if(!$("#kid").classList.contains("warn"))$("#kid").innerHTML=`${ic("person")}${esc(B().name)}`;
-    const s=streakOf(B().log); $("#streak").innerHTML=`${ic("flame")}${s?`${s}<span class="lbl">-day streak</span>`:`<span class="lbl">Start a streak</span>`}`;
+    if(!$("#kid").classList.contains("warn"))$("#kid").innerHTML=`${ic("person")}<span class="lbl">${esc(B().name)}</span>`;
+    const s=streakOf(B().log); $("#streak").innerHTML=`${ic("flame")}${s?`${s}<span class="lbl"> day${s===1?"":"s"}</span>`:`<span class="lbl">Start a streak</span>`}`;
   }
-  $("#accent").textContent=accent==="uk"?"UK voice":"US voice";
   $("#view").innerHTML=({login:viewLogin,today:viewToday,read:viewRead,practice:viewPractice,words:viewWords})[tab]();
-  bind();
+  bind(); scrollStrip();
 }
 
 function viewLogin(){
   const create=authMode==="create";
   return `<form class="card auth" id="authForm" autocomplete="on">
-    <div class="badge" style="width:56px;height:56px;border-radius:16px">${ic("book")}</div>
-    <h2>${create?"Create your account":"Welcome back"}</h2>
-    <p class="muted" style="margin:0">${create?"Choose a username and a password. Your parents can use the same ones on their phone to follow your progress.":"Log in to carry on with your spelling and reading."}</p>
+    <div class="badge lg">${ic("book")}</div>
+    <h2 style="font-size:30px">${create?"Create your account":"Welcome back"}</h2>
+    <p class="muted" style="margin:0">${create?"Choose a username and a password. Your parents use the same ones on their phone.":"Log in to carry on with your spelling and reading."}</p>
     <label>Username<input type="text" id="aUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" required></label>
     <label>Password<input type="password" id="aPass" name="password" autocomplete="${create?"new-password":"current-password"}" maxlength="64" required></label>
     ${create?`<label>Password again<input type="password" id="aPass2" autocomplete="new-password" maxlength="64" required></label>`:""}
     <div class="err" id="aErr">${esc(authErr)}</div>
     <button class="btn primary big" type="submit" id="aGo">${create?"Create account":"Log in"}</button>
     <button class="linkish" type="button" id="aSwitch">${create?"I already have an account":"New here? Create an account"}</button>
-    <p class="muted small" style="margin:0;text-align:center">Parents: <a href="parent.html">open the parent page</a> to set tests and see progress.</p>
+    <p class="muted small" style="margin:0;text-align:center">Parents: <a href="parent.html">open the parent page</a> to plan word lists and see progress.</p>
   </form>`;
 }
 function bindLogin(){
@@ -379,163 +413,142 @@ function bindLogin(){
     const u=$("#aUser").value.trim(), p=$("#aPass").value;
     if(authMode==="create"&&p!==$("#aPass2").value){$("#aErr").textContent="The two passwords are different.";return;}
     const btn=$("#aGo"); btn.disabled=true; btn.textContent="Please wait…";
-    try{await Store.open(u,p,authMode==="create");authErr="";tab="today";render();enrichAll();}
+    try{await Store.open(u,p,authMode==="create");selDate=null;authErr="";tab="today";render();enrichAll();}
     catch(err){authErr=authMsg(err);render();$("#aUser").value=u;}
   };
 }
 
-function testCard(x){
-  const ws=(x.wordIds||[]).map(id=>B().words[id]).filter(Boolean);
-  const d=dayDiff(today(),x.date), m=ws.filter(w=>w.stage>=3).length;
-  const best=(x.mocks||[]).reduce((a,r)=>Math.max(a,r.s/r.n),0);
-  return `<div class="card stack test-card">
-    <div class="tile-head"><div class="badge orange">${ic("doc")}</div><div><h3 style="margin:0">${esc(x.title||"Spelling test")}</h3>
-      <div class="muted small">${niceDate(x.date)} · <b>${d===0?"Today":inDays(d)}</b> · ${m} of ${ws.length} words strong${(x.mocks||[]).length?` · best practice ${Math.round(best*100)}%`:""}</div></div></div>
-    ${chipList(ws,"No words in this test yet.",true)}
-    <div class="legend"><span class="mchip">new</span><span class="mchip learning">learning</span><span class="mchip strong">strong</span><span class="mchip mastered">mastered</span></div>
-    ${ws.length?`<div class="row"><button class="btn primary" data-test-learn="${x.id}">Practise these words</button><button class="btn" data-test-mock="${x.id}">Practice test</button></div>`:""}
-  </div>`;
-}
 function readingCard(){
   const t=today(), r=todaysReading(), secs=readSecs(t), done=B().reading.done[r.id], readToday=(B().reading.log[t]||{}).ids||[];
-  const p=Math.min(100,Math.round(secs/600*100)), finished=secs>=600;
+  const p=Math.min(100,Math.round(secs/600*100));
   return `<div class="card read-hero">
     <div class="passage-card">
       <span class="kind-tag">${ic("book")}Daily reading · ${esc(r.kind)}</span>
       <h3>${esc(r.title)}</h3>
       <div class="muted small">${readMinutes(r)} min read · ${r.questions.length} questions${done?` · last score ${done.score}/${done.n}`:""}</div>
-      <div class="row"><button class="btn primary big" data-read="${r.id}">${done&&done.date===t?"Read again":readToday.includes(r.id)?"Continue reading":"Start reading"}</button>
+      <div class="row"><button class="btn primary" data-read="${r.id}">${done&&done.date===t?"Read again":readToday.includes(r.id)?"Continue reading":"Start reading"}</button>
       <button class="btn" data-go="read">All stories</button></div>
     </div>
     <div style="text-align:center"><div class="ring lg" style="--p:${p}"><span>${Math.floor(secs/60)}′</span></div>
-      <div class="muted small" style="margin-top:6px">${finished?"10 minutes done!":"of 10 minutes"}</div></div>
+      <div class="muted small" style="margin-top:8px">${secs>=600?"10 minutes done":"of 10 minutes"}</div></div>
+  </div>`;
+}
+/* The selected list: what to do today, and its words */
+function listCard(date){
+  const l=B().lists[date], p=listPlan(B(),date), ws=p.all, t=today(), d=dayDiff(t,date);
+  const learned=ws.filter(w=>w.stage>0).length;
+  const when=l.test?(d>0?`Test ${inDays(d)}`:d===0?"Test today":`Test was ${inDays(d)}`):"";
+  const best=(l.mocks||[]).reduce((a,r)=>Math.max(a,r.s/r.n),0);
+  const head=`<div class="stack tight">
+      <div class="eyebrow">${l.test?"Test list":"Word list"}${when?` · ${when}`:""}</div>
+      <h2>${esc(niceDate(date))}</h2>
+      <div class="muted">${l.title?esc(l.title)+" · ":""}${ws.length} word${ws.length===1?"":"s"} · ${learned} learned${(l.mocks||[]).length?` · best practice test ${Math.round(best*100)}%`:""}</div>
+    </div>`;
+  if(p.locked)return `<div class="card stack">${head}
+    <div class="lock-note"><div class="badge grey lg">${ic("lock")}</div><div><h4>This list opens on ${esc(niceDate(openDay(l)))}</h4><div class="muted small">${ws.length} words are waiting. You can start them ${inDays(dayDiff(t,openDay(l)))}.</div></div></div></div>`;
+  const A=(act,icn,color,title,sub,n,main)=>`<button class="action ${main?"main":""}" data-act="${act}" ${n===0?"disabled":""}><div class="badge ${color}">${ic(icn)}</div><div><b>${title}</b><span class="s">${sub}</span></div>${n!=null?`<span class="n">${n}</span>`:""}</button>`;
+  const first=p.fresh.length?"learn":p.review.length?"review":"dict";
+  return `<div class="card stack">
+    ${head}
+    ${meter(ws)}
+    <div class="actions">
+      ${A("learn","sparkle","", "Learn new words","Sound it out, build, write, dictation",p.fresh.length,first==="learn")}
+      ${A("review","check","green","Review","Words due today",p.review.length,first==="review")}
+      ${A("game","game","orange","Spelling Game","Every word in this list",null,false)}
+      ${A("mock","doc","red","Practice test","Like the real test",null,false)}
+      ${first==="dict"?A("dict","headphones","teal","Dictation","Hear it, spell it",null,true):""}
+    </div>
+    <div class="section">
+      <div class="section-title" style="padding:0"><h4>Words in this list</h4><span class="muted tiny">Tap ${ic("speaker")} to hear a word</span></div>
+      ${wordGrid(ws)}
+    </div>
   </div>`;
 }
 function viewToday(){
-  const t=today(), {fresh,review}=dueOn(B(),t), log=B().log[t];
-  const tm=dueOn(B(),addDays(t,1));
-  const fc=[...Array(7)].map((_,k)=>{const d=addDays(t,k);const x=dueOn(B(),d);return {d,n:x.fresh.length+x.review.length};});
-  const max=Math.max(1,...fc.map(f=>f.n));
-  const learnedToday=words().filter(w=>w.learnedOn===t);
-  const tests=upcomingTests(B(),30);
-  const all=SETS.today.get();
-  const hour=new Date().getHours(), hi=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
+  const t=today(), cur=curDate(), hour=new Date().getHours(), hi=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
+  const others=cur?listsOf(B()).filter(l=>l.date!==cur&&listOpen(l)).map(l=>({l,p:listPlan(B(),l.date)})).filter(x=>x.p.fresh.length||x.p.review.length).reverse():[];
   return `<div class="stack">
-    <div><div class="eyebrow">${niceDate(t)}</div><div class="date">${hi}, ${esc(B().name)}</div></div>
+    <div class="page-head"><div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${hi}, ${esc(B().name)}</h1></div></div>
+    ${cur?`<div class="section"><div class="section-title"><h3>Word lists</h3><span class="muted small">Choose a date</span></div>${dateStrip(cur)}</div>
+      ${listCard(cur)}`:`<div class="card empty stack" style="align-items:center">
+        <div class="badge lg">${ic("calendar")}</div><h3>No word lists yet</h3>
+        <p class="muted" style="margin:0;max-width:420px">Word lists are saved by date. Add words for a day in Words, or ask a parent to plan them on the parent page.</p>
+        <button class="btn primary" data-go="words">Add words</button></div>`}
+    ${others.length?`<div class="section"><div class="section-title"><h3>Other lists to practise</h3></div><div class="group">${others.map(({l,p})=>`<button class="cell" data-list="${l.date}">
+      <div class="badge ${l.test?"orange":""}">${ic(l.test?"doc":"calendar")}</div><div class="grow"><div class="ttl">${esc(niceDate(l.date))}${l.title?` · ${esc(l.title)}`:""}</div><div class="sub">${p.fresh.length?`${p.fresh.length} new`:""}${p.fresh.length&&p.review.length?" · ":""}${p.review.length?`${p.review.length} to review`:""}</div></div>
+      <span class="pill-count">${p.fresh.length+p.review.length}</span><span class="chev">${ic("chevron")}</span></button>`).join("")}</div></div>`:""}
     ${readingCard()}
-    ${tests.map(testCard).join("")}
-    ${!words().length?`<div class="card stack" style="text-align:center;padding:36px 20px">
-      <div class="badge" style="margin:0 auto">${ic("abc")}</div>
-      <h3 style="margin:0">Your spelling list is empty</h3>
-      <p class="muted" style="margin:0">Add the words you want to learn. They are saved in your account for every day.</p>
-      <div><button class="btn primary" data-go="words">Add words</button></div></div>`:`
-    <div class="grid-home">
-      <div class="card stack">
-        <div class="tile-head"><div class="badge">${ic("sparkle")}</div><div><h3 style="margin:0">New words</h3><div class="muted small">Sound it out · Chunks · Build · Write · Dictation</div></div><span class="spacer"></span><div class="big-num">${fresh.length}</div></div>
-        ${chipList(fresh,"No new words for today.")}
-        <div class="row">${fresh.length?`<button class="btn primary" data-act="learn">Start learning</button>`:`<button class="btn" data-go="words">Add words</button>`}</div>
-      </div>
-      <div class="card stack">
-        <div class="tile-head"><div class="badge green">${ic("check")}</div><div><h3 style="margin:0">Review</h3><div class="muted small">Words to practise again today</div></div><span class="spacer"></span><div class="big-num">${review.length}</div></div>
-        ${chipList(review,"Nothing to review today.")}
-        <div class="row">${review.length?`<button class="btn primary" data-act="review">Start review</button>`:""}</div>
-      </div>
-      <div class="card stack">
-        <div class="tile-head"><div class="badge orange">${ic("game")}</div><div><h3 style="margin:0">Spelling Game</h3><div class="muted small">Spell all of today’s words</div></div></div>
-        ${chipList(all.slice(0,10),"Add words first.")}
-        <div class="row">${all.length?`<button class="btn primary" data-quick="game">Play</button>`:""}<button class="btn" data-go="practice">More practice</button></div>
-      </div>
+  </div>`;
+}
+
+const SUBSETS={all:["All words",ws=>ws],new:["Not learned yet",ws=>ws.filter(w=>w.stage===0)],hard:["Tricky",ws=>ws.filter(w=>(w.lapses||0)>0)]};
+function practiceWords(){const d=curDate();if(!d||!listOpen(B().lists[d]))return [];return (SUBSETS[practiceSet]||SUBSETS.all)[1](wordsIn(B(),d));}
+function viewPractice(){
+  const cur=curDate();
+  if(!cur)return `<div class="card empty">No word lists yet. Add words in Words first.</div>`;
+  const l=B().lists[cur], all=wordsIn(B(),cur), ws=practiceWords(), dis=ws.length?"":"disabled";
+  const M=(mode,icn,color,title,d)=>`<button class="mode" data-mode="${mode}" ${dis}><div class="badge ${color}">${ic(icn)}</div><b>${title}</b><span class="d">${d}</span></button>`;
+  return `<div class="stack">
+    <div class="page-head"><div><div class="eyebrow">Practice</div><h1>${esc(niceDate(cur))}</h1></div></div>
+    ${dateStrip(cur)}
+    ${!listOpen(l)?`<div class="card lock-note"><div class="badge grey lg">${ic("lock")}</div><div><h4>This list opens on ${esc(niceDate(openDay(l)))}</h4><div class="muted small">Pick a list from today or before to practise.</div></div></div>`:`
+    <div class="card stack">
+      <div class="row" style="justify-content:space-between"><h4>Words to practise</h4><div class="seg">${Object.entries(SUBSETS).map(([k,[n,f]])=>`<button class="${k===practiceSet?"on":""}" data-set="${k}">${n} · ${f(all).length}</button>`).join("")}</div></div>
+      ${ws.length?wordGrid(ws):`<div class="muted">No words in this group.</div>`}
     </div>
-    ${learnedToday.length&&!fresh.length?`<div class="card row" style="justify-content:space-between"><div><h3 style="margin:0">You learned ${learnedToday.length} words today</h3><div class="muted small">One more dictation before bed helps them stick.</div></div><button class="btn" data-quick="dict">Dictation</button></div>`:""}
-    <div class="card row" style="justify-content:space-between">
-      <div class="tile-head"><div class="badge purple">${ic("calendar")}</div><div><h3 style="margin:0">Tomorrow</h3><div class="muted small">${tm.fresh.length} new · ${tm.review.length} to review</div></div></div>
-      <div class="row"><button class="btn" data-go="words" data-target="tomorrow">Add words for tomorrow</button>${tm.fresh.length?`<button class="btn" data-set-go="tomorrow">Practise now</button>`:""}</div>
+    <div class="card stack" style="text-align:center;gap:14px"><div class="muted small">How do you want to spell?</div>${methodPicker()}
+      <p class="muted tiny" style="margin:0">Letter tiles: tap or drag them. Handwriting: use your finger or Apple Pencil, then check it yourself.</p></div>
+    <div class="modes">
+      ${M("game","game","orange","Spelling Game","Every word in one game, with points and a timer.")}
+      ${M("dict","headphones","teal","Dictation","Hear the word and a sentence, then spell it.")}
+      ${M("phonics","puzzle","purple","Phonics Chunks","Sound it out, then put the chunks in order.")}
+      ${M("lcwc","eyeoff","green","Cover & Write","Look, cover, write, check.")}
+      ${M("mock","doc","red","Practice Test","Like the school test: marks at the end.")}
+      ${M("full","layers","","All 5 Steps","Sound it out, chunks, build, write, dictation.")}
     </div>
-    <div class="section-title"><h3 style="margin:0">How you learn each new word</h3></div>
+    <div class="section"><div class="section-title"><h3>How you learn a new word</h3></div>
     <div class="steps">
       <div class="step"><b>Sound it out</b>Hear each chunk, then the whole word</div>
       <div class="step"><b>Chunks</b>Put the sound chunks in order</div>
       <div class="step"><b>Build</b>Tap or drag the letters</div>
       <div class="step"><b>Cover &amp; Write</b>Look, cover, write, check</div>
       <div class="step"><b>Dictation</b>Hear it and spell it</div>
-    </div>
-    <div class="card">
-      <h3>Next 7 days</h3>
-      <div class="forecast">${fc.map((f,k)=>`<div><div class="n">${f.n}</div><div class="bar"><i style="height:${f.n/max*100}%"></i></div><div class="muted">${k===0?"Today":k===1?"Tmrw":WEEK[pdate(f.d).getDay()]}</div></div>`).join("")}</div>
-      <p class="muted small" style="margin:12px 0 0">Learned words come back after 1, 2, 4, 7, 15, 30 and 60 days. Test words are practised every day in the week before the test.</p>
-    </div>`}
-  </div>`;
-}
-
-function viewPractice(){
-  if(practiceSet==="test"&&!upcomingTests(B()).length)practiceSet="today";
-  const ws=(SETS[practiceSet]||SETS.today).get();
-  const dis=ws.length?"":"disabled";
-  const sets=Object.entries(SETS).filter(([k])=>k!=="test"||upcomingTests(B()).length);
-  const M=(mode,icn,color,title,d)=>`<button class="mode" data-mode="${mode}" ${dis}><div class="badge ${color}">${ic(icn)}</div><b>${title}</b><span class="d">${d}</span></button>`;
-  return `<div class="stack">
-    <div><div class="eyebrow">Practice</div><h2>Choose your words</h2></div>
-    <div class="card stack">
-      <div class="seg">${sets.map(([k,s])=>`<button class="${k===practiceSet?"on":""}" data-set="${k}">${s.name} · ${s.get().length}</button>`).join("")}</div>
-      ${chipList(ws,"No words in this group.",true)}
-    </div>
-    <div class="card stack" style="text-align:center"><div class="muted small">How do you want to spell?</div>${methodPicker()}
-      <p class="muted small" style="margin:0">Letter tiles: tap or drag them. Handwriting: use your finger or Apple Pencil, then check it yourself.</p></div>
-    <div class="modes">
-      ${M("game","game","orange","Spelling Game","All the words in one game, with points and a timer.")}
-      ${M("dict","headphones","","Dictation","Hear the word and a sentence, then spell it.")}
-      ${M("phonics","puzzle","purple","Phonics Chunks","Sound it out, then put the chunks in order.")}
-      ${M("lcwc","eyeoff","green","Cover & Write","Look, cover, write, check.")}
-      ${M("mock","doc","red","Practice Test","Like the school test: marks at the end.")}
-      ${M("full","layers","","All 5 Steps","Sound it out, chunks, build, write, dictation.")}
-    </div>
-    <p class="muted small" style="margin:0">Practice does not change the review plan. Misspelled words go to Tricky words.${B().best?` Best game score: <b>${B().best}</b>.`:""}</p>
+    </div></div>`}
   </div>`;
 }
 
 let addMsg="", addDraft="";
 function previewList(items){
-  if(!items.length)return `<div class="muted small">The words you type will show here.</div>`;
-  return `<div class="words">${items.map(w=>`<span class="w">${esc(w)}${findWord(w)?` <small class="muted">· saved</small>`:""}</span>`).join("")}</div>`;
+  if(!items.length)return `<div class="muted small">The words you type will appear here.</div>`;
+  const d=addDate||today();
+  return `<div class="wgrid">${items.map(w=>`<div class="wcell"><i class="mdot"></i><span class="wt">${esc(w)}</span><span class="wm">${wordsIn(B(),d).some(x=>norm(x.w)===norm(w))?"Already in list":""}</span></div>`).join("")}</div>`;
 }
-function itemRow(w){
-  const t=today(), dd=dayDiff(t,w.due);
-  let when = w.stage===0?(dd<=0?"Learn today":dd===1?"Learn tomorrow":"Learn "+shortDate(w.due))
-    : dd<=0?"Review today":dd===1?"Review tomorrow":`Review in ${dd} days`;
-  if(w.stage>=MASTER)when="Mastered · "+when;
-  return `<div class="item">
-    <button class="icon-btn" data-say="${esc(w.w)}" aria-label="Play ${esc(w.w)}">${ic("speaker")}</button>
-    <div style="min-width:0"><div class="en">${esc(w.w)}</div>
-      <div class="row" style="gap:8px"><span class="dots">${[...Array(MASTER)].map((_,k)=>`<i class="${k<w.stage?"on":""}"></i>`).join("")}</span><span class="muted" style="font-size:13px">${when}${w.seen?` · ${w.right||0}/${w.seen} right`:""}${w.lapses?` · missed ${w.lapses}×`:""}</span></div></div>
-    <button class="icon-btn" data-del="${w.id}" aria-label="Delete ${esc(w.w)}">${ic("trash")}</button>
-  </div>`;
-}
-const BANK_F={all:()=>true,new:w=>w.stage===0,learning:w=>w.stage>0&&w.stage<MASTER,master:w=>w.stage>=MASTER,hard:w=>(w.lapses||0)>0};
+function nextWeekday(dow){const d=new Date();const add=((dow-d.getDay())+7)%7||7;d.setDate(d.getDate()+add);return dstr(d);}
 function viewWords(){
+  const t=today(); addDate=addDate||t;
   const items=parseWords(addDraft);
-  const ws=words().filter(BANK_F[bankFilter]).sort((a,b)=>a.due.localeCompare(b.due)||a.w.localeCompare(b.w));
-  const names={all:"All",new:"Not learned",learning:"Learning",master:"Mastered",hard:"Tricky"};
+  const ls=listsOf(B()).slice().reverse();
+  const quick=[[t,"Today"],[addDays(t,1),"Tomorrow"],...[1,2,3,4,5].map(k=>[nextWeekday(k),"Next "+WEEK[k]])].filter((x,i,a)=>a.findIndex(y=>y[0]===x[0])===i);
   return `<div class="stack">
-    <div><div class="eyebrow">Words</div><h2>Your spelling list</h2></div>
-    <div class="add-grid">
+    <div class="page-head"><div><div class="eyebrow">Words</div><h1>Word lists</h1></div></div>
+    <div class="split">
       <div class="card stack">
-        <h3 style="margin:0">Add words</h3>
-        <textarea id="addText" style="min-height:150px" placeholder="One word per line&#10;or separated by commas" autocapitalize="none" autocorrect="off" spellcheck="false">${esc(addDraft)}</textarea>
-        <div class="row">
-          <label class="opt"><input type="radio" name="tgt" value="today" ${addTarget==="today"?"checked":""}> Learn today</label>
-          <label class="opt"><input type="radio" name="tgt" value="tomorrow" ${addTarget==="tomorrow"?"checked":""}> Learn tomorrow</label>
-          <span class="spacer"></span><button class="btn primary" id="addBtn">${ic("plus")}Save</button>
-        </div>
+        <h3>Add words to a date</h3>
+        <label class="field">Study date<input type="date" id="addDate" value="${addDate}"></label>
+        <div class="quick">${quick.map(([d,n])=>`<button class="${d===addDate?"on":""}" data-adddate="${d}">${n}</button>`).join("")}</div>
+        <label class="field">Words, one per line or separated by commas<textarea id="addText" placeholder="essential&#10;confidential&#10;substantial" autocapitalize="none" autocorrect="off" spellcheck="false">${esc(addDraft)}</textarea></label>
+        <div class="row" style="justify-content:space-between"><span class="muted small">${addDate>t?`${ic("lock")} Locked until ${esc(niceDate(addDate))}`:`Ready to learn ${addDate===t?"today":"now"}`}</span><button class="btn primary" id="addBtn">${ic("plus")}Save to ${esc(shortDate(addDate))}</button></div>
         ${addMsg?`<div class="notice">${addMsg}</div>`:""}
       </div>
-      <div class="card stack"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Words found</h3><span class="muted small" id="pvn">${items.length}</span></div><div id="pv">${previewList(items)}</div>
-        <p class="muted small" style="margin:0">Only English letters are kept. Test words with a date are added on the parent page.</p></div>
+      <div class="card stack"><div class="row" style="justify-content:space-between"><h3>Words found</h3><span class="pill-count" id="pvn">${items.length}</span></div><div id="pv">${previewList(items)}</div></div>
     </div>
-    <div class="card stack">
-      <div class="filters">${Object.keys(names).map(k=>`<button class="${k===bankFilter?"on":""}" data-filter="${k}">${names[k]} · ${words().filter(BANK_F[k]).length}</button>`).join("")}</div>
-      ${ws.length?`<div class="bank-list">${ws.map(itemRow).join("")}</div>`:`<div class="empty">No words here yet.</div>`}
-      ${words().length?`<div class="row" style="justify-content:flex-end"><button class="btn plain" id="delAll" style="color:var(--red)">Delete all words</button></div>`:""}
-    </div>
+    ${ls.length?ls.map(l=>{const ws=wordsIn(B(),l.date),lock=!listOpen(l);return `<div class="card stack">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div class="stack tight" style="gap:4px"><div class="eyebrow">${lock?`${ic("lock")} Opens ${esc(inDays(dayDiff(t,openDay(l))))}`:l.date===t?"Today":l.date<t?"Earlier":"Open"}${l.test?" · Test":""}</div><h3>${esc(niceDate(l.date))}</h3><div class="muted small">${l.title?esc(l.title)+" · ":""}${ws.length} words</div></div>
+        <div class="row">${!lock?`<button class="btn" data-list="${l.date}" data-go-today="1">Study</button>`:""}<button class="btn red-text" data-dellist="${l.date}">Delete list</button></div>
+      </div>
+      ${wordGrid(ws,{tools:true,meta:true})}
+    </div>`;}).join(""):`<div class="card empty">No word lists yet. Add your first words above.</div>`}
   </div>`;
 }
 
@@ -719,7 +732,7 @@ $("#rListen").onclick=()=>{
     if(!listening||i>=ps.length){stopListen();return;}
     const p=ps[i++]; p.classList.add("reading"); p.scrollIntoView({behavior:"smooth",block:"center"});
     speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(p.textContent.replace(/\n/g," ")); u.lang=accent==="uk"?"en-GB":"en-US"; u.rate=.92; if(voice)u.voice=voice;
+    const u=new SpeechSynthesisUtterance(p.textContent.replace(/\n/g," ")); u.lang="en-GB"; u.rate=.92; if(voice)u.voice=voice;
     u.onend=()=>{if(listening)setTimeout(nextP,250);}; u.onerror=()=>stopListen();
     speechSynthesis.speak(u);
   };
@@ -788,50 +801,44 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.querySelec
 
 function bind(){
   bindLogin();
-  document.querySelectorAll("#view [data-go]").forEach(b=>b.onclick=()=>{if(b.dataset.target)addTarget=b.dataset.target;setTab(b.dataset.go);});
+  document.querySelectorAll("#view [data-go]").forEach(b=>b.onclick=()=>setTab(b.dataset.go));
   document.querySelectorAll("#view [data-say]").forEach(b=>b.onclick=()=>say(b.dataset.say));
   document.querySelectorAll("#view [data-sayw]").forEach(b=>b.onclick=()=>say(b.dataset.sayw));
   document.querySelectorAll("#view [data-read]").forEach(b=>b.onclick=()=>openReader(b.dataset.read));
-  document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{bankFilter=b.dataset.filter;render();});
-  document.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.set;try{sessionStorage.setItem("pset",practiceSet)}catch(e){}render();});
-  document.querySelectorAll("[data-set-go]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.setGo;setTab("practice");});
+  document.querySelectorAll("#view [data-list]").forEach(b=>b.onclick=()=>{if(b.dataset.goToday){selDate=b.dataset.list;try{localStorage.setItem(selKey(),selDate)}catch(e){}setTab("today");}else selectList(b.dataset.list);});
+  document.querySelectorAll("[data-set]").forEach(b=>b.onclick=()=>{practiceSet=b.dataset.set;render();});
   bindMethod($("#view"));
   document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
-    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Delete";setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("confirm");b.innerHTML=ic("trash");}},3000);return;}
+    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.classList.remove("ghost");b.textContent="Delete";setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("confirm");b.classList.add("ghost");b.innerHTML=ic("trash");}},3000);return;}
     deleteWord(B(),b.dataset.del);Store.save();render();});
-  const da=$("#delAll"); if(da)da.onclick=()=>{
-    if(!da.classList.contains("danger")){da.classList.add("danger");da.style.color="";da.textContent=`Tap again to delete all ${words().length} words`;setTimeout(()=>{if(document.body.contains(da)){da.classList.remove("danger");da.style.color="var(--red)";da.textContent="Delete all words";}},4000);return;}
-    Object.keys(B().words).forEach(id=>deleteWord(B(),id));Store.save();render();};
-  document.querySelectorAll("input[name=tgt]").forEach(r=>r.onchange=()=>addTarget=r.value);
+  document.querySelectorAll("[data-dellist]").forEach(b=>b.onclick=()=>{
+    const d=b.dataset.dellist;
+    if(!b.classList.contains("danger")){b.classList.add("danger");b.textContent=`Tap again to delete ${wordsIn(B(),d).length} words`;setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("danger");b.textContent="Delete list";}},4000);return;}
+    deleteList(B(),d);if(selDate===d)selDate=null;Store.save();render();});
+  /* actions on the selected list: everything uses only this list's words */
   document.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>{
-    const d=dueOn(B(),today());
-    if(b.dataset.act==="learn")startSession("learn",d.fresh.map(w=>w.id));
-    if(b.dataset.act==="review")startSession("review",d.review.map(w=>w.id));
+    const d=curDate(), p=listPlan(B(),d), a=b.dataset.act;
+    if(a==="learn")startSession("learn",p.fresh.map(w=>w.id),{listDate:d});
+    else if(a==="review")startSession("review",p.review.map(w=>w.id),{listDate:d});
+    else startSession(a,p.all.map(w=>w.id),{listDate:d});
   });
-  document.querySelectorAll("[data-test-learn]").forEach(b=>b.onclick=()=>{
-    const x=B().tests[b.dataset.testLearn]; const ids=(x.wordIds||[]).filter(id=>B().words[id]);
-    const fresh=ids.filter(id=>B().words[id].stage===0);
-    startSession(fresh.length?"learn":"dict",fresh.length?fresh:ids);});
-  document.querySelectorAll("[data-test-mock]").forEach(b=>b.onclick=()=>{const x=B().tests[b.dataset.testMock];startSession("mock",(x.wordIds||[]).filter(id=>B().words[id]),{testId:x.id});});
-  document.querySelectorAll("[data-quick]").forEach(b=>b.onclick=()=>startSession(b.dataset.quick,SETS.today.get().map(w=>w.id)));
-  document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{
-    const ids=(SETS[practiceSet]||SETS.today).get().map(w=>w.id);
-    const tx=practiceSet==="test"?upcomingTests(B())[0]:null;
-    startSession(b.dataset.mode,ids,{testId:b.dataset.mode==="mock"&&tx?tx.id:null});});
+  document.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>startSession(b.dataset.mode,practiceWords().map(w=>w.id),{listDate:curDate()}));
+  const ad=$("#addDate"); if(ad)ad.onchange=()=>{if(ad.value){addDate=ad.value;addMsg="";render();}};
+  document.querySelectorAll("[data-adddate]").forEach(b=>b.onclick=()=>{addDate=b.dataset.adddate;addMsg="";render();});
   const ta=$("#addText"); if(ta)ta.oninput=()=>{addDraft=ta.value;const it=parseWords(addDraft);$("#pv").innerHTML=previewList(it);$("#pvn").textContent=it.length;};
   const ab=$("#addBtn"); if(ab)ab.onclick=addWords;
 }
 
 async function addWords(){
-  const btn=$("#addBtn"), items=parseWords($("#addText").value);
+  const btn=$("#addBtn"), items=parseWords($("#addText").value), date=addDate||today();
   if(!items.length){addMsg="No English words found. Type one word per line.";render();return;}
-  const due=addTarget==="tomorrow"?addDays(today(),1):today();
-  const {added,reused}=addWordsToBook(B(),items,{due});
+  const {added,reused}=addWordsToBook(B(),items,{date});
   Store.save();
   btn.disabled=true; btn.textContent="Saving…";
   await Promise.all(added.map(enrich));
+  ensureDict().then(()=>{added.forEach(w=>phon(w.w));Store.save();});
   Store.save();
-  addMsg=`Saved ${added.length} new word${added.length===1?"":"s"} to learn ${addTarget}.`+(reused.length?` Already in your list: ${reused.map(w=>esc(w.w)).join(", ")}.`:"");
+  addMsg=`Saved ${added.length} word${added.length===1?"":"s"} to ${esc(niceDate(date))}.`+(date>today()?" The list stays locked until that day.":"")+(reused.length?` Already in this list: ${reused.map(w=>esc(w.w)).join(", ")}.`:"");
   addDraft="";
   render();
 }
@@ -847,7 +854,7 @@ function makeDrag(el,{onTap,onDrop,target=".drop"}){
     const over=t=>{document.querySelectorAll(".over").forEach(s=>s.classList.remove("over"));const s=t&&t.closest(target);if(s)s.classList.add("over");return s;};
     const move=ev=>{
       if(!ghost&&Math.hypot(ev.clientX-sx,ev.clientY-sy)>8){
-        const r=el.getBoundingClientRect(); ghost=el.cloneNode(true); ghost.classList.add("ghost");
+        const r=el.getBoundingClientRect(); ghost=el.cloneNode(true); ghost.classList.add("dragghost");
         Object.assign(ghost.style,{position:"fixed",left:r.left+"px",top:r.top+"px",width:r.width+"px",height:r.height+"px",pointerEvents:"none",zIndex:50,margin:0});
         document.body.appendChild(ghost); dx=sx-r.left; dy=sy-r.top; el.classList.add("lift");
       }
@@ -933,7 +940,7 @@ async function startSession(mode,ids,opt={}){
     tasks.push({t:"intro",title:`Spelling Game · ${n} word${s}`,sub:"Listen and tap or drag the letters. Streaks earn bonus points, wrong letters lose points. Be quick!",game:true});
     shuffle(ids).forEach(id=>tasks.push({t:"game",id,kind:Math.random()<.5?"build":"gap"}));
   }
-  S={mode,ids,tasks,i:0,res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0,ans:""}])),score:0,combo:0,hits:0,misses:0,t0:0,testId:opt.testId||null};
+  S={mode,ids,tasks,i:0,res:Object.fromEntries(ids.map(id=>[id,{first:null,tries:0,ans:""}])),score:0,combo:0,hits:0,misses:0,t0:0,listDate:opt.listDate||null};
   window.__busy=true;
   $("#hud").hidden=mode!=="game";
   $("#session").hidden=false; document.body.style.overflow="hidden";
@@ -1310,7 +1317,7 @@ function tDone(st){
       ${rec?`<div class="fb ok" style="font-size:20px">${ic("star")} New best score!</div>`:`<div class="muted">Best score: ${B().best}</div>`}`;
   }
   if(S.mode==="mock"){
-    const x=S.testId&&B().tests[S.testId];
+    const x=S.listDate&&B().lists[S.listDate];
     if(x){x.mocks=[...(x.mocks||[]),{d:t,s:right,n:ids.length,wrong:ids.filter(id=>S.res[id].first!==true)}].slice(-10);x.u=now;}
     extra=`<div class="stat-row"><div class="stat"><b>${right} / ${ids.length}</b>Marks</div><div class="stat"><b>${Math.round(right/Math.max(1,ids.length)*100)}%</b>Score</div></div>`;
   }
@@ -1331,8 +1338,8 @@ function tDone(st){
       ${wrongIds.length&&!schedule?`<button class="btn big" id="fix">Practise the ${wrongIds.length} I missed</button>`:""}
       <button class="btn primary big" id="fin">Finish</button></div></div>`;
   $("#fin").onclick=endSession;
-  const ag=$("#again"); if(ag)ag.onclick=()=>startSession("game",S.ids);
-  const fx=$("#fix"); if(fx)fx.onclick=()=>startSession("full",wrongIds);
+  const ag=$("#again"); if(ag)ag.onclick=()=>startSession("game",S.ids,{listDate:S.listDate});
+  const fx=$("#fix"); if(fx)fx.onclick=()=>startSession("full",wrongIds,{listDate:S.listDate});
   beep(true,true);
 }
 

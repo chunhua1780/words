@@ -4,7 +4,7 @@
    Works in the browser and in Node (for testing). */
 "use strict";
 (function(root){
-const PH_VERSION=5;
+const PH_VERSION=6;
 
 /* ---------- Spelling side ---------- */
 const VOW="aeiou";
@@ -134,39 +134,44 @@ function alignPhones(parts,ph){
     start=a+1+take-(doubled&&take>0&&matchLen(ph[a+take].p,onset,0)?1:0);
   }
   // an "er" sound swallowed the r that starts the next chunk (pre-fer-en-tial): give it back
-  for(let k=1;k<pieces.length;k++)if(/^r/i.test(parts[k])&&pieces[k][0]&&isVow(pieces[k][0])&&pieces[k-1].some(x=>x.p==="ER"))pieces[k]=[{p:"R",s:null},...pieces[k]];
+  for(let k=1;k<pieces.length;k++)if(/^r/i.test(parts[k])&&pieces[k][0]&&isVow(pieces[k][0])&&pieces[k-1].some(x=>x.p==="ER"||x.r))pieces[k]=[{p:"R",s:null},...pieces[k]];
   return pieces;
 }
 /* Write a piece of pronunciation the way a voice engine will read it correctly */
 const CONS={B:"b",CH:"ch",D:"d",DH:"th",F:"f",G:"g",HH:"h",JH:"j",K:"k",L:"l",M:"m",N:"n",NG:"ng",P:"p",R:"r",S:"s",SH:"sh",T:"t",TH:"th",V:"v",W:"w",Y:"y",Z:"z",ZH:"zh"};
-function respell(piece,next){
+function respell(piece,next,chunk){
   const vi=piece.findIndex(isVow); if(vi<0)return piece.map(x=>CONS[x.p]||"").join("");
   const onsetPh=piece.slice(0,vi), v=piece[vi]; let codaPh=piece.slice(vi+1);
   let on=onsetPh.map(x=>CONS[x.p]).join("");
   let rC=codaPh[0]&&codaPh[0].p==="R";
   if(rC)codaPh=codaPh.slice(1);
+  // British: an r followed by a vowel belongs to the next sound (ca-rrot), so it is not an "r-coloured" vowel here
+  if(rC&&!codaPh.length&&next&&next[0]&&(next[0].p==="R"||isVow(next[0])))rC=false;
+  const ch=(chunk||"").toLowerCase(), vLetters=(ch.match(/[aeiouy]+/)||[""])[0];
   codaPh=codaPh.filter((x,i)=>!(i===0&&(x.p==="W"||x.p==="Y")&&codaPh.length===1&&next));
   let co=codaPh.map(x=>CONS[x.p]).join("");
-  if(!co&&!rC&&next&&(["AE","EH","IH","UH","AA"].includes(v.p)||(v.p==="AH"&&v.s>0))&&(v.s>0||v.p==="AE")){
+  if(!co&&!rC&&next&&(["AE","EH","IH","UH"].includes(v.p)||(v.p==="AA"&&/o|wa|qua/.test((chunk||"").toLowerCase()))||(v.p==="AH"&&v.s>0))&&(v.s>0||v.p==="AE")){
     const n0=next[0]; if(n0&&!isVow(n0)&&CONS[n0.p]&&!["W","Y","HH","R"].includes(n0.p)){codaPh=[n0];co=CONS[n0.p];}
   }
   const open=!co&&!rC;
+  const beforeR=open&&next&&next[0]&&next[0].p==="R";
   let nucleus;
   switch(v.p){
-    case "AA":nucleus=rC?"ar":open?"ah":"o";break;
-    case "AE":nucleus=rC?"air":"a";break;
-    case "AH":nucleus=rC?"er":open?"uh":"u";break;
+    case "AA":{const shortO=/o|au/.test(vLetters)||(/a/.test(vLetters)&&/(w|wh|qu)a/.test(ch));
+      nucleus=shortO?(rC?"or":beforeR?"orr":"o"):"ar";break;}
+    case "AE":nucleus=rC?"air":beforeR?"arr":"a";break;
+    case "AH":nucleus=open?"uh":"u";break;
     case "AO":nucleus=rC?"or":"aw";break;
     case "AW":nucleus=rC?"our":"ow";break;
     case "AY":nucleus=rC?"ire":open?(on?"y":"eye"):"i_e";break;
     case "EH":nucleus=rC?"air":open?"eh":"e";break;
-    case "ER":nucleus=rC?"err":"er";break;
+    case "ER":nucleus="er";break;
     case "EY":nucleus=rC?"air":open?"ay":"a_e";break;
     case "IH":nucleus=rC?"eer":open?"ih":"i";break;
     case "IY":nucleus=rC?"eer":"ee";break;
     case "OW":nucleus=rC?"ore":open?"oh":"o_e";break;
     case "OY":nucleus="oy";break;
-    case "UH":nucleus=rC?"oor":"uu";break;
+    case "UH":nucleus=rC?"oor":(/^u$/.test(vLetters)&&!open?"u":"oo");break;
     case "UW":nucleus=rC?"oor":"oo";break;
   }
   if(nucleus.includes("_")){ // long vowel in a closed syllable: magic e (fine, tape, bone) or a vowel team
@@ -174,13 +179,53 @@ function respell(piece,next){
     nucleus=codaPh.length===1?vv+co+"e":({i:"igh",a:"ai",o:"oa"}[vv])+co; co="";
   }
   if(/^(g)$/.test(on.slice(-1))&&/^[eiy]/.test(nucleus))on=on+"h";      // hard g before e/i: "gheh"
-  if(on.endsWith("k")&&nucleus==="o"&&!co)nucleus="ah";
+  if(on.endsWith("k")&&nucleus==="o"&&!co)co=next&&next[0]&&!isVow(next[0])&&CONS[next[0].p]?CONS[next[0].p]:"";
   let out=on+nucleus+co;
   if(out==="u"||out==="uh")out="uh";
   if(/^[a-z]$/.test(out))out=out+"h";
   return out;
 }
 const stressOf=piece=>{const v=piece.find(isVow);return v?v.s:0;};
+
+/* ---------- Standard British English (RP) ----------
+   The dictionary is American, so before splitting we turn each pronunciation into standard British:
+   no "r" after a vowel, BATH words with a long "ah", LOT/CLOTH words with a short "o", "yoo" after t/d/n,
+   weak "-ary/-ory" endings, plus words that are simply said differently in Britain. */
+const UK_WORDS={tomato:"T AH0 M AA1 T OW2",tomatoes:"T AH0 M AA1 T OW2 Z",banana:"B AH0 N AA1 N AH0",bananas:"B AH0 N AA1 N AH0 Z",vase:"V AA1 Z",
+  schedule:"SH EH1 D Y UW0 L",leisure:"L EH1 ZH ER0",either:"AY1 DH ER0",neither:"N AY1 DH ER0",privacy:"P R IH1 V AH0 S IY0",vitamin:"V IH1 T AH0 M IH0 N",
+  vitamins:"V IH1 T AH0 M IH0 N Z",zebra:"Z EH1 B R AH0",yogurt:"Y AA1 G ER0 T",yoghurt:"Y AA1 G ER0 T",mobile:"M OW1 B AY2 L",missile:"M IH1 S AY2 L",
+  fertile:"F ER1 T AY2 L",hostile:"HH AA1 S T AY2 L",ballet:"B AE1 L EY0",garage:"G AE1 R AA2 ZH",adult:"AE1 D AH0 L T",advertisement:"AH0 D V ER1 T IH0 S M AH0 N T",
+  laboratory:"L AH0 B AA1 R AH0 T R IY0",basil:"B AE1 Z AH0 L",herb:"HH ER1 B",herbs:"HH ER1 B Z",route:"R UW1 T",clerk:"K L AA1 K",pasta:"P AE1 S T AH0",
+  dynasty:"D IH1 N AH0 S T IY0",progress:"P R OW1 G R EH2 S",process:"P R OW1 S EH2 S",squirrel:"S K W IH1 R AH0 L",aunt:"AA1 N T","can't":"K AA1 N T",
+  aluminium:"AE2 L Y UW0 M IH1 N IY0 AH0 M",controversy:"K AA1 N T R AH0 V ER2 S IY0",oregano:"AO2 R IH0 G AA1 N OW0",tuesday:"T Y UW1 Z D EY0",
+  wednesday:"W EH1 N Z D EY0",thursday:"TH ER1 Z D EY0",saturday:"S AE1 T ER0 D EY0",sunday:"S AH1 N D EY0",monday:"M AH1 N D EY0",friday:"F R AY1 D EY0",
+  water:"W AO1 T ER0",often:"AO1 F AH0 N",been:"B IY1 N",again:"AH0 G EH1 N",says:"S EH1 Z",said:"S EH1 D",figure:"F IH1 G ER0",nephew:"N EH1 F Y UW0",
+  envelope:"EH1 N V AH0 L OW2 P",lever:"L IY1 V ER0",patriotic:"P AE2 T R IY0 AA1 T IH0 K",docile:"D OW1 S AY2 L",fragile:"F R AE1 JH AY2 L",futile:"F Y UW1 T AY2 L",what:"W AA1 T",was:"W AA1 Z",because:"B IH0 K AA1 Z",want:"W AA1 N T",sausage:"S AA1 S IH0 JH",sausages:"S AA1 S IH0 JH IH0 Z",australia:"AA0 S T R EY1 L IY0 AH0",february:"F EH1 B R UW0 AH0 R IY0",wants:"W AA1 N T S"};
+const TRAP_KEEP=/^(classic|classical|classics|passenger|passengers|passage|massive|mass|gas|lass|crass|bass|cassette|fantastic|plastic|elastic|gymnastics|traffic|africa|mathematics|athlete|athletic|fancy|cancel|romance|finance|ant|ants|pant|pants|rant|scant|band|hand|sand|land|and|stand)$/;
+const BATH_ANT=/^(plant|plants|planted|planting|grant|granted|chant|chanted|slant|advantage|enchant|enchanted|commander|demand|demanded|command|commanded)$/;
+function isBath(lw){
+  if(TRAP_KEEP.test(lw))return false;
+  if(BATH_ANT.test(lw))return true;
+  return /aft|aff(e|s)?$|alf|augh|ath(s|e|room|ing|ed)?$|rather|as[kp]|ast(?!ic)|ass(es|ed|ing|room)?$|asten|astle|asty|ance(s|d)?$|ancing|answ|anch|mand|ample/.test(lw);
+}
+function toBritish(ph,word){
+  const lw=word.toLowerCase();
+  ph=ph.map(x=>({...x}));
+  // BATH: a long "ah" (bath, after, class, dance, answer, example)
+  if(isBath(lw)){const i=ph.findIndex(x=>x.p==="AE"&&x.s>0);if(i>=0)ph[i].p="AA";}
+  // LOT/CLOTH: words spelled with "o" have a short British "o" (dog, off, long, coffee); also "o" + r + vowel (orange, sorry)
+  if(/o/.test(lw)&&!/aw|au|ough|al|ou|oor|oar|wa|qua/.test(lw))ph.forEach((x,i)=>{if(x.p==="AO"&&!(ph[i+1]&&ph[i+1].p==="R"&&!(ph[i+2]&&isVow(ph[i+2]))))x.p="AA";});
+  ph.forEach((x,i)=>{if(x.p==="AO"&&ph[i+1]&&ph[i+1].p==="R"&&ph[i+2]&&isVow(ph[i+2])&&/or/.test(lw))x.p="AA";});
+  // weak endings: ne-ces-sa-ry, ca-te-go-ry
+  if(/(ary|ery|ory)$/.test(lw)){const n=ph.length;if(n>=3&&ph[n-1].p==="IY"&&ph[n-2].p==="R"&&isVow(ph[n-3])&&ph[n-3].s!==1&&["EH","AE","AA","AO"].includes(ph[n-3].p)){ph[n-3].p="AH";ph[n-3].s=0;}}
+  // "yoo" after t, d, n, th when spelled with u/ew (student, tune, new, during)
+  for(let i=1;i<ph.length;i++){
+    if((ph[i].p==="UW"||ph[i].p==="UH")&&["T","D","N","TH"].includes(ph[i-1].p)&&/(t|d|n|th)(u|ew|eu|ue)/.test(lw)&&!/oo/.test(lw))ph.splice(i,0,{p:"Y",s:null}),i++;
+  }
+  // an unstressed "er" is a plain "uh" in British English (teacher, butter)
+  ph.forEach(x=>{if(x.p==="ER"&&x.s===0){x.p="AH";x.r=true;}});
+  return ph;
+}
 
 /* Respelled sound for a chunk when the word is not in the dictionary */
 function guessSound(chunk,isLast,sufInfo){
@@ -214,9 +259,10 @@ function analyse(word){
     word.split(/\s+/).forEach(w=>{const a=analyse(w);out.words.push(a.c.length);a.c.forEach((c,k)=>{out.c.push(c);out.s.push(a.s[k]);});if(a.src!=="dict")out.src="rules";});
     return out;
   }
-  const pr=/^[a-z']+$/i.test(word)&&lookup(word.replace(/’/g,"'"));
+  const lw0=word.toLowerCase().replace(/’/g,"'");
+  const pr=/^[a-z']+$/i.test(word)&&(UK_WORDS[lw0]||lookup(lw0));
   if(pr){
-    const ph=parsePh(pr), N=ph.filter(isVow).length;
+    const ph=toBritish(parsePh(pr),word), N=ph.filter(isVow).length;
     let sp=spellChunks(word,N);
     let pieces=alignPhones(sp.parts,ph);
     if(!pieces&&sp.suf){ // try without keeping the ending as one chunk
@@ -224,10 +270,10 @@ function analyse(word){
       if(g.length===N){const cuts=cutsFor(lw,g);const parts=[];let p=0;cuts.forEach(c=>{parts.push(word.slice(p,c));p=c;});parts.push(word.slice(p));sp={parts};pieces=alignPhones(parts,ph);}
     }
     if(pieces){
-      const s=pieces.map((p,k)=>respell(p,pieces[k+1])), st=pieces.map(stressOf);
+      const s=pieces.map((p,k)=>respell(p,pieces[k+1],sp.parts[k])), st=pieces.map(stressOf);
       return {v:PH_VERSION,c:sp.parts,s,st:st.indexOf(1),src:"dict",ph:pr};
     }
-    if(N===1)return {v:PH_VERSION,c:[word],s:[respell(ph)],st:0,src:"dict",ph:pr};
+    if(N===1)return {v:PH_VERSION,c:[word],s:[respell(ph,null,word)],st:0,src:"dict",ph:pr};
   }
   const sp=spellChunks(word,null);
   return {v:PH_VERSION,c:sp.parts.length?sp.parts:[word],s:(sp.parts.length?sp.parts:[word]).map((c,k,a)=>guessSound(c,k===a.length-1)),st:-1,src:"rules"};
@@ -255,9 +301,9 @@ function tricky(word,a){
 }
 
 /* Letter names, written so every voice engine says the name (not the sound) */
-const LETTER_NAMES={a:"A.",b:"B.",c:"C.",d:"D.",e:"E.",f:"F.",g:"G.",h:"H.",i:"I.",j:"J.",k:"K.",l:"L.",m:"M.",n:"N.",o:"O.",p:"P.",q:"Q.",r:"R.",s:"S.",t:"T.",u:"U.",v:"V.",w:"W.",x:"X.",y:"Y.",z:"Z."};
-const LETTER_SAY={a:"ay",b:"bee",c:"see",d:"dee",e:"ee",f:"eff",g:"jee",h:"aitch",i:"eye",j:"jay",k:"kay",l:"ell",m:"em",n:"en",o:"oh",p:"pee",q:"cue",r:"are",s:"ess",t:"tee",u:"you",v:"vee",w:"double you",x:"ex",y:"why",z:"zee"};
+const LETTER_NAMES={a:"A.",b:"B.",c:"C.",d:"D.",e:"E.",f:"F.",g:"G.",h:"H.",i:"I.",j:"J.",k:"K.",l:"L.",m:"M.",n:"N.",o:"O.",p:"P.",q:"Q.",r:"R.",s:"S.",t:"T.",u:"U.",v:"V.",w:"W.",x:"X.",y:"Y.",z:"Zed."};
+const LETTER_SAY={a:"ay",b:"bee",c:"see",d:"dee",e:"ee",f:"eff",g:"jee",h:"aitch",i:"eye",j:"jay",k:"kay",l:"ell",m:"em",n:"en",o:"oh",p:"pee",q:"cue",r:"are",s:"ess",t:"tee",u:"you",v:"vee",w:"double you",x:"ex",y:"why",z:"zed"};
 
-const API={PH_VERSION,analyse,tricky,loadDict,setDict,lookup,spellChunks,respell,parsePh,alignPhones,SUFFIX,LETTER_NAMES,LETTER_SAY};
+const API={PH_VERSION,toBritish,UK_WORDS,analyse,tricky,loadDict,setDict,lookup,spellChunks,respell,parsePh,alignPhones,SUFFIX,LETTER_NAMES,LETTER_SAY};
 if(typeof module!=="undefined"&&module.exports)module.exports=API; else root.Phonics=API;
 })(typeof window!=="undefined"?window:globalThis);

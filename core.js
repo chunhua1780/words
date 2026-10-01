@@ -40,8 +40,9 @@ const addDays=(s,n)=>{const d=pdate(s);d.setDate(d.getDate()+n);return dstr(d);}
 const dayDiff=(a,b)=>Math.round((pdate(b)-pdate(a))/864e5);
 const WEEK=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const MONTH=["January","February","March","April","May","June","July","August","September","October","November","December"];
-const niceDate=s=>{const d=pdate(s);return `${WEEK[d.getDay()]}, ${MONTH[d.getMonth()]} ${d.getDate()}`;};
-const shortDate=s=>{const d=pdate(s);return `${WEEK[d.getDay()]} ${MONTH[d.getMonth()].slice(0,3)} ${d.getDate()}`;};
+const WEEKDAY=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const niceDate=s=>{const d=pdate(s);return `${WEEKDAY[d.getDay()]} ${d.getDate()} ${MONTH[d.getMonth()]}`;};
+const shortDate=s=>{const d=pdate(s);return `${WEEK[d.getDay()]} ${d.getDate()} ${MONTH[d.getMonth()].slice(0,3)}`;};
 const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
 const norm=s=>String(s).toLowerCase().replace(/[’`]/g,"'").replace(/\s+/g," ").trim();
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-3);
@@ -65,7 +66,7 @@ const newWord=(w,due)=>({id:uid(),w,ipa:"",ex:"",stage:0,due,added:today(),lapse
 function normBook(d,name){
   d=d&&typeof d==="object"?d:{};
   const rd=d.reading||{};
-  return {name:d.name||name||"",words:d.words||{},tests:d.tests||{},deleted:d.deleted||{},log:d.log||{},best:d.best||0,prefs:d.prefs||{},
+  return {name:d.name||name||"",words:d.words||{},tests:d.tests||{},lists:d.lists||{},listsV:d.listsV||0,deleted:d.deleted||{},log:d.log||{},best:d.best||0,prefs:d.prefs||{},
     reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},updated:d.updated||0};
 }
 function mergeBooks(a,b){
@@ -85,7 +86,12 @@ function mergeBooks(a,b){
   for(const [d,v] of Object.entries(a.reading.log)){const o=rlog[d];rlog[d]=!o?v:{secs:Math.max(o.secs||0,v.secs||0),ids:[...new Set([...(o.ids||[]),...(v.ids||[])])]};}
   const newer=(x,y)=>{const out={...y};for(const [k,v] of Object.entries(x))if(!out[k]||(v.u||0)>=(out[k].u||0))out[k]=v;return out;};
   const reading={log:rlog,done:newer(a.reading.done,b.reading.done),looked:newer(a.reading.looked,b.reading.looked)};
-  return {name:a.name||b.name,words:mergeMap(a.words,b.words),tests:mergeMap(a.tests,b.tests),deleted:del,log,reading,
+  const lists={};
+  for(const k of new Set([...Object.keys(a.lists),...Object.keys(b.lists)])){
+    const p=a.lists[k],q=b.lists[k],it=!p?q:!q?p:((q.u||0)>(p.u||0)?q:p);
+    if(del["L:"+k]&&del["L:"+k]>=(it.u||0))continue; lists[k]=it;
+  }
+  return {name:a.name||b.name,words:mergeMap(a.words,b.words),tests:mergeMap(a.tests,b.tests),lists,listsV:Math.max(a.listsV,b.listsV),deleted:del,log,reading,
     best:Math.max(a.best,b.best),prefs:((a.prefs.u||0)>=(b.prefs.u||0)?a.prefs:b.prefs),updated:Math.max(a.updated,b.updated)};
 }
 
@@ -120,8 +126,9 @@ const Store={
     const local=this.local();
     this.book=local?mergeBooks(local,remote):remote;
     if(!this.book.name)this.book.name=user;
+    if(migrateLists(this.book))this.dirty=true;
     this.writeLocal();
-    this.dirty=!!local||create;
+    this.dirty=this.dirty||!!local||create;
     await this.sync();
     return this.book;
   },
@@ -141,6 +148,7 @@ const Store={
       const before=JSON.stringify(this.book);
       const merged=mergeBooks(this.book,normBook(r&&r.data,this.user));
       Object.keys(merged).forEach(k=>this.book[k]=merged[k]);
+      if(migrateLists(this.book))this.dirty=true;
       const changed=JSON.stringify(this.book)!==before;
       if(this.dirty){this.dirty=false;await WS.save(this.user,this.pass,this.book);}
       this.writeLocal();this.setStatus("saved");
@@ -159,19 +167,41 @@ window.addEventListener("online",()=>{if(Store.user)Store.sync();});
 setInterval(()=>{if(Store.user&&document.visibilityState==="visible"&&!window.__busy)Store.sync();},60000);
 const SYNC_TEXT={idle:"",saving:"Saving…",saved:"Saved",error:"Offline · saved on this device",auth:"Please log in again"};
 
-/* ---------- Words, lists and tests ---------- */
+/* ---------- Word lists by study date ----------
+   Every word belongs to exactly one list, named by its study date (e.g. 2026-10-09).
+   A list is locked until its date. The child always practises one list at a time. */
 function wordsOf(book){return Object.values(book.words);}
-function testsOf(book){return Object.values(book.tests).sort((a,b)=>a.date.localeCompare(b.date));}
-function upcomingTests(book,within=60){const t=today();return testsOf(book).filter(x=>dayDiff(t,x.date)>=0&&dayDiff(t,x.date)<=within);}
-/* Words for a day: new words, words due for review, and words in a test coming up within 7 days (practised daily until the test) */
-function dueOn(book,day){
-  const ws=wordsOf(book), isToday=day===today();
-  const fresh=ws.filter(w=>w.stage===0&&(isToday?w.due<=day:w.due===day));
-  const review=ws.filter(w=>w.stage>0&&(isToday?w.due<=day:w.due===day));
-  const testIds=new Set();
-  testsOf(book).forEach(x=>{const d=dayDiff(day,x.date);if(d>=0&&d<=7)(x.wordIds||[]).forEach(id=>testIds.add(id));});
-  ws.forEach(w=>{if(testIds.has(w.id)&&w.stage>0&&w.last!==day&&!review.includes(w))review.push(w);});
-  return {fresh,review};
+const wordsIn=(book,date)=>wordsOf(book).filter(w=>w.list===date);
+/* A list can be studied from its "open" day (for a test: some days before the test); ordinary lists open on their own date */
+const openDay=l=>l.open||l.date;
+const listOpen=l=>!!l&&openDay(l)<=today();
+function listsOf(book){return Object.values(book.lists).filter(l=>wordsIn(book,l.date).length).sort((a,b)=>a.date.localeCompare(b.date));}
+/* Older saved data: tests become lists on their test date; other words go to the date they were added */
+function migrateLists(book){
+  if(book.listsV>=1)return false;
+  const now=Date.now(), inTest={};
+  Object.values(book.tests||{}).forEach(t=>{
+    const added=(t.wordIds||[]).map(id=>book.words[id]&&book.words[id].added).filter(Boolean).sort();
+    const open=[added[0]||today(),t.date].sort()[0];
+    book.lists[t.date]={date:t.date,open,title:t.title||"Spelling test",test:true,mocks:t.mocks||[],u:now};
+    (t.wordIds||[]).forEach(id=>{if(!inTest[id]||t.date<inTest[id])inTest[id]=t.date;});
+  });
+  wordsOf(book).forEach(w=>{
+    if(!w.list){w.list=inTest[w.id]||w.added||w.due||today();w.u=now;}
+    if(!book.lists[w.list])book.lists[w.list]={date:w.list,title:"",test:false,mocks:[],u:now};
+  });
+  book.listsV=1;
+  return true;
+}
+/* What to do with one list on a given day: new words to learn, and words due for review.
+   In the week before a test, every learned word in the list is practised each day. */
+function listPlan(book,date,day=today()){
+  const l=book.lists[date], ws=wordsIn(book,date);
+  if(!listOpen(l))return {fresh:[],review:[],all:ws,locked:true};
+  const fresh=ws.filter(w=>w.stage===0);
+  const testSoon=l.test&&dayDiff(day,l.date)>=0&&dayDiff(day,l.date)<=7;
+  const review=ws.filter(w=>w.stage>0&&(w.due<=day||(testSoon&&w.last!==day)));
+  return {fresh,review,all:ws,locked:false};
 }
 function streakOf(log){
   let n=0,d=today(); log=log||{};
@@ -181,23 +211,26 @@ function streakOf(log){
 }
 const masteryOf=w=>w.stage>=MASTER?"mastered":w.stage>=3?"strong":w.stage>=1?"learning":"new";
 const MASTERY_LABEL={new:"Not learned",learning:"Learning",strong:"Strong",mastered:"Mastered"};
-/* Add words (and optionally a school test with a date). Words already in the list are reused. */
-function addWordsToBook(book,list,{due,testDate,testTitle}={}){
+/* Add words to the list for a study date. A word already in that same list is kept; other lists are never touched. */
+function addWordsToBook(book,list,{date,title,test,open}={}){
+  date=date||today();
+  const l=book.lists[date]||(book.lists[date]={date,title:"",test:false,mocks:[],u:Date.now()});
+  if(title!=null&&title!==l.title){l.title=title;l.u=Date.now();}
+  if(test!=null&&test!==l.test){l.test=test;l.u=Date.now();}
+  const op=l.test?(open||l.open||date):date;
+  if(op!==l.open){l.open=op>date?date:op;l.u=Date.now();}
   const added=[],reused=[];
-  const ids=list.map(w=>{
-    const old=wordsOf(book).find(x=>norm(x.w)===norm(w));
-    if(old){reused.push(old);if(old.stage===0&&due&&old.due>due){old.due=due;old.u=Date.now();}return old.id;}
-    const nw=newWord(w,due||today());book.words[nw.id]=nw;added.push(nw);return nw.id;
+  list.forEach(w=>{
+    const old=wordsIn(book,date).find(x=>norm(x.w)===norm(w));
+    if(old){reused.push(old);return;}
+    const nw=newWord(w,openDay(l));nw.list=date;book.words[nw.id]=nw;added.push(nw);
   });
-  let test=null;
-  if(testDate){test={id:uid(),date:testDate,title:testTitle||"Spelling test",wordIds:ids,mocks:[],u:Date.now()};book.tests[test.id]=test;}
-  return {added,reused,test};
+  delete book.deleted["L:"+date];
+  return {added,reused,list:l};
 }
-function deleteWord(book,id){
-  delete book.words[id]; book.deleted[id]=Date.now();
-  Object.values(book.tests).forEach(t=>{if((t.wordIds||[]).includes(id)){t.wordIds=t.wordIds.filter(x=>x!==id);t.u=Date.now();}});
-}
-function deleteTest(book,id){delete book.tests[id];book.deleted[id]=Date.now();}
+function deleteWord(book,id){delete book.words[id]; book.deleted[id]=Date.now();}
+function deleteList(book,date){wordsIn(book,date).forEach(w=>deleteWord(book,w.id));delete book.lists[date];book.deleted["L:"+date]=Date.now();}
+const listName=(l,{short}={})=>(short?shortDate(l.date):niceDate(l.date))+(l.title?` · ${l.title}`:l.test?" · Test":"");
 
 /* ---------- Line icons (drawn in the style of Apple's SF Symbols) ---------- */
 const ICON_PATHS={
@@ -228,6 +261,8 @@ const ICON_PATHS={
   pause:'<path d="M8.5 5.5v13M15.5 5.5v13"/>',
   textsize:'<path d="M3 18l4-11 4 11M4.3 14.5h5.4M13.5 18l3.3-9 3.2 9M14.6 15.3h4.4"/>',
   sparkle:'<path d="M12 3.5l1.8 5.2 5.2 1.8-5.2 1.8L12 17.5l-1.8-5.2L5 10.5l5.2-1.8z"/>',
+  lock:'<rect x="5.5" y="10.5" width="13" height="10" rx="2.5"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4L18 18M6 18l1.6-1.6M16.4 7.6L18 6"/>',
   calendar:'<rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>',
 };
 const ic=(name,cls="")=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||""}</svg>`;

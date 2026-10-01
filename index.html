@@ -60,6 +60,7 @@
 <script src="core.js"></script>
 <script src="phonics.js"></script>
 <script src="readings.js"></script>
+<script src="illustrations.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -312,6 +313,12 @@ function methodPicker(){
 }
 function bindMethod(root){root.querySelectorAll("[data-method]").forEach(b=>b.onclick=()=>{setMethod(b.dataset.method);root.querySelectorAll("[data-method]").forEach(x=>x.classList.toggle("on",x===b));});}
 
+/* ================= Colours ================= */
+const LIST_COLORS=["#3a72d9","#7b5cc4","#e0832b","#2e9a68","#d1577f","#2a95a6"];
+const listColor=date=>LIST_COLORS[Math.abs(Math.round(pdate(date)/864e5))%LIST_COLORS.length];
+const storyColor=r=>(typeof ILLU_COLOR!=="undefined"&&ILLU_COLOR[r.id])||"#7b5cc4";
+const storyArt=(r,cls="")=>`<div class="illu ${cls}" style="--sc:${storyColor(r)}">${(typeof ILLU!=="undefined"&&ILLU[r.id])||""}</div>`;
+
 /* ================= Which word list is being studied ================= */
 let selDate=null;
 const selKey=()=>"ws-sel-"+Store.user;
@@ -334,7 +341,7 @@ function dateStrip(cur){
   return `<div class="dates" id="dates" role="tablist" aria-label="Word lists">${ls.map(l=>{
     const d=pdate(l.date), p=listPlan(B(),l.date), todo=p.fresh.length+p.review.length, lock=!listOpen(l);
     const tag=lock?`${ic("lock")}Locked`:l.test?"Test":todo?`${todo} to do`:`${ic("check")}Done`;
-    return `<button class="dpill ${l.date===cur?"on":""} ${lock?"locked":""} ${l.date===t?"today":""}" data-list="${l.date}" role="tab" aria-selected="${l.date===cur}" aria-label="${esc(listName(l))}${lock?", locked":""}">
+    return `<button class="dpill ${l.date===cur?"on":""} ${lock?"locked":""} ${l.date===t?"today":""}" style="--lc:${listColor(l.date)}" data-list="${l.date}" role="tab" aria-selected="${l.date===cur}" aria-label="${esc(listName(l))}${lock?", locked":""}">
       <span class="wd">${l.date===t?"Today":WEEK[d.getDay()]}</span><span class="dn">${d.getDate()}</span><span class="mo">${MONTH[d.getMonth()].slice(0,3)}</span>
       <span class="tag ${l.test?"test":todo?"due":""}">${tag}</span></button>`;}).join("")}</div>`;
 }
@@ -380,6 +387,7 @@ Store.onRemote=()=>{if(!S&&!RD)render();enrichAll();};
 function render(){
   const logged=!!Store.book;
   if(!logged)tab="login"; else if(tab==="login")tab="today";
+  document.body.dataset.sec=tab==="login"?"today":tab;
   $("nav.tabs").hidden=!logged; ["#streak","#kid"].forEach(x=>$(x).hidden=!logged); if(!logged)$("#sync").hidden=true;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   if(logged){
@@ -421,16 +429,16 @@ function bindLogin(){
 function readingCard(){
   const t=today(), r=todaysReading(), secs=readSecs(t), done=B().reading.done[r.id], readToday=(B().reading.log[t]||{}).ids||[];
   const p=Math.min(100,Math.round(secs/600*100));
-  return `<div class="card read-hero">
-    <div class="passage-card">
+  return `<div class="card story-card" style="--sc:${storyColor(r)}">
+    ${storyArt(r)}
+    <div class="body passage-card">
       <span class="kind-tag">${ic("book")}Daily reading · ${esc(r.kind)}</span>
       <h3>${esc(r.title)}</h3>
       <div class="muted small">${readMinutes(r)} min read · ${r.questions.length} questions${done?` · last score ${done.score}/${done.n}`:""}</div>
-      <div class="row"><button class="btn primary" data-read="${r.id}">${done&&done.date===t?"Read again":readToday.includes(r.id)?"Continue reading":"Start reading"}</button>
+      <div class="row"><button class="btn primary" data-read="${r.id}" style="background:${storyColor(r)}">${done&&done.date===t?"Read again":readToday.includes(r.id)?"Continue reading":"Start reading"}</button>
       <button class="btn" data-go="read">All stories</button></div>
+      <div class="ring-row"><div class="ring" style="--p:${p}"><span>${Math.floor(secs/60)}′</span></div><span class="muted small">${secs>=600?"10 minutes done today":"of today’s 10 minutes"}</span></div>
     </div>
-    <div style="text-align:center"><div class="ring lg" style="--p:${p}"><span>${Math.floor(secs/60)}′</span></div>
-      <div class="muted small" style="margin-top:8px">${secs>=600?"10 minutes done":"of 10 minutes"}</div></div>
   </div>`;
 }
 /* The selected list: what to do today, and its words */
@@ -444,11 +452,11 @@ function listCard(date){
       <h2>${esc(niceDate(date))}</h2>
       <div class="muted">${l.title?esc(l.title)+" · ":""}${ws.length} word${ws.length===1?"":"s"} · ${learned} learned${(l.mocks||[]).length?` · best practice test ${Math.round(best*100)}%`:""}</div>
     </div>`;
-  if(p.locked)return `<div class="card stack">${head}
+  if(p.locked)return `<div class="card stack list-hero" style="--lc:${listColor(date)}">${head}
     <div class="lock-note"><div class="badge grey lg">${ic("lock")}</div><div><h4>This list opens on ${esc(niceDate(openDay(l)))}</h4><div class="muted small">${ws.length} words are waiting. You can start them ${inDays(dayDiff(t,openDay(l)))}.</div></div></div></div>`;
-  const A=(act,icn,color,title,sub,n,main)=>`<button class="action ${main?"main":""}" data-act="${act}" ${n===0?"disabled":""}><div class="badge ${color}">${ic(icn)}</div><div><b>${title}</b><span class="s">${sub}</span></div>${n!=null?`<span class="n">${n}</span>`:""}</button>`;
+  const A=(act,icn,color,title,sub,n,main)=>`<button class="action t-${color||"blue"} ${main?"main":""}" data-act="${act}" ${n===0?"disabled":""}><div class="badge ${color}">${ic(icn)}</div><div><b>${title}</b><span class="s">${sub}</span></div>${n!=null?`<span class="n">${n}</span>`:""}</button>`;
   const first=p.fresh.length?"learn":p.review.length?"review":"dict";
-  return `<div class="card stack">
+  return `<div class="card stack list-hero" style="--lc:${listColor(date)}">
     ${head}
     ${meter(ws)}
     <div class="actions">
@@ -487,7 +495,7 @@ function viewPractice(){
   const cur=curDate();
   if(!cur)return `<div class="card empty">No word lists yet. Add words in Words first.</div>`;
   const l=B().lists[cur], all=wordsIn(B(),cur), ws=practiceWords(), dis=ws.length?"":"disabled";
-  const M=(mode,icn,color,title,d)=>`<button class="mode" data-mode="${mode}" ${dis}><div class="badge ${color}">${ic(icn)}</div><b>${title}</b><span class="d">${d}</span></button>`;
+  const M=(mode,icn,color,title,d)=>`<button class="mode t-${color||"blue"}" data-mode="${mode}" ${dis}><div class="badge ${color}">${ic(icn)}</div><b>${title}</b><span class="d">${d}</span></button>`;
   return `<div class="stack">
     <div class="page-head"><div><div class="eyebrow">Practice</div><h1>${esc(niceDate(cur))}</h1></div></div>
     ${dateStrip(cur)}
@@ -577,16 +585,19 @@ function viewRead(){
       </div>
       <div style="text-align:center"><div class="ring lg" style="--p:${p}"><span>${Math.floor(secs/60)}′</span></div><div class="muted small" style="margin-top:6px">${secs>=READ_GOAL?"Goal reached":"of 10 minutes"}</div></div>
     </div>
-    <div class="card passage-card">
-      <span class="kind-tag">${ic("sparkle")}Today · ${esc(r.kind)}</span>
-      <h3 style="font-size:30px">${esc(r.title)}</h3>
-      <div class="muted">${esc(r.text[0].replace(/\n/g," ").slice(0,150))}…</div>
-      <div class="row"><button class="btn primary big" data-read="${r.id}">${ic("book")}Start reading</button><span class="muted small">${readMinutes(r)} min read · ${r.questions.length} questions</span></div>
+    <div class="card story-card" style="--sc:${storyColor(r)}">
+      ${storyArt(r)}
+      <div class="body passage-card">
+        <span class="kind-tag">${ic("sparkle")}Today · ${esc(r.kind)}</span>
+        <h3 style="font-size:28px">${esc(r.title)}</h3>
+        <div class="muted">${esc(r.text[0].replace(/\n/g," ").slice(0,140))}…</div>
+        <div class="row"><button class="btn primary big" data-read="${r.id}" style="background:${storyColor(r)}">${ic("book")}Start reading</button><span class="muted small">${readMinutes(r)} min · ${r.questions.length} questions</span></div>
+      </div>
     </div>
     ${looked.length?`<div class="card stack"><h3 style="margin:0">Words you looked up</h3><div class="looked">${looked.map(l=>`<button data-sayw="${esc(l.w)}">${esc(l.w)}${ic("speaker")}</button>`).join("")}</div></div>`:""}
     <div class="section-title"><h3 style="margin:0">All stories</h3><span class="muted small">${READINGS.length} to read</span></div>
-    <div class="lib">${READINGS.map(x=>{const d=R.done[x.id];return `<button data-read="${x.id}"><span class="kind-tag">${esc(x.kind)}</span><b>${esc(x.title)}</b>
-      <span class="muted small">${readMinutes(x)} min${d?"":" · not read yet"}</span>${d?`<span class="done">${ic("check")}${d.score}/${d.n} correct</span>`:""}</button>`;}).join("")}</div>
+    <div class="lib">${READINGS.map(x=>{const d=R.done[x.id];return `<button data-read="${x.id}" style="--sc:${storyColor(x)}">${storyArt(x)}<div class="lb"><span class="kind-tag">${esc(x.kind)}</span><b>${esc(x.title)}</b>
+      <span class="muted small">${readMinutes(x)} min${d?"":" · not read yet"}</span>${d?`<span class="done">${ic("check")}${d.score}/${d.n} correct</span>`:""}</div></button>`;}).join("")}</div>
   </div>`;
 }
 
@@ -601,6 +612,7 @@ function openReader(id){
   window.__busy=true;
   const t=today(), L=B().reading.log; L[t]=L[t]||{secs:0,ids:[]}; if(!L[t].ids.includes(id))L[t].ids.push(id);
   $("#rTitle").textContent=r.title;
+  $("#reader").style.setProperty("--sc",storyColor(r));
   $("#reader").hidden=false; document.body.style.overflow="hidden";
   renderReader(); tickTimer();
   clearInterval(rTimer); rTimer=setInterval(tickTimer,1000);
@@ -637,10 +649,12 @@ function renderReader(){
     $("#rListen").innerHTML=ic("play");
     const gl=Object.fromEntries(Object.entries(r.glossary).map(([k,v])=>[k.toLowerCase(),v]));
     b.innerHTML=`<article class="article ${r.kind==="Poem"?"poem":""}" style="--fs:${rFs}px">
+      ${storyArt(r,"banner")}
       <span class="kind-tag">${esc(r.kind)}</span>
       <h1>${esc(r.title)}</h1>
       <div class="meta">${ic("clock")}${readMinutes(r)} min read · Tap any word to hear it and see what it means</div>
       ${r.text.map((p,i)=>`<p data-p="${i}">${wrapText(p,gl)}</p>`).join("")}
+      ${storyArt(r,"tail")}
       <div class="finish"><button class="btn primary big" id="rDone">I’ve finished reading${ic("chevron")}</button></div>
     </article>`;
     b.scrollTop=0;
@@ -743,6 +757,7 @@ $("#rListen").onclick=()=>{
 function renderQuestion(){
   const r=RD.r, q=r.questions[RD.qi], order=RD.orders[RD.qi], b=$("#rBody");
   b.innerHTML=`<div class="stage" style="max-width:700px"><div class="full q-card">
+    ${storyArt(r,"q-hero")}
     <div class="row" style="justify-content:space-between"><span class="skill">${esc(q.skill)}</span><span class="muted small">Question ${RD.qi+1} of ${r.questions.length}</span></div>
     <div class="prog" style="flex:none"><i style="width:${RD.qi/r.questions.length*100}%"></i></div>
     <div class="q">${esc(q.q)}</div>
@@ -779,6 +794,7 @@ function renderReadResult(){
   const looked=[...RD.looked];
   const next=READINGS.find(x=>!B().reading.done[x.id]);
   $("#rBody").innerHTML=`<div class="stage" style="max-width:720px"><div class="full">
+    ${storyArt(r,"q-hero")}
     <div class="stars">${"★".repeat(stars)}<span style="opacity:.25">${"★".repeat(3-stars)}</span></div>
     <h2 style="font-size:34px">${stars===3?"Superb reading!":stars===2?"Great reading!":"Good effort! Keep reading."}</h2>
     <div class="stat-row"><div class="stat"><b>${s}/${n}</b>questions right</div><div class="stat"><b>${Math.floor(secs/60)} min</b>read today</div><div class="stat"><b>${looked.length}</b>words looked up</div></div>

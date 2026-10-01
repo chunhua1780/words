@@ -390,3 +390,80 @@ label.field{display:flex;flex-direction:column;gap:6px;font:500 14px var(--body)
   .read-hero>div:last-child{display:flex;align-items:center;gap:14px;text-align:left}
 }
 @media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+
+/* ===================== Colour layer =====================
+   Each tab has its own colour (Today blue, Read purple, Practice orange, Words green),
+   each word list has its own colour, and the background carries soft colour washes. */
+:root{
+  --c-blue:#3a72d9; --c-purple:#7b5cc4; --c-orange:#e0832b; --c-green:#2e9a68; --c-pink:#d1577f; --c-teal:#2a95a6;
+  --sec:var(--c-blue);
+}
+body[data-sec="read"]{--sec:var(--c-purple)} body[data-sec="practice"]{--sec:var(--c-orange)} body[data-sec="words"]{--sec:var(--c-green)}
+body[data-sec]{--ink:var(--sec);--ink-soft:color-mix(in srgb,var(--sec) 12%,var(--paper));--ink-text:color-mix(in srgb,var(--sec) 82%,var(--fg))}
+@media (prefers-color-scheme:dark){body[data-sec]{--ink:color-mix(in srgb,var(--sec) 78%,#fff);--ink-soft:color-mix(in srgb,var(--sec) 22%,var(--paper));--ink-text:color-mix(in srgb,var(--sec) 60%,#fff)}}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(900px 520px at 0% -5%,color-mix(in srgb,var(--sec) 16%,transparent),transparent 70%),
+    radial-gradient(760px 480px at 100% 0%,color-mix(in srgb,var(--c-orange) 12%,transparent),transparent 70%),
+    radial-gradient(900px 600px at 70% 105%,color-mix(in srgb,var(--c-green) 11%,transparent),transparent 70%),
+    radial-gradient(700px 500px at 0% 100%,color-mix(in srgb,var(--c-pink) 8%,transparent),transparent 70%);transition:background .4s}
+header.top{background:transparent}
+nav.tabs{background:color-mix(in srgb,var(--soft) 80%,transparent)}
+nav.tabs button[aria-selected="true"]{color:var(--ink-text)}
+nav.tabs button[aria-selected="true"] .ic{color:var(--ink)}
+.page-head .eyebrow{color:var(--ink-text)}
+/* tinted tiles */
+.action{background:color-mix(in srgb,var(--tc,var(--c-blue)) 9%,var(--paper))}
+.action:hover{background:color-mix(in srgb,var(--tc,var(--c-blue)) 15%,var(--paper))}
+.action.main{background:linear-gradient(135deg,var(--lc,var(--ink)),color-mix(in srgb,var(--lc,var(--ink)) 70%,#7a5cff));color:#fff}
+.action.main span.s,.action.main .n{color:rgba(255,255,255,.85)}
+.action.main .badge{background:rgba(255,255,255,.2);color:#fff}
+.t-blue{--tc:var(--c-blue)} .t-green{--tc:var(--c-green)} .t-orange{--tc:var(--c-orange)} .t-red{--tc:var(--c-pink)} .t-teal{--tc:var(--c-teal)} .t-purple{--tc:var(--c-purple)}
+.mode{background:linear-gradient(160deg,color-mix(in srgb,var(--tc,var(--c-blue)) 11%,var(--paper)),var(--paper) 70%)}
+.mode b{color:color-mix(in srgb,var(--tc,var(--c-blue)) 55%,var(--fg))}
+/* each word list has its own colour */
+.dpill{position:relative;overflow:hidden}
+.dpill::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--lc,var(--ink))}
+.dpill.on{background:linear-gradient(160deg,var(--lc,var(--ink)),color-mix(in srgb,var(--lc,var(--ink)) 72%,#000));box-shadow:0 8px 20px color-mix(in srgb,var(--lc,var(--ink)) 35%,transparent)}
+.dpill.on::before{background:rgba(255,255,255,.35)}
+.dpill.locked::before{opacity:.35}
+.list-hero{background:linear-gradient(150deg,color-mix(in srgb,var(--lc,var(--ink)) 15%,var(--paper)) 0%,var(--paper) 55%)}
+.list-hero .eyebrow{color:color-mix(in srgb,var(--lc,var(--ink)) 80%,var(--fg))}
+.list-hero h2{color:color-mix(in srgb,var(--lc,var(--ink)) 35%,var(--fg))}
+.meter .m1{background:var(--c-green)} .meter .m3{background:var(--c-orange)}
+.step b::before{background:color-mix(in srgb,var(--c-orange) 16%,var(--paper));color:var(--c-orange)}
+.step:nth-child(2) b::before{background:color-mix(in srgb,var(--c-purple) 16%,var(--paper));color:var(--c-purple)}
+.step:nth-child(3) b::before{background:color-mix(in srgb,var(--c-blue) 16%,var(--paper));color:var(--c-blue)}
+.step:nth-child(4) b::before{background:color-mix(in srgb,var(--c-green) 16%,var(--paper));color:var(--c-green)}
+.step:nth-child(5) b::before{background:color-mix(in srgb,var(--c-teal) 16%,var(--paper));color:var(--c-teal)}
+.kpi:nth-child(1){background:linear-gradient(150deg,color-mix(in srgb,var(--c-orange) 14%,var(--paper)),var(--paper) 70%)}
+.kpi:nth-child(2){background:linear-gradient(150deg,color-mix(in srgb,var(--c-blue) 14%,var(--paper)),var(--paper) 70%)}
+.kpi:nth-child(3){background:linear-gradient(150deg,color-mix(in srgb,var(--c-green) 14%,var(--paper)),var(--paper) 70%)}
+.kpi:nth-child(4){background:linear-gradient(150deg,color-mix(in srgb,var(--c-purple) 14%,var(--paper)),var(--paper) 70%)}
+
+/* ===================== Story illustrations ===================== */
+.illu{color:var(--sc);--illu-bg:color-mix(in srgb,var(--sc) 9%,var(--paper));background:var(--illu-bg);overflow:hidden}
+.illu svg{display:block;width:100%;height:100%}
+.story-card{padding:0;overflow:hidden;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+.story-card .illu{min-height:220px}
+.story-card .body{padding:24px;display:flex;flex-direction:column;gap:10px;justify-content:center}
+@media (max-width:640px){.story-card{grid-template-columns:1fr}.story-card .illu{min-height:0;aspect-ratio:2/1}}
+.story-card .ring-row{display:flex;align-items:center;gap:12px;margin-top:4px}
+.story-card .ring{width:48px;height:48px}.story-card .ring::before{width:38px;height:38px}.story-card .ring span{font-size:13px}
+.lib button{padding:0;overflow:hidden;gap:0}
+.lib .illu{aspect-ratio:2/1}
+.lib .lb{padding:12px 16px 16px;display:flex;flex-direction:column;gap:6px}
+.lib .kind-tag{color:var(--sc);background:color-mix(in srgb,var(--sc) 12%,var(--paper))}
+.passage-card .kind-tag,.story-card .kind-tag{color:color-mix(in srgb,var(--sc,var(--c-purple)) 85%,var(--fg));background:color-mix(in srgb,var(--sc,var(--c-purple)) 13%,var(--paper))}
+.story-card h3{color:color-mix(in srgb,var(--sc) 40%,var(--fg))}
+/* the reader: a tinted page, the picture at the top and faintly at the end */
+#reader{background:color-mix(in srgb,var(--sc,var(--bg)) 5%,var(--bg))}
+.article .banner{border-radius:22px;aspect-ratio:2/1;margin:6px 0 22px;box-shadow:var(--shadow)}
+.article .kind-tag{color:color-mix(in srgb,var(--sc) 85%,var(--fg));background:color-mix(in srgb,var(--sc) 13%,var(--paper))}
+.article h1{color:color-mix(in srgb,var(--sc) 30%,var(--fg))}
+.article .tail{margin-top:34px;aspect-ratio:3/1;border-radius:22px;opacity:.5;-webkit-mask-image:linear-gradient(to bottom,#000 30%,transparent);mask-image:linear-gradient(to bottom,#000 30%,transparent)}
+
+.article p:first-of-type::first-letter{font-size:2.6em;float:left;line-height:.9;margin:.08em .1em 0 0;color:var(--sc);font-weight:700}
+.rw.on{background:var(--sc,var(--ink))}
+.q-card .prog i{background:var(--sc,var(--ink))}
+.q-hero{border-radius:18px;aspect-ratio:3/1;margin-bottom:6px}
+#reader{--ink:var(--sc,var(--c-purple));--ink-soft:color-mix(in srgb,var(--sc,var(--c-purple)) 12%,var(--paper));--ink-text:color-mix(in srgb,var(--sc,var(--c-purple)) 80%,var(--fg))}

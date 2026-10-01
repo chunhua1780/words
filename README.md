@@ -1,17 +1,15 @@
 # Word Speller
 
-An English spelling trainer for children, made for iPad (landscape works best).
+An English spelling trainer for children (iPad, landscape works best), with a phone page for parents.
 
-- **Type your name** (for example `WDY`). Every word, review date and score is saved online under that name, so it's there every day on any device.
-- **Add Words**: one word per line. Choose today or tomorrow. Delete any word (or all words) in *My Words*.
-- **5 steps for new words**: Look & Listen (syllable chunks, spell-out) → Pick the right spelling → Build with letter tiles → Look, Cover, Write, Check → Dictation.
-- **Spaced review**: learned words come back after 1, 2, 4, 7, 15, 30 and 60 days.
-- **Practice**: Spelling Game (points, streaks, timer), Dictation, Cover & Write.
+- **Child page** (`index.html`): log in with a username and password. Every word, review date and score is saved in the account.
+  - 5 steps for new words: **Sound it out** (phonics chunks such as con·fi·den·**tial** "shul", tricky bits) → **Chunks** in order → **Build** (tap or drag letters) → **Cover & Write** → **Dictation**.
+  - Spelling methods: ⌨️ type (Apple Pencil Scribble works), 🔤 letter tiles (tap or drag), ✍️ handwriting (finger or Apple Pencil, then self-check).
+  - Practice: Spelling Game, Dictation, Phonics Chunks, Cover & Write, Practice Test (school style), All 5 Steps.
+  - Spaced review after 1, 2, 4, 7, 15, 30 and 60 days; test words are practised daily in the week before a test.
+- **Parent page** (`parent.html`): same login. Add dictation tests with a date and word list, see each word's level, accuracy, last practice and next review, practice-test marks, and the last 14 days of activity.
 - **Pronunciation**: online human voice (Youdao, then Google), falling back to the device voice. US or UK.
 
-## One-time setup: online saving
+## One-time setup
 
-Open the Supabase project → **SQL Editor** → paste [`setup.sql`](setup.sql) → **Run**.
-Until then, words are saved on the device only.
-
-Note: anyone who types the same name opens the same word list.
+In Supabase → **SQL Editor**, run [`setup-accounts.sql`](setup-accounts.sql). It creates the accounts table and password-checked functions, and brings over any word list saved under the same name by the earlier version ([`setup.sql`](setup.sql)).

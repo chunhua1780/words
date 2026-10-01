@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Word Speller · Parents</title>
+<meta name="theme-color" content="#2742a8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Speller Parents">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+/* Phone-first parent dashboard: one column, summary first, then tests, then every word */
+.wrap{max-width:760px}
+.tiles4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media (max-width:520px){.tiles4{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--paper);border-radius:14px;padding:12px}
+.kpi b{display:block;font:600 28px/1.1 var(--round);color:var(--ink);font-variant-numeric:tabular-nums}
+.kpi span{font-size:13px;color:var(--muted)}
+form.add{display:flex;flex-direction:column;gap:10px}
+form.add label{display:flex;flex-direction:column;gap:4px;font:600 14px var(--round);color:var(--muted)}
+form.add input,form.add textarea{font-size:18px}
+form.add textarea{min-height:140px}
+input[type=date]{width:100%;border:2px solid var(--soft);background:var(--paper);color:var(--fg);border-radius:12px;padding:10px 12px;font:18px var(--body);min-height:48px}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.quick button{border:0;border-radius:999px;padding:6px 12px;background:var(--soft);font-size:14px;min-height:38px}
+.tbl{width:100%;border-collapse:collapse;font-size:15px}
+.tbl th{font:600 12px var(--round);color:var(--muted);text-align:left;padding:6px 6px;border-bottom:1px solid var(--soft);letter-spacing:.03em}
+.tbl td{padding:8px 6px;border-bottom:1px solid var(--soft);vertical-align:middle}
+.tbl .wd{font:20px var(--word);color:var(--ink)}
+.tbl .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bar{height:8px;border-radius:99px;background:var(--soft);overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--green);border-radius:99px}
+.bar.mid i{background:var(--sun)} .bar.low i{background:var(--red)}
+.act{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;align-items:end;height:80px}
+.act div{background:var(--ink);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.act-l{display:grid;grid-template-columns:repeat(14,1fr);gap:4px;font-size:11px;color:var(--muted);text-align:center}
+details.test{border-left:6px solid var(--sun)}
+details.test summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:center}
+details.test summary::-webkit-details-marker{display:none}
+details.test[open] summary .chev{transform:rotate(90deg)}
+.chev{transition:transform .2s;color:var(--muted)}
+.past{opacity:.7}
+.wlist{display:flex;flex-direction:column}
+.wrow{padding:10px 0;border-bottom:1px solid var(--soft);display:flex;flex-direction:column;gap:4px}
+.wtop{display:flex;align-items:center;gap:8px;min-width:0}
+.wtop .wd{font:22px var(--word);color:var(--ink);overflow-wrap:anywhere}
+.wstat{display:flex;align-items:center;gap:10px;font-size:14px}
+.wstat .bar{flex:1;max-width:160px}
+.del-mini{border:0;background:none;color:var(--muted);font-size:20px;min-width:40px;min-height:40px}
+.del-mini.confirm{color:#fff;background:var(--red);border-radius:10px;font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand" style="font-size:20px">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="3" width="24" height="26" rx="4" fill="var(--ink)"/><g stroke="var(--paper)" stroke-width="1.4" opacity=".9"><line x1="8" y1="11" x2="24" y2="11"/><line x1="8" y1="15" x2="24" y2="15"/><line x1="8" y1="19" x2="24" y2="19"/><line x1="8" y1="23" x2="24" y2="23"/></g><path d="M9 20.5l3-6 3 6M10 18.8h4" stroke="var(--sun)" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>
+      Word Speller · Parents
+    </div>
+    <span class="spacer"></span>
+    <span class="chip" id="sync" hidden></span>
+    <button class="chip" id="out" hidden>Log out</button>
+  </header>
+  <main id="view" style="margin-top:16px"></main>
+</div>
+<script src="core.js"></script>
+<script>
+"use strict";
+const B=()=>Store.book;
+let err="", msg="", wordSort="weak", showPast=false;
+Store.onStatus=s=>{const c=$("#sync");c.textContent=SYNC_TEXT[s]||"";c.hidden=!Store.user||!c.textContent;c.className="chip "+(s==="saved"?"ok":/error|auth/.test(s)?"warn":"");};
+Store.onRemote=()=>{if(!document.activeElement||!/INPUT|TEXTAREA/.test(document.activeElement.tagName))render();};
+$("#out").onclick=()=>{const b=$("#out");if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Tap again to log out";setTimeout(()=>{b.classList.remove("warn");b.textContent="Log out";},3000);return;}
+  b.classList.remove("warn");b.textContent="Log out";Store.logout();render();};
+
+function nextWeekday(dow){const d=new Date();const add=((dow-d.getDay())+7)%7||7;d.setDate(d.getDate()+add);return dstr(d);}
+function accuracy(w){return w.seen?Math.round((w.right||0)/w.seen*100):null;}
+function bar(p){const c=p==null?"":p>=80?"":p>=50?"mid":"low";return `<div class="bar ${c}"><i style="width:${p==null?0:p}%"></i></div>`;}
+
+function render(){
+  const logged=!!B();
+  $("#out").hidden=!logged; if(!logged)$("#sync").hidden=true;
+  $("#view").innerHTML=logged?viewDash():viewLogin();
+  bind();
+}
+function viewLogin(){
+  return `<form class="card auth" id="authForm" style="margin-top:2vh">
+    <h2>Parent login</h2>
+    <p class="muted" style="margin:0">Use your child's username and password (the ones made on the iPad). Here you can set dictation tests with dates and see how every word is going.</p>
+    <label>Child's username<input type="text" id="aUser" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" required></label>
+    <label>Password<input type="password" id="aPass" autocomplete="current-password" maxlength="64" required></label>
+    <div class="err">${esc(err)}</div>
+    <button class="btn primary big" type="submit" id="aGo">Log in</button>
+    <p class="muted small" style="margin:0">No account yet? Create it on the child's page first. <a href="./">Open the child's page →</a></p>
+  </form>`;
+}
+
+function viewDash(){
+  const b=B(), ws=wordsOf(b), t=today();
+  const seen=ws.reduce((a,w)=>a+(w.seen||0),0), right=ws.reduce((a,w)=>a+(w.right||0),0);
+  const mastered=ws.filter(w=>w.stage>=MASTER).length, strong=ws.filter(w=>w.stage>=3).length;
+  const days=[...Array(14)].map((_,k)=>addDays(t,k-13));
+  const mx=Math.max(1,...days.map(d=>(b.log[d]||{}).done||0));
+  const tests=testsOf(b), up=tests.filter(x=>x.date>=t), past=tests.filter(x=>x.date<t).reverse();
+  const due=dueOn(b,t);
+  let sorted=ws.slice();
+  if(wordSort==="weak")sorted.sort((a,c)=>(a.stage-c.stage)||((accuracy(a)??101)-(accuracy(c)??101))||a.w.localeCompare(c.w));
+  else if(wordSort==="az")sorted.sort((a,c)=>a.w.localeCompare(c.w));
+  else sorted.sort((a,c)=>(c.added||"").localeCompare(a.added||""));
+  return `<div class="stack">
+    <div><div class="muted">${niceDate(t)}</div><h2 style="margin:0">${esc(b.name)}'s spelling</h2></div>
+    <div class="tiles4">
+      <div class="kpi"><b>${streakOf(b.log)}</b><span>day streak</span></div>
+      <div class="kpi"><b>${(b.log[t]||{}).done||0}</b><span>practised today</span></div>
+      <div class="kpi"><b>${strong} / ${ws.length}</b><span>words strong or mastered</span></div>
+      <div class="kpi"><b>${seen?Math.round(right/seen*100)+"%":"–"}</b><span>right first time</span></div>
+    </div>
+    <div class="card">
+      <h3>Last 14 days</h3>
+      <div class="act">${days.map(d=>`<div title="${d}: ${(b.log[d]||{}).done||0} words" style="height:${((b.log[d]||{}).done||0)/mx*100}%"></div>`).join("")}</div>
+      <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
+      <p class="muted small" style="margin:8px 0 0">Today's plan: ${due.fresh.length} new, ${due.review.length} to review.</p>
+    </div>
+
+    <div class="card stack">
+      <h3 style="margin:0">Add a dictation test</h3>
+      <form class="add" id="testForm">
+        <label>Test date<input type="date" id="tDate" required value="${nextWeekday(5)}" min="${t}"></label>
+        <div class="quick">${[1,2,3,4,5].map(d=>`<button type="button" data-dow="${d}">Next ${WEEK[d]}</button>`).join("")}</div>
+        <label>Name (optional)<input type="text" id="tTitle" placeholder="Spelling test" maxlength="40"></label>
+        <label>Words, one per line or separated by commas<textarea id="tWords" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="confidential&#10;essential&#10;substantial"></textarea></label>
+        <div class="muted small" id="tCount">0 words</div>
+        <button class="btn primary big" type="submit">Save test</button>
+      </form>
+      ${msg?`<div class="notice">${msg}</div>`:""}
+      <p class="muted small" style="margin:0">The words start in ${esc(b.name)}'s list right away. In the week before the test they are practised every day, and ${esc(b.name)} can take practice tests.</p>
+    </div>
+
+    ${up.length?`<h3 style="margin:6px 0 0">Coming tests</h3>${up.map(testBlock).join("")}`:""}
+    ${past.length?`<button class="linkish" id="pastBtn" style="align-self:flex-start">${showPast?"Hide":"Show"} past tests (${past.length})</button>${showPast?past.map(x=>testBlock(x,true)).join(""):""}`:""}
+
+    <div class="card stack">
+      <div class="row" style="justify-content:space-between"><h3 style="margin:0">All words · ${ws.length}</h3>
+        <div class="seg">${[["weak","Weakest first"],["new","Newest"],["az","A–Z"]].map(([k,l])=>`<button class="${wordSort===k?"on":""}" data-sort="${k}">${l}</button>`).join("")}</div></div>
+      ${ws.length?`<div class="wlist">${sorted.map(w=>{const a=accuracy(w),dn=dayDiff(t,w.due);
+        return `<div class="wrow"><div class="wtop"><span class="wd">${esc(w.w)}</span><span class="mchip ${masteryOf(w)}" style="font:13px var(--round)">${MASTERY_LABEL[masteryOf(w)]}</span>
+          <span class="spacer"></span><button class="del-mini" data-delw="${w.id}" aria-label="Delete ${esc(w.w)}">🗑</button></div>
+          <div class="wstat">${bar(a)}<span class="num">${a==null?"not tested yet":a+"% right ("+(w.right||0)+"/"+(w.seen||0)+")"}</span></div>
+          <div class="muted small">Last practised: ${w.last?inDays(dayDiff(t,w.last)):"never"} · Next: ${w.stage===0?"learn "+(dn<=0?"today":inDays(dn)):(dn<=0?"review today":"review "+inDays(dn))}</div></div>`;}).join("")}</div>`:`<div class="empty">No words yet. Add a test above.</div>`}
+      <p class="muted small" style="margin:0">Levels: Not learned → Learning (practised) → Strong (right 3 reviews in a row) → Mastered (7 reviews, about 2 months).</p>
+    </div>
+
+    <details class="card"><summary><b>Change password</b></summary>
+      <form class="add" id="pwForm" style="margin-top:10px">
+        <label>New password<input type="password" id="pw1" autocomplete="new-password" required></label>
+        <label>New password again<input type="password" id="pw2" autocomplete="new-password" required></label>
+        <div class="err" id="pwMsg"></div>
+        <button class="btn" type="submit">Change password</button>
+      </form>
+    </details>
+  </div>`;
+}
+function testBlock(x,past){
+  const b=B(), t=today(), ws=(x.wordIds||[]).map(id=>b.words[id]).filter(Boolean);
+  const d=dayDiff(t,x.date), strong=ws.filter(w=>w.stage>=3).length;
+  const mocks=x.mocks||[];
+  return `<details class="card test ${past?"past":""}" ${!past&&up1(x)?"open":""}>
+    <summary><div><b style="font:600 18px var(--round)">📝 ${esc(x.title||"Spelling test")}</b><div class="muted small">${niceDate(x.date)} · ${d===0?"today":inDays(d)} · ${strong}/${ws.length} strong${mocks.length?` · practice tests: ${mocks.map(m=>Math.round(m.s/m.n*100)+"%").join(", ")}`:""}</div></div><span class="chev">▶</span></summary>
+    <div class="stack" style="margin-top:12px">
+      <div class="words">${ws.map(w=>`<span class="mchip ${masteryOf(w)}">${esc(w.w)}</span>`).join("")||"<span class='muted'>No words</span>"}</div>
+      <div class="legend"><span class="mchip">not learned</span><span class="mchip learning">learning</span><span class="mchip strong">strong</span><span class="mchip mastered">mastered</span></div>
+      ${mocks.length?`<div class="small"><b>Practice tests</b><br>${mocks.slice().reverse().map(m=>`${shortDate(m.d)}: ${m.s}/${m.n}${(m.wrong||[]).length?" · missed "+m.wrong.map(id=>b.words[id]?esc(b.words[id].w):"").filter(Boolean).join(", "):""}`).join("<br>")}</div>`:`<div class="muted small">No practice tests taken yet.</div>`}
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-delt="${x.id}">Delete test</button></div>
+    </div>
+  </details>`;
+}
+const up1=x=>{const u=upcomingTests(B());return u[0]&&u[0].id===x.id;};
+
+function bind(){
+  const f=$("#authForm");
+  if(f)f.onsubmit=async e=>{
+    e.preventDefault();const u=$("#aUser").value.trim(),p=$("#aPass").value;
+    const btn=$("#aGo");btn.disabled=true;btn.textContent="Please wait…";
+    try{await Store.open(u,p,false);err="";render();}catch(x){err=authMsg(x);render();$("#aUser").value=u;}
+  };
+  const tf=$("#testForm");
+  if(tf){
+    const tw=$("#tWords"), cnt=()=>{$("#tCount").textContent=parseWords(tw.value).length+" words";};
+    tw.oninput=cnt;
+    document.querySelectorAll("[data-dow]").forEach(b=>b.onclick=()=>{$("#tDate").value=nextWeekday(+b.dataset.dow);});
+    tf.onsubmit=e=>{
+      e.preventDefault();
+      const list=parseWords(tw.value), date=$("#tDate").value;
+      if(!date){msg="Choose the test date.";render();return;}
+      if(!list.length){msg="Type at least one English word.";render();return;}
+      const days=dayDiff(today(),date);
+      const due=days>10?addDays(date,-7):today(); // far-away tests: start learning a week before
+      const r=addWordsToBook(B(),list,{due,testDate:date,testTitle:$("#tTitle").value.trim()||"Spelling test"});
+      Store.save();
+      msg=`Saved: ${esc(r.test.title)} on ${niceDate(date)} with ${list.length} words`+(r.reused.length?` (${r.reused.length} were already in the list)`:"")+". Learning starts "+(due===today()?"today":"on "+niceDate(due))+".";
+      render();
+    };
+  }
+  document.querySelectorAll("[data-sort]").forEach(b=>b.onclick=()=>{wordSort=b.dataset.sort;render();});
+  const pb=$("#pastBtn"); if(pb)pb.onclick=()=>{showPast=!showPast;render();};
+  document.querySelectorAll("[data-delw]").forEach(b=>b.onclick=()=>{
+    if(!b.classList.contains("confirm")){b.classList.add("confirm");b.textContent="Delete?";setTimeout(()=>{b.classList.remove("confirm");b.textContent="🗑";},3000);return;}
+    deleteWord(B(),b.dataset.delw);Store.save();render();});
+  document.querySelectorAll("[data-delt]").forEach(b=>b.onclick=()=>{
+    if(!b.classList.contains("danger")){b.classList.add("danger");b.textContent="Tap again: delete test (words stay)";setTimeout(()=>{b.classList.remove("danger");b.textContent="Delete test";},3500);return;}
+    deleteTest(B(),b.dataset.delt);Store.save();render();});
+  const pf=$("#pwForm");
+  if(pf)pf.onsubmit=async e=>{
+    e.preventDefault();const a=$("#pw1").value,c=$("#pw2").value;
+    if(a!==c){$("#pwMsg").textContent="The two passwords are different.";return;}
+    try{await WS.changePassword(Store.user,Store.pass,a);Store.pass=a;saveSession(Store.user,a);$("#pwMsg").style.color="var(--green)";$("#pwMsg").textContent="Password changed. Use the new one on the iPad too.";pf.reset();}
+    catch(x){$("#pwMsg").textContent=authMsg(x);}
+  };
+}
+
+render();
+(async()=>{
+  const s=loadSession(); if(!s)return;
+  try{await Store.open(s.user,s.pass,false);render();}
+  catch(e){err=e.message==="bad_login"?"Please log in again.":authMsg(e);if(e.message==="bad_login")clearSession();render();}
+})();
+</script>
+</body>
+</html>

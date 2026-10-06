@@ -34,9 +34,16 @@ function dailySet(date,create=true){
   M.days[date]={ids,ans:{},u:Date.now()}; Store.save();
   return M.days[date];
 }
+// Take one question of each kind in turn, so a set of 10 mixes the kinds instead of repeating one
+function mixKinds(ids){
+  const g={}; for(const id of ids)(g[MQ[id].o]=g[MQ[id].o]||[]).push(id);
+  const ks=shuffle(Object.keys(g)), out=[];
+  for(let i=0;out.length<ids.length;i++)for(const k of ks)if(g[k][i])out.push(g[k][i]);
+  return out;
+}
 function topicSet(t){
   const st=MB().q, all=MATHS.filter(q=>q.t===t).map(q=>q.id);
-  const fresh=shuffle(all.filter(id=>!st[id])), wrong=shuffle(all.filter(id=>st[id]&&st[id].ok===false)),
+  const fresh=mixKinds(shuffle(all.filter(id=>!st[id]))), wrong=shuffle(all.filter(id=>st[id]&&st[id].ok===false)),
     old=all.filter(id=>st[id]&&st[id].ok!==false).sort((a,b)=>(st[a].last||"")<(st[b].last||"")?-1:1);
   return [...wrong.slice(0,3),...fresh,...old].slice(0,MTOPIC);
 }

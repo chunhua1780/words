@@ -67,6 +67,7 @@
   <div class="s-body"><div class="stage" id="stage"></div></div>
 </section>
 
+<script src="audio/index.js"></script>
 <script src="core.js"></script>
 <script src="phonics.js"></script>
 <script src="readings.js"></script>
@@ -132,9 +133,19 @@ function tts(text,{rate=.85,onend,onstart,id=++speakId}={}){
    so they go to Google's reading voice only (Youdao can return a different word's sound for them). */
 /* British English sources. "Slow" asks the voice to speak slowly instead of slowing the recording down (which distorts it). */
 const googleUrl=(text,slow)=>"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB"+(slow?"&ttsspeed=0.35":"")+"&q="+encodeURIComponent(text);
+const youdaoUrl=text=>"https://dict.youdao.com/dictvoice?type=1&audio="+encodeURIComponent(text);
+/* Words with a stored recording (audio/w/, listed in audio/index.js) play from this site, so they never depend on an outside service. */
+function storedAudio(text){
+  if(typeof WORD_AUDIO==="undefined")return null;
+  const k=String(text).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  return WORD_AUDIO.has(k)?"audio/w/"+k+".mp3":null;
+}
+/* Other words: Google first, because it always sends real MP3. Youdao sends some words as WAV marked as MP3,
+   which iPad Safari will not play (the word stayed silent), so it comes second. */
 function sources(text,fragment,slow){
   if(fragment||slow)return [googleUrl(text,slow)];
-  return ["https://dict.youdao.com/dictvoice?type=1&audio="+encodeURIComponent(text),googleUrl(text)];
+  const own=storedAudio(text);
+  return own?[own,googleUrl(text),youdaoUrl(text)]:[googleUrl(text),youdaoUrl(text)];
 }
 const warmed=new Set();
 function warm(texts){ // fetch chunk sounds early so they play without a gap
@@ -171,7 +182,7 @@ function say(text,{slow=false,onend,onstart,fragment=false}={}){
       if(err&&err.name==="NotAllowedError"){showSoundTip();k=list.length;tts(text,{rate:slow?.5:.85,onend,onstart:begin,id});}
       else tryNext();
     });
-    setTimeout(()=>{if(id===speakId&&kk===k&&!started)tryNext();},4000);
+    setTimeout(()=>{if(id===speakId&&kk===k&&!started)tryNext();},2500); // no sound yet: try the next source
   };
   tryNext();
   if(onend)setTimeout(fire,slow?9000:7000);

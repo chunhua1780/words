@@ -172,6 +172,9 @@ function viewMaths(){
       <div class="kpi"><b>${total?Math.round(right/total*100)+"%":"–"}</b><span>correct</span></div>
       <div class="kpi"><b>${seen}<small>/${MATHS.length}</small></b><span>of the question bank</span></div>
     </div>
+    <button class="card rn-entry" data-roman><span class="rn-entry-l">I V X<br>L C D M</span>
+      <span class="stack tight" style="gap:4px;text-align:left"><b>Roman numerals corner</b><span class="muted small">Learn the seven letters, play drag-and-match games and practise changing numbers to and from Roman numerals.</span></span>
+      <span class="chev">${ic("chevron")}</span></button>
     <div class="section-title"><h3 style="margin:0">Practise a topic</h3><span class="muted small">${MTOPIC} questions at a time</span></div>
     <div class="topics">${MATHS_TOPICS.map(t=>{const s=ts[t];return `<button class="topic" data-maths="topic" data-topic="${esc(t)}" style="--tc:${topicColor(t)}">
       <b>${esc(t)}</b><span class="muted small">${s.n?`${Math.round(s.r/s.n*100)}% correct · `:""}${s.seen} of ${s.total} done</span>
@@ -179,6 +182,7 @@ function viewMaths(){
   </div>`;
 }
 function bindMaths(){
+  document.querySelectorAll("#view [data-roman]").forEach(b=>b.onclick=()=>openRoman());
   document.querySelectorAll("#view [data-maths]").forEach(b=>b.onclick=()=>{
     if(b.dataset.maths==="day"){const d=dailySet(today());openMaths({kind:"day",date:today(),ids:d.ids});}
     else openMaths({kind:"topic",topic:b.dataset.topic,ids:topicSet(b.dataset.topic)});

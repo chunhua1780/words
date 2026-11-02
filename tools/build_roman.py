@@ -110,11 +110,66 @@ for fn, n in QUOTAS:
         if tries > 100000: raise SystemExit(f"only {len(BANK) - start} for {fn.__name__}")
         fn()
 
+# ---------- Part 2: levelled conversion practice (ids continue after the first 150; field "lv") ----------
+R2 = random.Random(20261102)
+LEVELS = {1: "Level 1: 1 to 10", 2: "Level 2: up to 20, and the tens", 3: "Level 3: up to 100", 4: "Level 4: up to 1,000"}
+def pick(lv):
+    if lv == 1: return R2.randint(1, 10)
+    if lv == 2: return R2.choice([R2.randint(11, 20), R2.randrange(10, 101, 10)])
+    if lv == 3: return R2.randint(1, 100)
+    return R2.choice([R2.randrange(100, 1001, 100), R2.randint(100, 1000), R2.choice([50, 100, 500, 1000, 150, 550, 1000])])
+def add2(lv, obj, q, kind, ans, why, opts=None):
+    if q in SEEN: return False
+    SEEN.add(q)
+    d = {"t": T, "o": obj, "q": q, "k": kind, "a": ans, "w": why, "lv": lv}
+    if opts is not None: d["c"] = opts
+    BANK.append(d); return True
+def mc2(lv, obj, q, correct, wrong, why):
+    wrong = [w for w in dict.fromkeys(wrong) if w != correct and w not in ("", "0")][:3]
+    if len(wrong) < 3: return False
+    opts = [correct] + wrong; R2.shuffle(opts)
+    return add2(lv, obj, q, "c", opts.index(correct), why, opts)
+TIP = " Remember: I = 1, V = 5, X = 10, L = 50, C = 100, D = 500, M = 1,000."
+def t_read(lv):
+    n = pick(lv); s = roman(n)
+    add2(lv, "Read Roman numerals", f"What number is {s}?", "n", n, f"{s} = {parts(n)} = {n:,}." + TIP)
+def t_write(lv):
+    n = pick(lv)
+    add2(lv, "Write Roman numerals", f"Write {n:,} in Roman numerals.", "r", roman(n), f"{n:,} = {parts(n)}, so it is {roman(n)}." + TIP)
+def c_read(lv):
+    n = pick(lv); s = roman(n)
+    mc2(lv, "Read Roman numerals", f"Choose the number for {s}.", f"{n:,}", [f"{int(x):,}" for x in num_wrong(n, s) if 0 < int(x) <= CAP[lv]], f"{s} = {parts(n)} = {n:,}.")
+def c_write(lv):
+    n = pick(lv)
+    mc2(lv, "Write Roman numerals", f"Choose the Roman numeral for {n:,}.", roman(n), [w for w in rom_wrong(n) if w and value(w) <= CAP[lv]], f"{n:,} = {parts(n)} → {roman(n)}. Use the same letter at most three times in a row.")
+def yesno(lv):
+    n = pick(lv); shown = R2.choice([n, n, *[x for x in near(n) if x > 0][:2]])
+    ok = shown == n; s = roman(shown)
+    add2(lv, "Check Roman numerals", f"Is {s} equal to {n:,}?", "c", 0 if ok else 1,
+         (f"Yes: {s} = {parts(shown)} = {n:,}." if ok else f"No: {s} = {parts(shown)} = {shown:,}. {n:,} is {roman(n)}."), ["Yes", "No"])
+CAP = {1: 12, 2: 120, 3: 150, 4: 1000}  # keep wrong choices close to the level's numbers
+P2 = {1: 60, 2: 80, 3: 80, 4: 80}
+for lv, n in P2.items():
+    start, tries = len(BANK), 0
+    while len(BANK) - start < n:
+        tries += 1
+        if tries > 200000: raise SystemExit(f"only {len(BANK) - start} at level {lv}")
+        R2.choice([t_read, t_write, c_read, c_write, yesno])(lv)
+
 # ---------- check every answer independently ----------
 import re
 for i, q in enumerate(BANK):
     q["id"] = f"q{i+1:03d}"
+    if q["k"] == "n":
+        assert q["a"] == value(re.match(r"What number is ([IVXLCDM]+)\?", q["q"]).group(1)), q; continue
+    if q["k"] == "r":
+        n = int(re.match(r"Write ([\d,]+) in", q["q"]).group(1).replace(",", "")); assert q["a"] == roman(n) and value(q["a"]) == n, q; continue
     c = q["c"]; ans = c[q["a"]]
+    if q["q"].startswith("Is "):
+        m2 = re.match(r"Is ([IVXLCDM]+) equal to ([\d,]+)\?", q["q"]); assert (value(m2.group(1)) == int(m2.group(2).replace(",", ""))) == (q["a"] == 0), q; continue
+    if q["q"].startswith("Choose the number for "): assert int(ans.replace(",", "")) == value(q["q"][22:-1]), q
+    if q["q"].startswith("Choose the Roman numeral for "):
+        n = int(q["q"][29:-1].replace(",", "")); assert ans == roman(n), q
     assert len(set(c)) == 4, q
     m = re.match(r"^([IVXLCDM]+) ([+−]) ([IVXLCDM]+) = \?", q["q"])
     if m:
@@ -128,7 +183,8 @@ for i, q in enumerate(BANK):
     for x in c:  # every Roman option is spelled the standard way or is a deliberate slip
         assert re.fullmatch(r"[IVXLCDM]+|[\d,]+", x), x
 
-out = "/* Quick Roman numeral multiple-choice questions. Built by tools/build_roman.py. */\n"
+out = "/* Roman numeral questions: quick multiple choice (q001-q150) and levelled conversion practice (field lv). Built by tools/build_roman.py. */\n"
+out += "const ROMAN_LEVELS=" + json.dumps(LEVELS) + ";\n"
 out += "const ROMAN_QUICK=" + json.dumps(BANK, ensure_ascii=False, separators=(",", ":")) + ";\n"
 out += "MATHS.push(...ROMAN_QUICK);\n"
 open("maths-roman.js", "w").write(out)

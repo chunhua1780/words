@@ -62,6 +62,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
 <script src="maths.js"></script>
+<script src="facts.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -119,10 +120,12 @@ function mathsBlock(){
   const today20=sc(t);
   return `<div class="card stack">
     <div class="row" style="justify-content:space-between"><h3>Maths</h3><span class="muted small">${wn?`${wr}/${wn} correct this week`:"No maths yet this week"}</span></div>
-    <div class="muted small">Today: ${today20&&today20.done?`${today20.done} of ${today20.n} answered, ${today20.right} correct`:"not started"} · ${Object.keys(M.q).length} of ${MATHS.length} bank questions tried</div>
+    <div class="muted small">Today: ${today20&&today20.done?`${today20.done} of ${today20.n} answered, ${today20.right} correct`:"not started"} · ${Object.keys(M.q).filter(id=>MQ[id]).length} of ${MATHS.length} bank questions tried</div>
     <div class="act teal">${days.map(d=>{const s=sc(d);return `<div title="${d}: ${s?s.right+"/"+s.n+" correct":"no daily set"}" style="height:${s?s.right/MDAY*100:0}%"></div>`;}).join("")}</div>
     <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
     <div class="muted tiny">Bars show the daily ${MDAY}: correct answers out of ${MDAY}.</div>
+    <div><div class="muted small" style="margin-bottom:4px">Quick facts known by heart (3 quick right answers in a row) · ${Object.entries(M.q).filter(([id,x])=>id.startsWith("f:")&&x.last===t).length} practised today</div>
+      ${["add","sub","mul20","div20","mul10","div10"].map(k=>{const S=FACT_SETS[k],f=factStats(k),p=Math.round(f.known/f.total*100);return `<div class="tacc"><span>${S.sym} ${esc(S.name)} ${esc(S.sub)}</span><span class="bar"><i style="width:${p}%"></i></span><span class="v">${f.known}/${f.total}${f.missed?` · ${f.missed} missed`:""}</span></div>`;}).join("")}</div>
     ${tops.length?`<div><div class="muted small" style="margin-bottom:4px">Correct by topic</div>${tops.map(x=>{const s=ts[x],p=Math.round(s.r/s.n*100);return `<div class="tacc"><span>${esc(x)}</span><span class="bar"><i style="width:${p}%"></i></span><span class="v">${p}% · ${s.n} tried</span></div>`;}).join("")}</div>`:""}
     ${miss.length?`<div><div class="muted small" style="margin-bottom:4px">Recent mistakes (these come back in later daily sets)</div>${miss.map(q=>`<div class="miss"><div>${mt(q.q)}</div><div class="muted small">${esc(q.t)} · answer <b>${esc(showAns(q))}</b></div></div>`).join("")}</div>`:""}
   </div>`;

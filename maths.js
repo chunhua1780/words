@@ -155,7 +155,7 @@ function viewMaths(){
   const t=today(), d=dailySet(t), sc=dayScore(d), M=MB(), ts=topicStats();
   const week=[...Array(7)].map((_,k)=>addDays(t,k-6));
   const total=Object.values(M.log).reduce((s,x)=>s+(x.n||0),0), right=Object.values(M.log).reduce((s,x)=>s+(x.r||0),0);
-  const seen=Object.keys(M.q).length;
+  const seen=Object.keys(M.q).filter(id=>MQ[id]).length; // quick-facts records (ids "f:…") are not bank questions
   return `<div class="stack">
     <div class="page-head"><div><div class="eyebrow">Maths · Year 5</div><h1>Daily maths</h1></div></div>
     <div class="card maths-hero">
@@ -172,6 +172,9 @@ function viewMaths(){
       <div class="kpi"><b>${total?Math.round(right/total*100)+"%":"–"}</b><span>correct</span></div>
       <div class="kpi"><b>${seen}<small>/${MATHS.length}</small></b><span>of the question bank</span></div>
     </div>
+    <button class="card rn-entry fx-entry" data-facts><span class="rn-entry-l">7+8<br>18÷3</span>
+      <span class="stack tight" style="gap:4px;text-align:left"><b>Quick facts: + − × ÷ within 20</b><span class="muted small">${(()=>{const k=["add","sub","mul20","div20"].reduce((a,x)=>a+factStats(x).known,0),n=["add","sub","mul20","div20"].reduce((a,x)=>a+factStats(x).total,0);return `Know them by heart, no fingers. ${k} of ${n} facts known.`;})()}</span></span>
+      <span class="chev">${ic("chevron")}</span></button>
     <button class="card rn-entry" data-roman><span class="rn-entry-l">I V X<br>L C D M</span>
       <span class="stack tight" style="gap:4px;text-align:left"><b>Roman numerals corner</b><span class="muted small">Learn the seven letters, play drag-and-match games and practise changing numbers to and from Roman numerals.</span></span>
       <span class="chev">${ic("chevron")}</span></button>
@@ -183,6 +186,7 @@ function viewMaths(){
 }
 function bindMaths(){
   document.querySelectorAll("#view [data-roman]").forEach(b=>b.onclick=()=>openRoman());
+  document.querySelectorAll("#view [data-facts]").forEach(b=>b.onclick=()=>openFacts());
   document.querySelectorAll("#view [data-maths]").forEach(b=>b.onclick=()=>{
     if(b.dataset.maths==="day"){const d=dailySet(today());openMaths({kind:"day",date:today(),ids:d.ids});}
     else openMaths({kind:"topic",topic:b.dataset.topic,ids:topicSet(b.dataset.topic)});

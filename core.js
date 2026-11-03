@@ -274,3 +274,8 @@ const ICON_PATHS={
   calendar:'<rect x="4" y="5.5" width="16" height="14" rx="2.5"/><path d="M4 9.5h16M8.5 3.5v4M15.5 3.5v4"/>',
 };
 const ic=(name,cls="")=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]||""}</svg>`;
+
+/* Keep the page at a fixed size on iPad. Safari can ignore user-scalable=no, so pinch gestures are stopped here;
+   double-tap zoom is turned off in style.css (touch-action), which keeps fast taps on the keypads working. */
+["gesturestart","gesturechange","gestureend"].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
+document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});

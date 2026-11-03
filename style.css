@@ -693,3 +693,8 @@ body[data-sec="maths"]{--sec:var(--c-teal)}
 .fx-keys span{display:block}
 .fx-missed{display:flex;flex-direction:column;gap:8px;text-align:left;width:100%}
 .fx-missed div{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:var(--raised)}
+
+/* No zooming on iPad: no double-tap zoom anywhere, and form fields at 16px or more (smaller ones make Safari zoom in when tapped) */
+html,body{touch-action:manipulation}
+button,a,label,input,select,textarea,[role="button"]{touch-action:manipulation}
+input,select,textarea{font-size:max(16px,1em)}

@@ -732,3 +732,16 @@ input,select,textarea{font-size:max(16px,1em)}
 .cu-plist span b{font-size:15px;color:var(--fg)}
 .cu-plist span.g b{color:var(--green)} .cu-plist span.o b{color:var(--orange)} .cu-plist span.r b{color:var(--red)}
 .cu-area .grow{flex:1;min-width:0;text-align:left}
+/* time settings (Quick facts) and two-way Roman conversion */
+.fx-times{display:flex;flex-wrap:wrap;gap:12px 22px;margin-top:6px}
+.fx-times>div{display:flex;align-items:center;gap:8px}
+.rn-conv-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.rn-big{font:700 26px var(--serif);color:var(--c-pink);letter-spacing:.02em}
+.rn-cq{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;font:700 clamp(40px,9vw,64px)/1.1 var(--round);padding:12px 0}
+.rn-cq .rom,.rn-cin.rom{font-family:var(--serif);color:var(--c-pink)}
+.rn-cin{min-width:1.5em;padding:0 .2em;border-bottom:4px solid var(--c-pink);text-align:center}
+.rn-cin.right{color:var(--green);border-color:var(--green)} .rn-cin.shown{color:var(--red);border-color:var(--red)}
+.rn-ckeys button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.rn-ckeys.r button span{font-family:var(--serif);color:var(--c-pink)}
+.rn-ckeys button small{font:12px var(--body);color:var(--muted)}
+.rn-ckeys.r{grid-template-columns:repeat(4,1fr)}

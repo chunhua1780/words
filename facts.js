@@ -2,7 +2,11 @@
    Each fact (e.g. 7 + 8) has its own record in book.maths.q under an id starting "f:", so it syncs
    and merges like any maths answer: n tries, r right, ok last result, ms last time taken,
    st = quick right answers in a row. A fact is "known" after FACT_KNOWN quick right answers in a row. */
-const FACT_FAST=3000, FACT_KNOWN=3, FACT_SESSION=20;
+const FACT_KNOWN=3, FACT_SESSION=20;
+/* Time settings on this device: the speed goal (default 5 s) and the sprint length (default 2 minutes) */
+const fxPref=(k,d)=>{try{const v=+localStorage.getItem("fx-"+k);return v||d;}catch(e){return d;}};
+const fxSetPref=(k,v)=>{try{localStorage.setItem("fx-"+k,v);}catch(e){}};
+const fxGoal=()=>fxPref("goal",5)*1000, fxMins=()=>fxPref("mins",2);
 const fRange=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
 const fGrid=(lo,hi,ok=()=>true)=>fRange(lo,hi).flatMap(a=>fRange(lo,hi).filter(b=>ok(a,b)).map(b=>[a,b]));
 const mkAdd=([a,b])=>({id:`f:+:${a}:${b}`,op:"+",x:a,y:b,q:`${a} + ${b}`,ans:a+b});
@@ -32,7 +36,7 @@ function factStats(key){
   return {...c,total:fs.length};
 }
 function recordFact(f,ok,ms){
-  const M=MB(), s=M.q[f.id]||{}, t=today(), fast=ok&&ms<=FACT_FAST;
+  const M=MB(), s=M.q[f.id]||{}, t=today(), fast=ok&&ms<=fxGoal();
   M.q[f.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,ms:Math.round(ms),st:fast?(s.st||0)+1:0,last:t,u:Date.now()};
   return fast;
 }
@@ -88,8 +92,16 @@ function factPick(key,k){
 
 /* ---------- screen ---------- */
 let FX=null, fxTimer=null;
-const fxBest=k=>{try{return +localStorage.getItem("fx-best-"+k)||0;}catch(e){return 0;}};
-const fxSetBest=(k,v)=>{try{localStorage.setItem("fx-best-"+k,v);}catch(e){}};
+const fxBestKey=k=>"fx-best-"+k+(fxMins()===1?"":`-${fxMins()}m`);
+const fxBest=k=>{try{return +localStorage.getItem(fxBestKey(k))||0;}catch(e){return 0;}};
+const fxSetBest=(k,v)=>{try{localStorage.setItem(fxBestKey(k),v);}catch(e){}};
+const fxTimeBar=()=>`<div class="fx-times">
+  <div><span class="muted small">Speed goal</span><div class="seg">${[3,5,8].map(g=>`<button data-goal="${g}" class="${g*1000===fxGoal()?"on":""}">${g} s</button>`).join("")}</div></div>
+  <div><span class="muted small">Sprint</span><div class="seg">${[1,2,3].map(m=>`<button data-mins="${m}" class="${m===fxMins()?"on":""}">${m} min</button>`).join("")}</div></div></div>`;
+const fxBindTimes=()=>{
+  document.querySelectorAll("[data-goal]").forEach(b=>b.onclick=()=>{fxSetPref("goal",+b.dataset.goal);fxShow(FX.view,FX.key);});
+  document.querySelectorAll("[data-mins]").forEach(b=>b.onclick=()=>{fxSetPref("mins",+b.dataset.mins);fxShow(FX.view,FX.key);});
+};
 function openFacts(view="hub",key){window.__busy=true;$("#facts").hidden=false;document.body.style.overflow="hidden";fxShow(view,key);}
 function closeFacts(){clearInterval(fxTimer);FX=null;window.__busy=false;$("#facts").hidden=true;document.body.style.overflow="";Store.save();render();}
 if($("#facts")){$("#fxClose").innerHTML=ic("x");$("#fxClose").onclick=closeFacts;
@@ -111,7 +123,8 @@ function fxHub(){
   $("#fxBody").innerHTML=`<div class="rn-wrap stack">
     <div class="card fx-intro"><div class="fx-big">⚡</div><div class="stack tight" style="gap:6px">
       <h3 style="margin:0">Answer from memory, not on your fingers</h3>
-      <p class="muted" style="margin:0">Type the answer as fast as you can; it checks itself. Under 3 seconds gets a ⚡. Three ⚡ in a row on the same fact and you know it. Facts you miss or answer slowly come back more often.</p></div></div>
+      <p class="muted" style="margin:0">Type the answer as fast as you can; it checks itself. Within your speed goal gets a ⚡ (start with 5 or 8 seconds, then go faster). Three ⚡ in a row on the same fact and you know it. Facts you miss or answer slowly come back more often.</p>
+      ${fxTimeBar()}</div></div>
     <div class="section-title"><h3 style="margin:0">Within 20</h3><span class="muted small">Start here</span></div>
     <div class="fx-sets">${["add","sub","mul20","div20","mix20"].map(fxCard).join("")}</div>
     <div class="section-title"><h3 style="margin:0">Times tables</h3><span class="muted small">Next step</span></div>
@@ -119,6 +132,7 @@ function fxHub(){
     <div class="fx-legend muted small"><span><i class="k"></i>Know it</span><span><i class="l"></i>Learning</span><span><i class="m"></i>Missed last time</span><span><i class="n"></i>Not tried</span></div>
   </div>`;
   document.querySelectorAll("#fxBody [data-fx]").forEach(b=>b.onclick=()=>fxShow("set",b.dataset.fx));
+  fxBindTimes();
 }
 function fxSet(key){
   const S=FACT_SETS[key], st=factStats(key), ops=S.mix?[...new Set(S.mix.map(k=>FACT_SETS[k].sym))]:[S.sym];
@@ -132,7 +146,8 @@ function fxSet(key){
         <span class="muted">${st.known} of ${st.total} known · ${st.learning} learning · ${st.missed} missed · ${st.new} not tried</span></div>
         <div class="fx-best"><b>${fxBest(key)||"–"}</b><span class="muted small">sprint best</span></div></div>
       ${fxBar(st)}
-      <div class="row"><button class="btn primary big" id="fxGo">${ic("sparkle")}Practise ${FACT_SESSION} facts</button><button class="btn big" id="fxSprint">⏱️ 1-minute sprint</button></div></div>
+      <div class="row"><button class="btn primary big" id="fxGo">${ic("sparkle")}Practise ${FACT_SESSION} facts</button><button class="btn big" id="fxSprint">⏱️ ${fxMins()}-minute sprint</button></div>
+      ${fxTimeBar()}</div>
     <div class="card stack"><h3 style="margin:0">No fingers needed: use these tricks</h3>
       ${ops.map(o=>`<ul class="fx-how">${FACT_HOW[o].map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`).join("")}</div>
     <div class="card stack"><h3 style="margin:0">My facts</h3>${(S.mix||[key]).map(mapFor).join("")}
@@ -141,12 +156,13 @@ function fxSet(key){
   $("#fxBack").onclick=()=>fxShow("hub");
   $("#fxGo").onclick=()=>fxShow("run",key);
   $("#fxSprint").onclick=()=>fxShow("sprint",key);
+  fxBindTimes();
 }
 
 /* ---------- answering ---------- */
 function fxRun(key){
   const sprint=FX.view==="sprint";
-  Object.assign(FX,{sprint,list:sprint?[]:factPick(key,FACT_SESSION),i:0,right:0,fast:0,done:0,missed:[],left:60,q:null,input:"",t0:0,again:new Set()});
+  Object.assign(FX,{sprint,list:sprint?[]:factPick(key,FACT_SESSION),i:0,right:0,fast:0,done:0,missed:[],left:fxMins()*60,total:fxMins()*60,q:null,input:"",t0:0,again:new Set()});
   $("#fxBody").innerHTML=`<div class="rn-wrap stack fx-run">
     <div class="fx-top"><span id="fxCount"></span><div class="prog"><i id="fxProg"></i></div><span id="fxScore"></span></div>
     <div class="fx-q" id="fxQ"></div>
@@ -159,7 +175,7 @@ function fxRun(key){
   fxNext();
 }
 function fxHead(){
-  if(FX.sprint){$("#fxCount").textContent=`${FX.left}s`;$("#fxProg").style.width=FX.left/60*100+"%";$("#fxScore").textContent=`${FX.right} right`;}
+  if(FX.sprint){$("#fxCount").textContent=`${Math.floor(FX.left/60)}:${String(FX.left%60).padStart(2,"0")}`;$("#fxProg").style.width=FX.left/FX.total*100+"%";$("#fxScore").textContent=`${FX.right} right`;}
   else{$("#fxCount").textContent=`${Math.min(FX.i+1,FX.list.length)} of ${FX.list.length}`;$("#fxProg").style.width=FX.i/FX.list.length*100+"%";$("#fxScore").textContent=`⚡ ${FX.fast}`;}
 }
 function fxNext(){
@@ -167,7 +183,7 @@ function fxNext(){
   FX.q=FX.sprint?factPick(FX.key,1)[0]:FX.list[FX.i]; FX.input=""; FX.lock=false; FX.t0=performance.now();
   $("#fxQ").innerHTML=`<span>${FX.q.q} =</span> <b id="fxIn" class="fx-in">?</b>`; $("#fxMsg").textContent=""; $("#fxMsg").className="fx-msg";
   const sp=$("#fxSpeed"); sp.style.transition="none"; sp.style.width="100%"; sp.className=""; void sp.offsetWidth;
-  sp.style.transition=`width ${FACT_FAST}ms linear`; sp.style.width="0%";
+  sp.style.transition=`width ${fxGoal()}ms linear`; sp.style.width="0%";
   fxHead();
 }
 function fxKey(k){
@@ -197,12 +213,12 @@ function fxEnd(){
   clearInterval(fxTimer); const key=FX.key, st=factStats(key);
   let best="";
   if(FX.sprint){const b=fxBest(key);if(FX.right>b){fxSetBest(key,FX.right);best=b?" New best!":"";}}
-  const pct=FX.done?FX.right/FX.done:0, stars=FX.sprint?(FX.right>=25?3:FX.right>=15?2:1):(pct>=.9&&FX.fast>=FX.done*.7?3:pct>=.7?2:1);
+  const pct=FX.done?FX.right/FX.done:0, stars=FX.sprint?(FX.right>=12*FX.total/60?3:FX.right>=7*FX.total/60?2:1):(pct>=.9&&FX.fast>=FX.done*.7?3:pct>=.7?2:1);
   beep(true,true); FX.q=null;
   const miss=[...new Map(FX.missed.map(f=>[f.id,f])).values()];
   $("#fxBody").innerHTML=`<div class="rn-wrap stack"><div class="card rn-done stack">
     <div class="stars">${"★".repeat(stars)}<span style="opacity:.25">${"★".repeat(3-stars)}</span></div>
-    <h2>${FX.sprint?`${FX.right} right in a minute!${best}`:`${FX.right} of ${FX.done} right · ⚡ ${FX.fast} quick`}</h2>
+    <h2>${FX.sprint?`${FX.right} right in ${FX.total/60} minute${FX.total>60?"s":""}!${best}`:`${FX.right} of ${FX.done} right · ⚡ ${FX.fast} quick`}</h2>
     <p class="muted">${st.known} of ${st.total} facts known in ${FACT_SETS[key].name.toLowerCase()} ${FACT_SETS[key].sub}.</p>
     ${miss.length?`<div class="fx-missed"><div class="muted small">Learn these ones:</div>${miss.map(f=>`<div><b>${f.q} = ${f.ans}</b><span class="muted small">${esc(factTip(f))}</span></div>`).join("")}</div>`:""}
     <div class="row" style="justify-content:center"><button class="btn primary big" id="fxAgain">Go again</button><button class="btn big" id="fxBack">${ic("back")}Back</button></div></div></div>`;

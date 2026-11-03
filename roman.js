@@ -17,6 +17,8 @@ function rnExplain(n){
 }
 /* A hint that shows the pieces without giving the letters away */
 function rnHint(n){
+  const one=RN_LETTERS.find(x=>x.v===n);
+  if(one)return `which single letter is worth ${rnN(n)}? Think of its picture: ${one.pic} ${one.hint.replace(/\.$/,"")}`;
   return `${rnN(n)} = ${rnParts(n).map(([r,v])=>r.length===2?`${rnN(v)} (a small letter before a big one: ${rnN(RN_ONE[r[1]])} − ${rnN(RN_ONE[r[0]])})`:rnN(v)).join(" + ")}`;
 }
 const RN_LETTERS=[
@@ -76,8 +78,8 @@ function closeRoman(){clearInterval(rnTimer);RNG=null;window.__busy=false;$("#ro
 $("#rnClose").innerHTML=ic("x"); $("#rnClose").onclick=closeRoman;
 function rnShow(view){
   clearInterval(rnTimer); RNV=view; $("#rnBody").scrollTop=0;
-  $("#rnLabel").textContent={hub:"Roman numerals",learn:"Learn the letters",flash:"Flashcards",pairs:"Flip and match",drag:"Drag and match",build:"Build it",order:"Put in order",quiz:"60-second quiz"}[view]||"Roman numerals";
-  ({hub:rnHub,learn:rnLearn,flash:rnFlash,pairs:rnPairs,drag:rnDragGame,build:rnBuild,order:rnOrder,quiz:rnQuiz})[view]();
+  $("#rnLabel").textContent={hub:"Roman numerals",learn:"Learn the letters",flash:"Flashcards",pairs:"Flip and match",drag:"Drag and match",build:"Build it",order:"Put in order",quiz:"Timed quiz",conv:"Change numbers"}[view]||"Roman numerals";
+  ({hub:rnHub,learn:rnLearn,flash:rnFlash,pairs:rnPairs,drag:rnDragGame,build:rnBuild,order:rnOrder,quiz:rnQuiz,conv:rnConv})[view]();
 }
 const rnBack=`<button class="btn rn-back" data-rn="hub">${ic("back")}All Roman numerals</button>`;
 const rnLevelBar=()=>`<div class="seg rn-levels" role="group" aria-label="Numbers">${RN_LEVELS.map(([k,n])=>`<button data-lv="${k}" class="${k===RL?"on":""}">${n}</button>`).join("")}</div>`;
@@ -108,14 +110,20 @@ function rnHub(){
     <div class="card rn-hero"><div class="rn-hero-letters">${RN_LETTERS.map(x=>`<span><b>${x.l}</b>${x.v.toLocaleString("en-GB")}</span>`).join("")}</div>
       <p class="muted" style="margin:0">Learn the seven letters first, then play the games. Finish with some practice questions.</p>
       <div class="row"><button class="btn primary big" data-rn="learn">${ic("book")}Learn the letters</button><button class="btn big" data-rn="flash">${ic("layers")}Flashcards</button></div></div>
-    <div class="section-title"><h3 style="margin:0">Games</h3><span class="muted small">Numbers:</span></div>
+    <div class="section-title"><h3 style="margin:0">Change numbers both ways</h3><span class="muted small">No timer · type the answer · numbers:</span></div>
     ${rnLevelBar()}
+    <div class="rn-conv-pick">
+      <button class="card rn-game" data-conv="toNum"><span class="rn-big">XIV → 14</span><b>Roman numeral to number</b><span class="muted small">Read the Roman numeral, type the number.</span></button>
+      <button class="card rn-game" data-conv="toRom"><span class="rn-big">14 → XIV</span><b>Number to Roman numeral</b><span class="muted small">Read the number, type it in Roman numerals.</span></button>
+      <button class="card rn-game" data-conv="mix"><span class="rn-big">⇄</span><b>Both ways mixed</b><span class="muted small">A bit of each.</span></button>
+    </div>
+    <div class="section-title"><h3 style="margin:0">Games</h3><span class="muted small">Same numbers as above</span></div>
     <div class="rn-games">
       ${G("pairs","🃏","Flip and match","Find each Roman numeral and its number.",best("pairs")!=null?best("pairs")+" moves":null)}
       ${G("drag","🧲","Drag and match","Drag each card onto its partner.",best("drag")!=null?best("drag")+"/15":null)}
       ${G("build","🧱","Build it","Drag the letters to make the number.",best("build")!=null?best("build")+"/8":null)}
       ${G("order","📶","Put in order","Smallest to largest.",best("order")!=null?best("order")+"/5":null)}
-      ${G("quiz","⏱️","60-second quiz","How many can you get in a minute?",best("quiz"))}
+      ${G("quiz","⏱️","Timed quiz",`How many can you get in ${rnMins()} minute${rnMins()>1?"s":""}? (1 to 5 minutes)`,rnGet(rnQuizKey(),null))}
     </div>
     <div class="section-title"><h3 style="margin:0">Practice questions</h3><span class="muted small">${MTOPIC} at a time · saved with your maths</span></div>
     <div class="topics">${RN_LEVELS.map(([lv])=>{const ids=MATHS.filter(q=>q.lv===lv).map(q=>q.id), seen=ids.filter(id=>st[id]).length, ok=ids.filter(id=>st[id]&&st[id].ok).length;
@@ -123,6 +131,7 @@ function rnHub(){
       <button class="topic" data-rnq="all" style="--tc:var(--c-pink)"><b>Everything mixed</b><span class="muted small">Adding, taking away, comparing and more</span><span class="bar"><i style="width:0"></i></span></button></div>
   </div>`;
   rnBind();
+  document.querySelectorAll("[data-conv]").forEach(b=>b.onclick=()=>{RN_DIR=b.dataset.conv;rnShow("conv");});
   document.querySelectorAll("[data-rnq]").forEach(b=>b.onclick=()=>{
     const lv=b.dataset.rnq; closeRoman();
     openMaths(lv==="all"?{kind:"topic",topic:"Roman numerals",ids:topicSet("Roman numerals")}:{kind:"topic",topic:`Roman numerals · ${ROMAN_LEVELS[lv]}`,ids:romanLevelSet(+lv)});
@@ -291,10 +300,13 @@ function rnOrder(){
 }
 
 /* ---------- game 5: 60-second quiz ---------- */
+const rnMins=()=>rnGet("qmin",2);
+const rnQuizKey=()=>`best-quiz-${RL}`+(rnMins()===1?"":`-${rnMins()}m`);
 function rnQuiz(){
-  RNG={score:0,left:60,lock:false};
-  const end=()=>{clearInterval(rnTimer);const s=RNG.score,b=rnGet(`best-quiz-${RL}`,null);if(b==null||s>b)rnSet(`best-quiz-${RL}`,s);
-    rnFinish("Time's up!",`You got ${s} right in 60 seconds.${b!=null&&s>b?" New best!":b!=null?` Your best is ${Math.max(b,s)}.`:""}`,s>=15?3:s>=8?2:1,rnQuiz);};
+  const mins=rnMins(), total=mins*60;
+  RNG={score:0,left:total,lock:false};
+  const end=()=>{clearInterval(rnTimer);const s=RNG.score,b=rnGet(rnQuizKey(),null);if(b==null||s>b)rnSet(rnQuizKey(),s);
+    rnFinish("Time's up!",`You got ${s} right in ${mins} minute${mins>1?"s":""}.${b!=null&&s>b?" New best!":b!=null?` Your best is ${Math.max(b,s)}.`:""}`,s>=12*mins?3:s>=6*mins?2:1,rnQuiz);};
   const ask=()=>{
     const n=rnPick(RL), dir=Math.random()<.5, opts=new Set([n]); let g=0;
     while(opts.size<4&&g++<200){const d=[1,-1,2,-2,4,-4,5,-5,9,-9,10,-10,50,-50,100,-100][Math.floor(Math.random()*16)]*(RL===4&&Math.random()<.5?10:1);const x=n+d;if(x>0&&x<=1000)opts.add(x);}
@@ -307,10 +319,60 @@ function rnQuiz(){
       $("#rnScore").textContent=RNG.score; RNG.lock=true; setTimeout(()=>{RNG.lock=false;if(RNG.left>0)ask();},ok?350:1100);
     });
   };
+  const clock=t=>`${Math.floor(t/60)}:${String(t%60).padStart(2,"0")}`;
   $("#rnBody").innerHTML=`<div class="rn-wrap stack">${rnBack}${rnLevelBar()}
-    <div class="rn-quizbar"><span>Score <b id="rnScore">0</b></span><div class="prog"><i id="rnTime" style="width:100%"></i></div><span id="rnSecs">60s</span></div>
+    <div class="seg rn-levels" role="group" aria-label="Time">${[1,2,3,5].map(m=>`<button data-qmin="${m}" class="${m===mins?"on":""}">${m} min</button>`).join("")}</div>
+    <div class="rn-quizbar"><span>Score <b id="rnScore">0</b></span><div class="prog"><i id="rnTime" style="width:100%"></i></div><span id="rnSecs">${clock(total)}</span></div>
     <div id="rnQ"></div></div>`;
   rnBind(); ask();
+  document.querySelectorAll("[data-qmin]").forEach(b=>b.onclick=()=>{rnSet("qmin",+b.dataset.qmin);rnShow("quiz");});
   rnTimer=setInterval(()=>{if(RNV!=="quiz"||$("#roman").hidden){clearInterval(rnTimer);return;}
-    RNG.left--; $("#rnTime").style.width=RNG.left/60*100+"%"; $("#rnSecs").textContent=RNG.left+"s"; if(RNG.left<=0)end();},1000);
+    RNG.left--; $("#rnTime").style.width=RNG.left/total*100+"%"; $("#rnSecs").textContent=clock(RNG.left); if(RNG.left<=0)end();},1000);
 }
+
+/* ---------- change numbers both ways: no timer, type the answer, two tries ---------- */
+let RN_DIR="mix";
+function rnConv(){
+  RNG={list:rnNums(RL,10),i:0,score:0,tries:0,input:"",msg:"",state:"ask"};
+  RNG.dirs=RNG.list.map(()=>RN_DIR==="mix"?(Math.random()<.5?"toNum":"toRom"):RN_DIR);
+  const draw=()=>{
+    if(RNG.i>=RNG.list.length){const s=RNG.score,k=`best-conv-${RN_DIR}-${RL}`,b=rnGet(k,null);if(b==null||s>b)rnSet(k,s);
+      rnFinish("All done!",`${s} of 10 right on the first try.`,s>=9?3:s>=6?2:1,rnConv);return;}
+    const n=RNG.list[RNG.i], dir=RNG.dirs[RNG.i], toRom=dir==="toRom", done=RNG.state!=="ask";
+    const keys=toRom?[...(RL===4?"IVXLCDM":RN_TRAY[RL])]:["7","8","9","4","5","6","1","2","3","0"];
+    const vals=toRom&&rnGet("values",false);
+    $("#rnBody").innerHTML=`<div class="rn-wrap stack rn-conv">${rnBack}${rnLevelBar()}
+      <div class="muted center">${RNG.i+1} of 10 · ${toRom?"Write this number in Roman numerals":"What number is this Roman numeral?"} · Score ${RNG.score}</div>
+      <div class="rn-cq"><span class="${toRom?"":"rom"}">${toRom?n.toLocaleString("en-GB"):toRoman(n)}</span><span class="muted">=</span>
+        <b class="rn-cin ${toRom?"rom":""} ${RNG.state}">${esc(RNG.input)||"?"}</b></div>
+      ${done?"":`<div class="keypad rn-ckeys ${toRom?"r":""}">${keys.map(k=>`<button data-k="${k}"><span>${k}</span>${vals?`<small>${RN_ONE[k].toLocaleString("en-GB")}</small>`:""}</button>`).join("")}<button data-k="⌫" class="del">${ic("back")}</button></div>
+        ${toRom?`<label class="rn-switch"><input type="checkbox" id="rnVals" ${vals?"checked":""}><span class="rn-knob"></span>Show what each letter is worth</label>`:""}`}
+      <div class="rn-explain ${RNG.msg?"show":""}">${RNG.msg||"Take your time. Tap Check when you are ready."}</div>
+      <div class="row" style="justify-content:center">${done?`<button class="btn primary big" id="rnNext">${RNG.i<9?"Next":"Finish"}</button>`:`<button class="btn primary big" id="rnCheck" ${RNG.input?"":"disabled"}>Check</button>`}</div></div>`;
+    rnBind();
+    document.querySelectorAll(".rn-ckeys [data-k]").forEach(b=>b.onclick=()=>key(b.dataset.k));
+    const v=$("#rnVals"); if(v)v.onchange=e=>{rnSet("values",e.target.checked);draw();};
+    const c=$("#rnCheck"); if(c)c.onclick=check;
+    const nx=$("#rnNext"); if(nx)nx.onclick=()=>{RNG.i++;RNG.tries=0;RNG.input="";RNG.msg="";RNG.state="ask";draw();};
+  };
+  const key=k=>{if(RNG.state!=="ask")return;if(k==="⌫")RNG.input=RNG.input.slice(0,-1);else if(RNG.input.length<15)RNG.input+=k;draw();};
+  const check=()=>{
+    const n=RNG.list[RNG.i], toRom=RNG.dirs[RNG.i]==="toRom", ok=toRom?RNG.input===toRoman(n):+RNG.input===n;
+    RNG.tries++;
+    if(ok){beep(true);if(RNG.tries===1)RNG.score++;RNG.state="right";RNG.msg=`Right! ${rnExplain(n)}`;}
+    else if(RNG.tries<2){beep(false);RNG.input="";
+      RNG.msg=toRom?`Not quite. Think of it in parts: ${rnHint(n)}. Try again.`:`Not quite. Work out each letter: ${[...toRoman(n)].map(c=>`${c} = ${RN_ONE[c].toLocaleString("en-GB")}`).join(", ")}. A small letter before a bigger one is taken away. Try again.`;}
+    else{beep(false);RNG.state="shown";RNG.input=toRom?toRoman(n):String(n);RNG.msg=`The answer is ${toRom?toRoman(n):n.toLocaleString("en-GB")}. ${rnExplain(n)}`;}
+    draw();
+  };
+  RNG.key=key; RNG.check=check;
+  draw();
+}
+document.addEventListener("keydown",e=>{
+  if($("#roman").hidden||RNV!=="conv"||!RNG||!RNG.key||e.metaKey||e.ctrlKey)return;
+  const k=e.key.length===1?e.key.toUpperCase():e.key;
+  if(k==="Enter"){($("#rnNext")||$("#rnCheck"))?.click();e.preventDefault();return;}
+  if(k==="Backspace"){RNG.key("⌫");e.preventDefault();return;}
+  const toRom=RNG.dirs[RNG.i]==="toRom";
+  if(toRom?/^[IVXLCDM]$/.test(k):/^\d$/.test(k)){RNG.key(k);e.preventDefault();}
+});

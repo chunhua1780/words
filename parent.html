@@ -62,6 +62,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
 <script src="maths.js"></script>
+<script src="checkup.js"></script>
 <script src="facts.js"></script>
 <script>
 "use strict";
@@ -111,6 +112,21 @@ function readingBlock(){
   </div>`;
 }
 
+/* Daily check-up: recent scores, what the last one showed, and which unit the school is on */
+function cuParent(){
+  const M=MB(), hist=[];
+  for(let k=13;k>=0;k--){const date=addDays(today(),-k), d=M.days[cuKey(date)]; if(d&&Object.keys(d.ans).length)hist.push({date,d});}
+  const {unit,auto}=cuCurrent(), pick=(B().prefs||{}).cuUnit||"";
+  const last=hist.filter(h=>Object.keys(h.d.ans).length===h.d.ids.length).pop();
+  const gaps=last?cuAreas(last.d).filter(a=>a.ok<a.n):[];
+  return `<div class="cu-parent stack tight" style="gap:8px">
+    <div class="row" style="justify-content:space-between;gap:10px"><b>Daily check-up (${CU_N} questions)</b>
+      <label class="muted small">Unit at school: <select id="cuUnit"><option value="">Automatic: ${esc(CU_UNITS.reduce((u,x)=>x.from<=today()?x:u,CU_UNITS[0]).name)}</option>${CU_UNITS.map(u=>`<option value="${u.k}" ${pick===u.k?"selected":""}>${esc(u.name)}</option>`).join("")}</select></label></div>
+    <div class="muted small">${auto?"Follows the usual Year 5 order (White Rose Maths) by date. Choose the unit if the class is somewhere else.":`Set by you to ${esc(unit.name)}.`}</div>
+    ${hist.length?`<div class="cu-plist">${hist.map(h=>{const a=Object.values(h.d.ans),r=a.filter(x=>x.ok).length,n=h.d.ids.length,fin=a.length===n;return `<span class="${fin?(r/n>=.8?"g":r/n>=.6?"o":"r"):""}" title="${h.date}">${shortDate(h.date)}<b>${fin?`${r}/${n}`:`${a.length}/${n} done`}</b></span>`;}).join("")}</div>`:`<div class="muted small">No check-ups yet.</div>`}
+    ${last?`<div class="muted small">Last check-up (${shortDate(last.date)}): ${gaps.length?`gaps in ${gaps.map(g=>esc(g.label)).join("; ")}`:"no gaps"}.</div>`:""}
+  </div>`;
+}
 function mathsBlock(){
   const M=MB(), t=today(), days=[...Array(14)].map((_,k)=>addDays(t,k-13));
   const sc=d=>M.days[d]?dayScore(M.days[d]):null;
@@ -121,6 +137,7 @@ function mathsBlock(){
   return `<div class="card stack">
     <div class="row" style="justify-content:space-between"><h3>Maths</h3><span class="muted small">${wn?`${wr}/${wn} correct this week`:"No maths yet this week"}</span></div>
     <div class="muted small">Today: ${today20&&today20.done?`${today20.done} of ${today20.n} answered, ${today20.right} correct`:"not started"} · ${Object.keys(M.q).filter(id=>MQ[id]).length} of ${MATHS.length} bank questions tried</div>
+    ${cuParent()}
     <div class="act teal">${days.map(d=>{const s=sc(d);return `<div title="${d}: ${s?s.right+"/"+s.n+" correct":"no daily set"}" style="height:${s?s.right/MDAY*100:0}%"></div>`;}).join("")}</div>
     <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
     <div class="muted tiny">Bars show the daily ${MDAY}: correct answers out of ${MDAY}.</div>
@@ -223,6 +240,7 @@ function bind(){
     try{await Store.open(u,p,false);err="";render();}catch(x){err=authMsg(x);render();$("#aUser").value=u;}
   };
   const keep=()=>{const ti=$("#pTitle"),te=$("#pTest"),w=$("#pWords"),po=$("#pOpen");if(ti)planTitle=ti.value;if(te)planTest=te.checked;if(w)planDraft=w.value;if(po&&po.value)planOpen=po.value;};
+  const cu=$("#cuUnit"); if(cu)cu.onchange=()=>{cuSetUnit(cu.value);render();};
   const pd=$("#pDate"); if(pd)pd.onchange=()=>{keep();if(pd.value){planDate=pd.value;planOpen=null;msg="";render();}};
   document.querySelectorAll("[data-pdate]").forEach(b=>b.onclick=()=>{keep();planDate=b.dataset.pdate;planOpen=null;msg="";render();});
   const pt=$("#pTest"); if(pt)pt.onchange=()=>{keep();const ex=B().lists[planDate];if(ex){ex.test=pt.checked;ex.open=pt.checked?(ex.open||planOpen):planDate;ex.u=Date.now();Store.save();}render();};

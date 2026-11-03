@@ -706,3 +706,29 @@ input,select,textarea{font-size:max(16px,1em)}
 .rn-switch input:checked+.rn-knob{background:var(--c-pink)}
 .rn-switch input:checked+.rn-knob::after{transform:translateX(18px)}
 .rn-switch input:focus-visible+.rn-knob{outline:2px solid var(--c-pink);outline-offset:2px}
+
+/* ================= Daily check-up ================= */
+.cu-card{background:linear-gradient(150deg,color-mix(in srgb,var(--c-purple) 11%,var(--paper)),var(--paper) 70%)}
+.cu-card .btn.primary{background:var(--c-purple)}
+.cu-spark{display:flex;align-items:flex-end;gap:4px;height:44px;flex:none}
+.cu-spark i{display:block;width:10px;border-radius:3px}
+.cu-spark i.g,.cu-hist i.g{background:var(--green-fill)} .cu-spark i.o,.cu-hist i.o{background:var(--orange-fill)} .cu-spark i.r,.cu-hist i.r{background:var(--red)}
+.cu-grade{margin:0;font:600 18px var(--round)}
+.cu-grade.g{color:var(--green)} .cu-grade.o{color:var(--orange)} .cu-grade.r{color:var(--red)}
+.cu-hist{display:flex;align-items:flex-end;gap:10px;height:110px;justify-content:center}
+.cu-hist div{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%;font-size:12px}
+.cu-hist i{display:block;width:26px;border-radius:6px}
+.cu-hist small{color:var(--muted)}
+.cu-areas{text-align:left;width:100%}
+.cu-area{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--sep)}
+.cu-area:first-of-type{border-top:0}
+.cu-dot{width:12px;height:12px;border-radius:50%;flex:none}
+.cu-dot.g{background:var(--green-fill)} .cu-dot.o{background:var(--orange-fill)} .cu-dot.r{background:var(--red)}
+.cu-report .card{width:100%}
+.cu-parent{padding:12px 14px;border-radius:14px;background:var(--raised)}
+.cu-parent select{font:inherit;border:1px solid var(--line);border-radius:10px;padding:4px 8px;background:var(--paper);color:var(--fg)}
+.cu-plist{display:flex;flex-wrap:wrap;gap:6px}
+.cu-plist span{display:flex;flex-direction:column;align-items:center;padding:6px 10px;border-radius:10px;background:var(--paper);font-size:12px;color:var(--muted)}
+.cu-plist span b{font-size:15px;color:var(--fg)}
+.cu-plist span.g b{color:var(--green)} .cu-plist span.o b{color:var(--orange)} .cu-plist span.r b{color:var(--red)}
+.cu-area .grow{flex:1;min-width:0;text-align:left}

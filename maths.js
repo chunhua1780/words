@@ -167,6 +167,7 @@ function viewMaths(){
       </div>
       <div class="hero-num"><b>${sc.done}<small>/${sc.n}</small></b><span class="muted small">answered today</span></div>
     </div>
+    ${checkupCard()}
     <div class="kpis">
       <div class="kpi"><b>${total}</b><span>questions answered</span></div>
       <div class="kpi"><b>${total?Math.round(right/total*100)+"%":"–"}</b><span>correct</span></div>
@@ -185,6 +186,7 @@ function viewMaths(){
   </div>`;
 }
 function bindMaths(){
+  document.querySelectorAll("#view [data-cu]").forEach(b=>b.onclick=()=>openCheckup());
   document.querySelectorAll("#view [data-roman]").forEach(b=>b.onclick=()=>openRoman());
   document.querySelectorAll("#view [data-facts]").forEach(b=>b.onclick=()=>openFacts());
   document.querySelectorAll("#view [data-maths]").forEach(b=>b.onclick=()=>{
@@ -197,10 +199,10 @@ function bindMaths(){
 let MS=null;
 function openMaths(o){
   MS={...o,i:0,tries:0,input:"",state:"ask",res:{},wrongPick:[]};
-  if(o.kind==="day"){const d=MB().days[o.date];Object.entries(d.ans||{}).forEach(([id,a])=>MS.res[id]=a.ok);
+  if(o.kind==="day"||o.kind==="test"){const d=MB().days[o.kind==="test"?o.key:o.date];Object.entries(d.ans||{}).forEach(([id,a])=>MS.res[id]=a.ok);
     const first=o.ids.findIndex(id=>!(id in d.ans)); MS.i=first<0?o.ids.length:first;}
   window.__busy=true; $("#maths").hidden=false; document.body.style.overflow="hidden";
-  $("#mLabel").textContent=o.kind==="day"?`Daily maths · ${shortDate(o.date)}`:o.topic;
+  $("#mLabel").textContent=o.kind==="day"?`Daily maths · ${shortDate(o.date)}`:o.kind==="test"?`Daily check-up · ${shortDate(o.date)}`:o.topic;
   renderMQ();
 }
 function closeMaths(){MS=null;window.__busy=false;$("#maths").hidden=true;document.body.style.overflow="";Store.save();render();}
@@ -225,7 +227,7 @@ function renderMQ(){
     ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${esc(c)}</button>`).join("")}</div>`
     :`<div class="m-answer ${st}"><span class="pre">${pre}</span><span class="val">${esc(q.k==="n"?MS.input.replace(/^(−?)(\d{4,})/,(m,s,d)=>s+(+d).toLocaleString("en-GB")):MS.input)}${done?"":`<i class="caret"></i>`}</span><span class="post">${esc(post)}</span></div>
       ${done?"":`<div class="keypad ${q.k}">${keysFor(q).map(k=>`<button data-key="${k}" class="${k==="⌫"?"del":k==="space"?"sp":""}">${k==="⌫"?ic("back"):k==="space"?"space":k}</button>`).join("")}</div>
-      <button class="btn primary big" id="mCheck" ${MS.input.trim()?"":"disabled"}>Check</button>`}`}
+      <button class="btn primary big" id="mCheck" ${MS.input.trim()?"":"disabled"}>${MS.kind==="test"?(MS.i+1<n?"Next":"Finish"):"Check"}</button>`}`}
     <div class="m-feedback">${feedback(q)}</div>
   </div>`;
   $("#mSay").onclick=()=>sayMaths(q.q);
@@ -255,6 +257,7 @@ function press(k){
 }
 function answer(q,v){
   const ok=q.k==="c"?v===q.a:checkAns(q,v);
+  if(MS.kind==="test"){MS.tries=1;record(q,ok,q.k==="c"?q.c[v]:v);nextQ();return;} // a test: one try, marks only at the end
   MS.tries++;
   if(ok){MS.state="right";beep(true,false);}
   else if(MS.tries<2){MS.state="retry";beep(false);if(q.k==="c")MS.wrongPick.push(v);else MS.input="";renderMQ();return;}
@@ -267,10 +270,12 @@ function record(q,ok,given){
   M.q[q.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now()};
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
   if(MS.kind==="day"){const d=M.days[MS.date];d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
+  if(MS.kind==="test"){const d=M.days[MS.key];d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
   MS.res[q.id]=ok; Store.save();
 }
 function nextQ(){MS.i++;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}
 function renderMResults(){
+  if(MS.kind==="test"){renderCheckupReport();return;}
   const ids=MS.ids, right=ids.filter(id=>MS.res[id]).length, n=ids.length, pct=right/n;
   const stars=pct>=.9?3:pct>=.7?2:pct>=.4?1:0;
   if(!MS.cheered){MS.cheered=true;beep(true,true);}

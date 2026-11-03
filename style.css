@@ -698,3 +698,11 @@ body[data-sec="maths"]{--sec:var(--c-teal)}
 html,body{touch-action:manipulation}
 button,a,label,input,select,textarea,[role="button"]{touch-action:manipulation}
 input,select,textarea{font-size:max(16px,1em)}
+/* on/off switch (Roman numerals: show letter values) */
+.rn-switch{align-self:center;display:inline-flex;align-items:center;gap:10px;font:500 15px var(--body);color:var(--muted);cursor:pointer;user-select:none;-webkit-user-select:none}
+.rn-switch input{position:absolute;opacity:0;width:1px;height:1px}
+.rn-knob{position:relative;width:46px;height:28px;border-radius:99px;background:var(--line);transition:background .2s;flex:none}
+.rn-knob::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.rn-switch input:checked+.rn-knob{background:var(--c-pink)}
+.rn-switch input:checked+.rn-knob::after{transform:translateX(18px)}
+.rn-switch input:focus-visible+.rn-knob{outline:2px solid var(--c-pink);outline-offset:2px}

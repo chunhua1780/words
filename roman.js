@@ -241,12 +241,14 @@ function rnBuild(){
       <div class="muted center">${RNG.i+1} of 8 · Drag (or tap) letters into the box to make the number.</div>
       <div class="rn-make">Make <b>${n.toLocaleString("en-GB")}</b></div>
       <div class="rn-slot" data-drop id="rnSlot">${RNG.ans.length?RNG.ans.map((c,k)=>`<button class="rn-chip" data-k="${k}">${c}</button>`).join(""):`<span class="muted">Drop letters here</span>`}</div>
-      <div class="rn-tray">${[...RN_TRAY[RL]].map(c=>`<div class="rn-tile rom" data-c="${c}"><b>${c}</b><small>${RN_ONE[c].toLocaleString("en-GB")}</small></div>`).join("")}</div>
+      <div class="rn-tray">${[...RN_TRAY[RL]].map(c=>`<div class="rn-tile rom" data-c="${c}"><b>${c}</b>${rnGet("values",false)?`<small>${RN_ONE[c].toLocaleString("en-GB")}</small>`:""}</div>`).join("")}</div>
+      <label class="rn-switch"><input type="checkbox" id="rnVals" ${rnGet("values",false)?"checked":""}><span class="rn-knob"></span>Show what each letter is worth</label>
       <div class="row" style="justify-content:center"><button class="btn big" id="rnClear">Clear</button><button class="btn primary big" id="rnCheck" ${RNG.ans.length?"":"disabled"}>Check</button></div>
       <div class="rn-explain ${msg?"show":""}" id="rnEx">${msg||"Tap a letter in the box to take it out."}</div></div>`;
     rnBind();
     const put=c=>{if(RNG.ans.length<15){RNG.ans.push(c);draw(msg);}};
     document.querySelectorAll(".rn-tray .rn-tile").forEach(t=>rnDrag(t,{onDrop:()=>put(t.dataset.c),onTap:()=>put(t.dataset.c)}));
+    $("#rnVals").onchange=e=>{rnSet("values",e.target.checked);draw(msg);}; // off by default: remember the values, don't read them
     document.querySelectorAll(".rn-chip").forEach(b=>b.onclick=()=>{RNG.ans.splice(+b.dataset.k,1);draw(msg);});
     $("#rnClear").onclick=()=>{RNG.ans=[];draw(msg);};
     $("#rnCheck").onclick=()=>{

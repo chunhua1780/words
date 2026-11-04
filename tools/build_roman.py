@@ -183,6 +183,43 @@ for i, q in enumerate(BANK):
     for x in c:  # every Roman option is spelled the standard way or is a deliberate slip
         assert re.fullmatch(r"[IVXLCDM]+|[\d,]+", x), x
 
+# ---------- worked steps for 答疑 (tools/build_steps.py runs this with STEPS_OUT set) ----------
+KEY = "Letters: I = 1, V = 5, X = 10, L = 50, C = 100, D = 500, M = 1,000."
+RULE = "A smaller letter in front of a bigger one is taken away: IV = 4, IX = 9, XL = 40, XC = 90, CD = 400, CM = 900."
+def read_steps(s):
+    n = value(s); return [KEY, RULE, f"Split {s} into pieces: {parts(n).replace(' + ', ', ')}.", f"Add them: {' + '.join(p.split('(')[1][:-1] for p in parts(n).split(' + '))} = {n:,}."]
+def write_steps(n):
+    pv = [int(d) * 10 ** (len(str(n)) - 1 - i) for i, d in enumerate(str(n)) if d != "0"]
+    return [f"Split {n:,} into place values: {' + '.join(f'{p:,}' for p in pv)}.", "Write each part in Roman numerals: " + ", ".join(f"{p:,} = {roman(p)}" for p in pv) + ".",
+            "4s and 9s use taking away (IV, IX, XL, XC, CD, CM); never use the same letter more than three times in a row.", f"Put them together: {roman(n)}."]
+def steps_for(q):
+    t = q["q"]; ans = q["c"][q["a"]] if q["k"] == "c" else q["a"]
+    m = re.match(r"What number does the Roman numeral ([IVXLCDM]) stand for\?", t)
+    if m: return [KEY, f"So {m.group(1)} = {LETTERS[m.group(1)]:,}."]
+    m = re.match(r"Which Roman numeral stands for ([\d,]+)\?", t)
+    if m: return [KEY, f"So {m.group(1)} is {ans}."]
+    m = re.match(r"(?:What number is|Choose the number for) ([IVXLCDM]+)[?.]", t)
+    if m: return read_steps(m.group(1))
+    m = re.match(r"(?:Which is|Write|Choose the Roman numeral for) ([\d,]+)", t)
+    if m: return write_steps(int(m.group(1).replace(",", "")))
+    m = re.match(r"Is ([IVXLCDM]+) equal to ([\d,]+)\?", t)
+    if m:
+        s, n = m.group(1), int(m.group(2).replace(",", ""))
+        return [f"Read {s}: {parts(value(s))} = {value(s):,}.", f"Compare with {n:,}: " + ("they are the same, so Yes." if value(s) == n else f"they are different, so No. {n:,} is {roman(n)}.")]
+    m = re.match(r"^([IVXLCDM]+) ([+−]) ([IVXLCDM]+) = \?", t)
+    if m:
+        a, b = value(m.group(1)), value(m.group(3)); r = a + b if m.group(2) == "+" else a - b
+        return [f"Change to numbers first. {m.group(1)} = {parts(a)} = {a}.", f"{m.group(3)} = {parts(b)} = {b}.", f"{a} {m.group(2)} {b} = {r}."] + (write_steps(r)[:2] + [f"So the answer is {roman(r)}."] if "Roman" in t else [f"Answer: {r:,}."])
+    m = re.match(r"What is double ([IVXLCDM]+)\?", t)
+    if m:
+        n = value(m.group(1)); return [f"Change to a number: {m.group(1)} = {parts(n)} = {n}.", f"Double {n} = {n} × 2 = {2*n}."] + write_steps(2 * n)[:2] + [f"So the answer is {roman(2*n)}."]
+    if t.startswith("Which of these is the biggest"):
+        return ["Change each one into a number: " + ", ".join(f"{x} = {value(x)}" for x in q["c"]) + ".", f"The biggest number is {value(ans)}, so the answer is {ans}."]
+    return None
+STEPS = {q["q"] + "null": s for q in BANK for s in [steps_for(q)] if s}
+import os
+if os.environ.get("STEPS_OUT"):
+    json.dump(STEPS, open(os.environ["STEPS_OUT"], "w"), ensure_ascii=False); raise SystemExit
 out = "/* Roman numeral questions: quick multiple choice (q001-q150) and levelled conversion practice (field lv). Built by tools/build_roman.py. */\n"
 out += "const ROMAN_LEVELS=" + json.dumps(LEVELS) + ";\n"
 out += "const ROMAN_QUICK=" + json.dumps(BANK, ensure_ascii=False, separators=(",", ":")) + ";\n"

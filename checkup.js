@@ -123,9 +123,10 @@ function renderCheckupReport(){
       <p class="muted small" style="margin:0">Questions you got wrong also come back in your daily ${MDAY}.</p></div>`
       :`<p class="cu-grade g">No gaps today. Brilliant!</p>`}
     <h3 style="margin:8px 0 0">All the questions</h3>
-    <div class="group">${ids.map((id,i)=>{const q=MQ[id],a=d.ans[id]||{},ok=a.ok;return `<div class="cell m-row"><div class="badge ${ok?"green":"red"}">${ic(ok?"check":"x")}</div><div class="grow"><div class="ttl">${i+1}. ${mt(q.q)}</div>${ok?"":`<div class="sub">You wrote: ${esc(a.v||"–")} · Answer: <b>${esc(showAns(q))}</b> · ${mt(q.w)}</div>`}</div></div>`;}).join("")}</div>
+    <div class="group">${ids.map((id,i)=>{const q=MQ[id],a=d.ans[id]||{},ok=a.ok;return `<div class="cell m-row"><div class="badge ${ok?"green":"red"}">${ic(ok?"check":"x")}</div><div class="grow"><div class="ttl">${i+1}. ${mt(q.q)}</div>${ok?"":`<div class="sub">You wrote: ${esc(a.v||"–")} · Answer: <b>${esc(showAns(q))}</b></div>`}${resultSteps(q)}</div></div>`;}).join("")}</div>
     <button class="btn primary big" id="mDone">Done</button>
   </div>`;
   $("#mDone").onclick=closeMaths;
+  zhFill($("#mBody"));
   document.querySelectorAll("[data-cu-topic]").forEach(b=>b.onclick=()=>{const t=b.dataset.cuTopic;closeMaths();openMaths({kind:"topic",topic:t,ids:topicSet(t)});});
 }

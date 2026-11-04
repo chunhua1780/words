@@ -90,10 +90,7 @@ function checkAns(q,v){
   }
   return false;
 }
-function sayMaths(text){
-  say(text.replace(/×/g," times ").replace(/÷/g," divided by ").replace(/−/g," minus ").replace(/²/g," squared").replace(/³/g," cubed")
-    .replace(/(\d)\/(\d+)/g,"$1 over $2").replace(/\?/g," what ").replace(/…/g,"."));
-}
+function sayMaths(text,btn){readAloud(text,btn);}
 
 /* ---------- figures (inline SVG, colours from the page) ---------- */
 const P=(cx,cy,r,a)=>[cx+r*Math.cos(a*Math.PI/180),cy-r*Math.sin(a*Math.PI/180)];
@@ -222,15 +219,17 @@ function renderMQ(){
   const unit=q.u&&q.k==="n"?q.u:"", pre=unit==="£"?"£":"", post=unit&&unit!=="£"?unit:"";
   body.innerHTML=`<div class="m-q">
     <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>
-    <div class="m-text">${mt(q.q)} <button class="icon-btn sm" id="mSay" aria-label="Read the question">${ic("speaker")}</button></div>
+    <div class="m-text">${mt(q.q)} <span class="m-tools"><button class="icon-btn sm" id="mSay" aria-label="Read the question">${ic("speaker")}</button>${zhBtnHtml()}</span></div>${zhLine(q.q,"q")}
     ${mFig(q.f)}
-    ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${esc(c)}</button>`).join("")}</div>`
+    ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${esc(c)}${zhLine(c,"opt")}</button>`).join("")}</div>`
     :`<div class="m-answer ${st}"><span class="pre">${pre}</span><span class="val">${esc(q.k==="n"?MS.input.replace(/^(−?)(\d{4,})/,(m,s,d)=>s+(+d).toLocaleString("en-GB")):MS.input)}${done?"":`<i class="caret"></i>`}</span><span class="post">${esc(post)}</span></div>
       ${done?"":`<div class="keypad ${q.k}">${keysFor(q).map(k=>`<button data-key="${k}" class="${k==="⌫"?"del":k==="space"?"sp":""}">${k==="⌫"?ic("back"):k==="space"?"space":k}</button>`).join("")}</div>
       <button class="btn primary big" id="mCheck" ${MS.input.trim()?"":"disabled"}>${MS.kind==="test"?(MS.i+1<n?"Next":"Finish"):"Check"}</button>`}`}
     <div class="m-feedback">${feedback(q)}</div>
   </div>`;
-  $("#mSay").onclick=()=>sayMaths(q.q);
+  $("#mSay").onclick=()=>sayMaths(q.q,$("#mSay"));
+  $("#mZh").onclick=()=>{zhToggle();renderMQ();};
+  zhFill(body);
   body.querySelectorAll("[data-opt]").forEach(b=>b.onclick=()=>answer(q,+b.dataset.opt));
   body.querySelectorAll("[data-key]").forEach(b=>b.onclick=()=>press(b.dataset.key));
   const c=$("#mCheck"); if(c)c.onclick=()=>answer(q,MS.input);

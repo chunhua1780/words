@@ -745,3 +745,15 @@ input,select,textarea{font-size:max(16px,1em)}
 .rn-ckeys.r button span{font-family:var(--serif);color:var(--c-pink)}
 .rn-ckeys button small{font:12px var(--body);color:var(--muted)}
 .rn-ckeys.r{grid-template-columns:repeat(4,1fr)}
+/* read aloud + Chinese translation (zh.js) */
+.m-tools{display:inline-flex;gap:2px;vertical-align:middle;white-space:nowrap}
+.icon-btn.playing{background:var(--tc,#3b6fd8);color:#fff}
+.zh-btn{font:700 16px/1 "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.zh-btn.on{background:#d9485f;color:#fff}
+.zh{font:400 17px/1.5 "PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;color:#8a4b14;letter-spacing:0;margin-top:4px}
+.zh.q{font-size:19px;background:rgba(255,220,170,.35);border-radius:10px;padding:8px 12px;margin:8px 0 2px}
+.zh.opt{font-size:14px;margin-top:2px;opacity:.85}
+.zh.wait{opacity:.5}
+.mfb .zh{color:inherit;opacity:.85}
+.p-steps li .zh{font-size:15px}
+@media (prefers-color-scheme:dark){.zh{color:#f3b67a}.zh.q{background:rgba(243,182,122,.12)}}

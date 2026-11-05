@@ -18,7 +18,7 @@ function dailySet(date,create=true){
   if(!create)return null;
   const rnd=seedRand((Store.user||"")+"|"+date), st=M.q;
   const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
-  const byT={}; for(const q of MATHS)if(!st[q.id]&&!retry.includes(q.id))(byT[q.t]=byT[q.t]||[]).push(q.id);
+  const byT={}; for(const q of MATHS)if(!st[q.id]&&!SERVED[q.id]&&!retry.includes(q.id))(byT[q.t]=byT[q.t]||[]).push(q.id);
   const need=MDAY-retry.length, picked=[], cnt={};
   for(let g=0;picked.length<need&&g<400;g++){
     const ts=Object.keys(byT).filter(t=>byT[t].length&&(cnt[t]||0)<3); if(!ts.length)break;
@@ -31,7 +31,7 @@ function dailySet(date,create=true){
     for(const [id] of old){if(picked.length>=need)break;picked.push(id);}
   }
   const ids=[...retry,...picked].sort((a,b)=>TI(MQ[a].t)-TI(MQ[b].t)||(a<b?-1:1));
-  M.days[date]={ids,ans:{},u:Date.now()}; Store.save();
+  M.days[date]={ids,ans:{},u:Date.now()}; Store.save(); markServed(ids);
   return M.days[date];
 }
 // Take one question of each kind in turn, so a set of 10 mixes the kinds instead of repeating one
@@ -41,11 +41,21 @@ function mixKinds(ids){
   for(let i=0;out.length<ids.length;i++)for(const k of ks)if(g[k][i])out.push(g[k][i]);
   return out;
 }
+/* Questions already shown on this device (answered or not), so a new set does not repeat them until the
+   topic has run out; then the ones seen longest ago come back first. Wrong answers return at most 3 per set,
+   and not on the same day they were last seen. */
+const SERVED=(()=>{try{return JSON.parse(localStorage.getItem("m-served")||"{}");}catch(e){return {};}})();
+function markServed(ids){const t=Date.now();ids.forEach(id=>{if(MQ[id]&&!String(id).startsWith("g:"))SERVED[id]=t;});try{localStorage.setItem("m-served",JSON.stringify(SERVED));}catch(e){}}
+const lastSeen=(id,st)=>Math.max(SERVED[id]||0,(st[id]&&st[id].u)||0);
 function topicSet(t){
-  const st=MB().q, all=MATHS.filter(q=>q.t===t).map(q=>q.id);
-  const fresh=mixKinds(shuffle(all.filter(id=>!st[id]))), wrong=shuffle(all.filter(id=>st[id]&&st[id].ok===false)),
-    old=all.filter(id=>st[id]&&st[id].ok!==false).sort((a,b)=>(st[a].last||"")<(st[b].last||"")?-1:1);
-  return [...wrong.slice(0,3),...fresh,...old].slice(0,MTOPIC);
+  const st=MB().q, all=MATHS.filter(q=>q.t===t).map(q=>q.id), now=Date.now();
+  const wrong=shuffle(all.filter(id=>st[id]&&st[id].ok===false&&now-lastSeen(id,st)>18*3600e3)).slice(0,3);
+  const fresh=mixKinds(shuffle(all.filter(id=>!st[id]&&!SERVED[id])));
+  let ids=[...wrong,...fresh].slice(0,MTOPIC);
+  if(ids.length<MTOPIC&&typeof reviewTopUp==="function")ids=ids.concat(reviewTopUp(t,MTOPIC-ids.length)); // brush-up: brand-new generated questions
+  if(ids.length<MTOPIC){const used=new Set(ids);ids=ids.concat(all.filter(id=>!used.has(id)).sort((a,b)=>lastSeen(a,st)-lastSeen(b,st)).slice(0,MTOPIC-ids.length));}
+  markServed(ids);
+  return ids;
 }
 function topicStats(){
   const st=MB().q, out={};

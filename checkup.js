@@ -52,7 +52,7 @@ function cuCreate(date=today()){
   // unseen questions first, then ones got wrong, then the rest; spread across the unit's kinds of question
   const order=ids=>{const ok=ids.filter(id=>!today20.has(id));
     const byKind=g=>{const m={};for(const id of g)(m[MQ[id].o]=m[MQ[id].o]||[]).push(id);const ks=mix(Object.keys(m)),out=[];for(let i=0;out.length<g.length;i++)for(const k of ks)if(m[k][i])out.push(m[k][i]);return out;};
-    return [...byKind(mix(ok.filter(id=>!st[id]))),...mix(ok.filter(id=>st[id]&&st[id].ok===false)),...mix(ok.filter(id=>st[id]&&st[id].ok!==false))];};
+    return [...byKind(mix(ok.filter(id=>!st[id]&&!SERVED[id]))),...mix(ok.filter(id=>!st[id]&&SERVED[id])),...mix(ok.filter(id=>st[id]&&st[id].ok===false)),...mix(ok.filter(id=>st[id]&&st[id].ok!==false))];};
   const now=order(unit.ids).slice(0,CU_NOW);
   const earlier=CU_UNITS.filter(u=>u.from<unit.from&&u.ids.length);
   const pools=(earlier.length?earlier:CU_UNITS.filter(u=>u!==unit)).map(u=>{
@@ -60,7 +60,7 @@ function cuCreate(date=today()){
     return [...wrong,...order(u.ids).filter(id=>!wrong.includes(id))];});
   const back=[]; for(let i=0;back.length<CU_N-now.length&&i<40;i++)for(const p of mix(pools))if(p[i]&&back.length<CU_N-now.length&&!now.includes(p[i])&&!back.includes(p[i]))back.push(p[i]);
   M.days[key]={ids:[...now,...back],ans:{},unit:unit.k,t0:0,u:Date.now()};
-  Store.save();
+  Store.save(); markServed(M.days[key].ids);
   return M.days[key];
 }
 function openCheckup(date=today()){

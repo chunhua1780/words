@@ -117,7 +117,7 @@ function readingBlock(){
 /* Daily check-up: recent scores, what the last one showed, and which unit the school is on */
 function cuParent(){
   const M=MB(), hist=[];
-  for(let k=13;k>=0;k--){const date=addDays(today(),-k), d=M.days[cuKey(date)]; if(d&&Object.keys(d.ans).length)hist.push({date,d});}
+  for(let k=13;k>=0;k--){const date=addDays(today(),-k), d=dayOf(cuKey(date)); if(d&&Object.keys(d.ans).length)hist.push({date,d});}
   const {unit,auto}=cuCurrent(), pick=(B().prefs||{}).cuUnit||"";
   const last=hist.filter(h=>Object.keys(h.d.ans).length===h.d.ids.length).pop();
   const gaps=last?cuAreas(last.d).filter(a=>a.ok<a.n):[];
@@ -131,7 +131,7 @@ function cuParent(){
 }
 function mathsBlock(){
   const M=MB(), t=today(), days=[...Array(14)].map((_,k)=>addDays(t,k-13));
-  const sc=d=>M.days[d]?dayScore(M.days[d]):null;
+  const sc=d=>dayOf(d)?dayScore(dayOf(d)):null;
   const week=days.slice(-7).map(sc).filter(Boolean), wn=week.reduce((a,s)=>a+s.done,0), wr=week.reduce((a,s)=>a+s.right,0);
   const ts=topicStats(), tops=MATHS_TOPICS.filter(x=>ts[x].n);
   const miss=Object.entries(M.q).filter(([id,s])=>s.ok===false&&MQ[id]).sort((a,c)=>(c[1].u||0)-(a[1].u||0)).slice(0,8).map(([id])=>MQ[id]);

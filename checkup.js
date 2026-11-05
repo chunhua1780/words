@@ -43,11 +43,11 @@ function cuCurrent(date=today()){
 function cuSetUnit(k){const b=B();b.prefs=b.prefs||{};if(k)b.prefs.cuUnit=k;else delete b.prefs.cuUnit;b.prefs.u=Date.now();Store.save();}
 
 const cuKey=d=>"test-"+d;
-function cuGet(date=today()){return MB().days[cuKey(date)]||null;}
+function cuGet(date=today()){return dayOf(cuKey(date));}
 function cuCreate(date=today()){
-  const M=MB(), key=cuKey(date); if(M.days[key])return M.days[key];
+  const M=MB(), key=cuKey(date), ex=dayOf(key); if(ex)return ex;
   const rnd=seedRand((Store.user||"")+"|"+date+"|check-up"), st=M.q, {unit}=cuCurrent(date);
-  const today20=new Set(((M.days[date]||{}).ids)||[]);
+  const today20=new Set(((dayOf(date)||{}).ids)||[]);
   const mix=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
   // unseen questions first, then ones got wrong, then the rest; spread across the unit's kinds of question
   const order=ids=>{const ok=ids.filter(id=>!today20.has(id));
@@ -59,9 +59,9 @@ function cuCreate(date=today()){
     const wrong=mix(u.ids.filter(id=>st[id]&&st[id].ok===false&&!today20.has(id)));
     return [...wrong,...order(u.ids).filter(id=>!wrong.includes(id))];});
   const back=[]; for(let i=0;back.length<CU_N-now.length&&i<40;i++)for(const p of mix(pools))if(p[i]&&back.length<CU_N-now.length&&!now.includes(p[i])&&!back.includes(p[i]))back.push(p[i]);
-  M.days[key]={ids:[...now,...back],ans:{},unit:unit.k,t0:0,u:Date.now()};
-  Store.save(); markServed(M.days[key].ids);
-  return M.days[key];
+  M.days[DAYP+key]={ids:[...now,...back],ans:{},unit:unit.k,t0:0,u:Date.now()};
+  Store.save(); markServed(M.days[DAYP+key].ids);
+  return M.days[DAYP+key];
 }
 function openCheckup(date=today()){
   const d=cuCreate(date);
@@ -86,7 +86,7 @@ function checkupCard(){
 }
 function cuHistory(n){
   const M=MB(), out=[];
-  for(let k=13;k>=0&&out.length<99;k--){const date=addDays(today(),-k), d=M.days[cuKey(date)];
+  for(let k=13;k>=0&&out.length<99;k--){const date=addDays(today(),-k), d=dayOf(cuKey(date));
     if(d&&Object.keys(d.ans).length===d.ids.length){const r=Object.values(d.ans).filter(a=>a.ok).length;out.push({date,right:r,n:d.ids.length,pct:Math.round(r/d.ids.length*100)});}}
   return out.slice(-n);
 }
@@ -102,7 +102,7 @@ function cuAreas(d){
   return Object.values(rows).sort((a,b)=>(b.cur-a.cur)||(a.ok/a.n-b.ok/b.n));
 }
 function renderCheckupReport(){
-  const d=MB().days[MS.key], ids=d.ids, right=ids.filter(id=>d.ans[id]&&d.ans[id].ok).length, n=ids.length, pct=Math.round(right/n*100);
+  const d=dayOf(MS.key), ids=d.ids, right=ids.filter(id=>d.ans[id]&&d.ans[id].ok).length, n=ids.length, pct=Math.round(right/n*100);
   if(!d.t1){d.t1=Date.now();d.u=Date.now();Store.save();}
   const mins=d.t0?Math.max(1,Math.round((d.t1-d.t0)/60000)):null, unit=CU_BY[d.unit]||cuCurrent().unit;
   const areas=cuAreas(d), gaps=areas.filter(a=>a.ok<a.n), stars=pct>=90?3:pct>=70?2:pct>=40?1:0;

@@ -8,13 +8,17 @@ const TCOL=["blue","teal","purple","pink","orange","green"];
 const topicColor=t=>`var(--c-${TCOL[TI(t)%TCOL.length]})`;
 const TOPIC_COUNT={}; MATHS.forEach(q=>TOPIC_COUNT[q.t]=(TOPIC_COUNT[q.t]||0)+1);
 
+/* Daily sets and tests are filed as "y5:<date>" so this site never picks up the other site's sets when
+   both children use the same account. Older entries without the prefix still count if their questions are ours. */
+const DAYP="y5:";
+function dayOf(key){const M=MB();const d=M.days[DAYP+key];if(d)return d;const o=M.days[key];return o&&(o.ids||[]).length&&o.ids.every(id=>MQ[id])?o:null;}
 function MB(){const b=B();b.maths=b.maths||{};b.maths.q=b.maths.q||{};b.maths.days=b.maths.days||{};b.maths.log=b.maths.log||{};return b.maths;}
 function seedRand(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}
   return ()=>{h+=0x6D2B79F5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 
 /* Today's 20: up to 5 questions answered wrongly before, then new questions spread across all topics */
 function dailySet(date,create=true){
-  const M=MB(); if(M.days[date]&&(M.days[date].ids||[]).length)return M.days[date];
+  const M=MB(), ex=dayOf(date); if(ex&&ex.ids.length)return ex;
   if(!create)return null;
   const rnd=seedRand((Store.user||"")+"|"+date), st=M.q;
   const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
@@ -31,8 +35,8 @@ function dailySet(date,create=true){
     for(const [id] of old){if(picked.length>=need)break;picked.push(id);}
   }
   const ids=[...retry,...picked].sort((a,b)=>TI(MQ[a].t)-TI(MQ[b].t)||(a<b?-1:1));
-  M.days[date]={ids,ans:{},u:Date.now()}; Store.save(); markServed(ids);
-  return M.days[date];
+  M.days[DAYP+date]={ids,ans:{},u:Date.now()}; Store.save(); markServed(ids);
+  return M.days[DAYP+date];
 }
 // Take one question of each kind in turn, so a set of 10 mixes the kinds instead of repeating one
 function mixKinds(ids){
@@ -168,7 +172,7 @@ function viewMaths(){
     <div class="card maths-hero">
       <div class="stack" style="gap:12px">
         <div class="muted">${MDAY} questions every day from the Year 5 curriculum. Work them out on paper if you need to, then type or tap your answer. You get two tries.</div>
-        <div class="row" style="gap:14px">${week.map(w=>{const x=M.days[w],s=x?dayScore(x):null;return `<div class="wk"><div class="ring" style="--p:${s?s.done/s.n*100:0}"><span>${s&&s.done?s.right:""}</span></div><div class="muted">${w===t?"Today":WEEK[pdate(w).getDay()]}</div></div>`;}).join("")}</div>
+        <div class="row" style="gap:14px">${week.map(w=>{const x=dayOf(w),s=x?dayScore(x):null;return `<div class="wk"><div class="ring" style="--p:${s?s.done/s.n*100:0}"><span>${s&&s.done?s.right:""}</span></div><div class="muted">${w===t?"Today":WEEK[pdate(w).getDay()]}</div></div>`;}).join("")}</div>
         <div class="row"><button class="btn primary big" data-maths="day">${ic("maths")}${sc.done===0?"Start today’s 20":sc.done<sc.n?`Continue · ${sc.n-sc.done} left`:"See today’s results"}</button>
           ${sc.done===sc.n?`<span class="muted">${sc.right}/${sc.n} correct today</span>`:""}</div>
       </div>
@@ -206,7 +210,7 @@ function bindMaths(){
 let MS=null;
 function openMaths(o){
   MS={...o,i:0,tries:0,input:"",state:"ask",res:{},wrongPick:[]};
-  if(o.kind==="day"||o.kind==="test"){const d=MB().days[o.kind==="test"?o.key:o.date];Object.entries(d.ans||{}).forEach(([id,a])=>MS.res[id]=a.ok);
+  if(o.kind==="day"||o.kind==="test"){const d=dayOf(o.kind==="test"?o.key:o.date);Object.entries(d.ans||{}).forEach(([id,a])=>MS.res[id]=a.ok);
     const first=o.ids.findIndex(id=>!(id in d.ans)); MS.i=first<0?o.ids.length:first;}
   window.__busy=true; $("#maths").hidden=false; document.body.style.overflow="hidden";
   $("#mLabel").textContent=o.kind==="day"?`Daily maths · ${shortDate(o.date)}`:o.kind==="test"?`Daily check-up · ${shortDate(o.date)}`:o.topic;
@@ -279,8 +283,8 @@ function record(q,ok,given){
   const M=MB(), t=today(), s=M.q[q.id]||{};
   M.q[q.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now()};
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
-  if(MS.kind==="day"){const d=M.days[MS.date];d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
-  if(MS.kind==="test"){const d=M.days[MS.key];d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
+  if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
+  if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
   MS.res[q.id]=ok; Store.save();
 }
 function nextQ(){MS.i++;MS.exp=0;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}

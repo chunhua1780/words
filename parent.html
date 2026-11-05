@@ -58,6 +58,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 </div>
 <script src="core.js"></script>
 <script src="readings.js"></script>
+<script src="readings-easy.js"></script>
 <script src="maths-bank.js"></script>
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
@@ -127,6 +128,34 @@ function cuParent(){
     <div class="muted small">${auto?"Follows the usual Year 5 order (White Rose Maths) by date. Choose the unit if the class is somewhere else.":`Set by you to ${esc(unit.name)}.`}</div>
     ${hist.length?`<div class="cu-plist">${hist.map(h=>{const a=Object.values(h.d.ans),r=a.filter(x=>x.ok).length,n=h.d.ids.length,fin=a.length===n;return `<span class="${fin?(r/n>=.8?"g":r/n>=.6?"o":"r"):""}" title="${h.date}">${shortDate(h.date)}<b>${fin?`${r}/${n}`:`${a.length}/${n} done`}</b></span>`;}).join("")}</div>`:`<div class="muted small">No check-ups yet.</div>`}
     ${last?`<div class="muted small">Last check-up (${shortDate(last.date)}): ${gaps.length?`gaps in ${gaps.map(g=>esc(g.label)).join("; ")}`:"no gaps"}.</div>`:""}
+  </div>`;
+}
+/* English every day (english.js on the child's page): settings and what she did */
+function setPref(k,v){const b=B();b.prefs={...b.prefs,[k]:v,u:Date.now()};Store.save();}
+function englishBlock(){
+  const b=B(), P=b.prefs||{}, E=b.eng||{diary:{},daily:{},phon:{},plog:{}}, t=today(), days=[...Array(7)].map((_,k)=>addDays(t,k-6));
+  const wordsAll=Object.values(b.words||{});
+  const daily=days.map(d=>{const x=E.daily[d];if(!x)return null;const ws=x.words.map(w=>wordsAll.find(o=>o.list===d&&norm(o.w)===norm(w))).filter(Boolean);
+    return {d,ws,learned:ws.filter(w=>w.stage>0).length,dict:ws.filter(w=>w.dict).length};}).filter(Boolean);
+  const diary=Object.entries(E.diary).filter(([,v])=>v.text).sort((a,c)=>a[0]<c[0]?1:-1).slice(0,7);
+  const ph=Object.entries(E.phon).filter(([,v])=>v.n).map(([k,v])=>({k,n:v.n,acc:Math.round(v.r/v.n*100)})).sort((a,c)=>a.acc-c.acc);
+  const sel=(id,cur,opts)=>`<select id="${id}">${opts.map(([v,l])=>`<option value="${v}" ${String(cur)===String(v)?"selected":""}>${l}</option>`).join("")}</select>`;
+  return `<div class="card stack">
+    <div class="row" style="justify-content:space-between"><h3>English every day</h3><span class="muted small">About 1 hour a day in total, with maths</span></div>
+    <div class="cu-parent stack tight" style="gap:10px">
+      <label class="row" style="gap:8px"><input type="checkbox" id="dwOn" ${P.dwOff?"":"checked"}> <b>New words every day</b></label>
+      <div class="row" style="gap:14px;flex-wrap:wrap">
+        <label class="muted small">How many: ${sel("dwN",P.dwN||8,[5,6,7,8,9,10].map(n=>[n,n+" words"]))}</label>
+        <label class="muted small">Start from: ${sel("dwStart",P.dwStart||"y2",[["y2","Year 2 common exception words"],["y34","Year 3–4 statutory list"],["y56","Year 5–6 statutory list"]])}</label>
+        <label class="muted small">Reading level: ${sel("readLv",P.readLv||"Y3-4",[["Y3-4","Year 3–4 (easier)"],["Y5","Year 5"]])}</label>
+        <label class="muted small">Diary length: ${sel("diaryWords",P.diaryWords||60,[40,60,80,100,120].map(n=>[n,"at least "+n+" words"]))}</label>
+      </div>
+      <div class="muted small">New words come from the National Curriculum spelling lists, in order, skipping words she already has. Every word comes back for dictation after 1, 2, 4, 7, 15, 30 and 60 days; a mistake brings it back the next day.</div>
+    </div>
+    ${daily.length?`<div><b>Daily words this week</b>${daily.map(x=>`<div class="rrow"><div><b>${esc(shortDate(x.d))}</b><div class="muted tiny">${x.ws.map(w=>esc(w.w)+(w.lapses?"<sup>✗"+w.lapses+"</sup>":"")).join(", ")}</div></div><span class="score ${x.learned===x.ws.length?"good":"ok"}">${x.learned}/${x.ws.length} learned</span></div>`).join("")}</div>`:`<div class="muted small">No daily words yet. They start the next time she opens her page.</div>`}
+    <div><b>Phonics</b> <span class="muted small">· ${days.map(d=>(E.plog[d]||{}).n||0).reduce((a,c)=>a+c,0)} questions this week</span>
+      ${ph.length?`<div class="muted small">Hardest patterns: ${ph.slice(0,4).map(x=>`${esc(x.k)} (${x.acc}% of ${x.n})`).join(" · ")}</div>`:`<div class="muted small">Not started yet.</div>`}</div>
+    <div><b>Diary</b>${diary.length?diary.map(([d,v])=>`<details class="dpar"><summary>${esc(shortDate(d))} · ${(v.text.match(/[A-Za-z’']+/g)||[]).length} words${v.done?" · finished":" · not finished"}</summary><p>${esc(v.text).replace(/\n/g,"<br>")}</p></details>`).join(""):`<div class="muted small">No diary pages yet.</div>`}</div>
   </div>`;
 }
 function mathsBlock(){
@@ -221,6 +250,7 @@ function viewDash(){
       <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
     </div>
     ${readingBlock()}
+    ${englishBlock()}
     ${mathsBlock()}
 
     <details class="card"><summary><b>Change password</b></summary>
@@ -235,6 +265,8 @@ function viewDash(){
 }
 
 function bind(){
+  const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
+  ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});
   const f=$("#authForm");
   if(f)f.onsubmit=async e=>{
     e.preventDefault();const u=$("#aUser").value.trim(),p=$("#aPass").value;

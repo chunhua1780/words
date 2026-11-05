@@ -304,6 +304,7 @@ function tricky(word,a){
 const LETTER_NAMES={a:"A.",b:"B.",c:"C.",d:"D.",e:"E.",f:"F.",g:"G.",h:"H.",i:"I.",j:"J.",k:"K.",l:"L.",m:"M.",n:"N.",o:"O.",p:"P.",q:"Q.",r:"R.",s:"S.",t:"T.",u:"U.",v:"V.",w:"W.",x:"X.",y:"Y.",z:"Zed."};
 const LETTER_SAY={a:"ay",b:"bee",c:"see",d:"dee",e:"ee",f:"eff",g:"jee",h:"aitch",i:"eye",j:"jay",k:"kay",l:"ell",m:"em",n:"en",o:"oh",p:"pee",q:"cue",r:"are",s:"ess",t:"tee",u:"you",v:"vee",w:"double you",x:"ex",y:"why",z:"zed"};
 
-const API={PH_VERSION,toBritish,UK_WORDS,analyse,tricky,loadDict,setDict,lookup,spellChunks,respell,parsePh,alignPhones,SUFFIX,LETTER_NAMES,LETTER_SAY};
+function dictWords(){if(!DICT_TEXT)return null;const out=[];for(const l of DICT_TEXT.split("\n")){const k=l.split("\t")[0];if(k)out.push(k);}return out;}
+const API={words:dictWords,PH_VERSION,toBritish,UK_WORDS,analyse,tricky,loadDict,setDict,lookup,spellChunks,respell,parsePh,alignPhones,SUFFIX,LETTER_NAMES,LETTER_SAY};
 if(typeof module!=="undefined"&&module.exports)module.exports=API; else root.Phonics=API;
 })(typeof window!=="undefined"?window:globalThis);

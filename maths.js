@@ -2,6 +2,10 @@
    The question bank (MATHS, MATHS_TOPICS) comes from maths-bank.js, built by tools/build_maths.py.
    Progress lives in book.maths: q (per question), days (the daily 20), log (answered per day). */
 const MDAY=20, MTOPIC=10;
+/* Year 5 and below only (checked against the National Curriculum for England): reflecting in the axes and
+   coordinates below zero are Year 6, and 5% is not one of the Year 5 percentage equivalents. */
+const OUT_OF_YEAR=q=>/reflected in the [xy]-axis/.test(q.q)||(/translation/.test(q.o)&&/[−-]/.test(String(q.a)))||/^What is 5% of/.test(q.q);
+for(let i=MATHS.length-1;i>=0;i--)if(OUT_OF_YEAR(MATHS[i]))MATHS.splice(i,1);
 const MQ=Object.fromEntries(MATHS.map(q=>[q.id,q]));
 const TI=t=>MATHS_TOPICS.indexOf(t);
 const TCOL=["blue","teal","purple","pink","orange","green"];

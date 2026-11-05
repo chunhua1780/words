@@ -781,3 +781,44 @@ input,select,textarea{font-size:max(16px,1em)}
 @media (prefers-reduced-motion:reduce){.p-steps.show li{animation:none;opacity:1}}
 .ex-box.hint .p-steps li:last-child{font-weight:400}
 .ex-row .p-steps{font-size:15px}
+/* ---------- English: today's plan, phonics, diary (english.js) ---------- */
+#eng{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);padding-bottom:env(safe-area-inset-bottom,0);
+  background:color-mix(in srgb,var(--c-pink) 5%,var(--bg))}
+.plan-card{background:linear-gradient(150deg,color-mix(in srgb,var(--c-blue) 9%,var(--paper)),var(--paper) 70%)}
+.plan-list{display:flex;flex-direction:column;gap:8px}
+.plan-row{display:flex;align-items:center;gap:12px;width:100%;border:0;text-align:left;padding:10px 12px;border-radius:14px;background:var(--paper);box-shadow:var(--shadow);color:var(--fg);cursor:pointer}
+.plan-row .grow{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.plan-row .chev{color:var(--muted)}
+.plan-n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;flex:none;font:700 15px var(--round);background:color-mix(in srgb,var(--c-blue) 14%,transparent);color:var(--c-blue)}
+.plan-row.done .plan-n{background:var(--green-fill);color:#fff}
+.plan-row.done b{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--fg) 35%,transparent)}
+.eng-tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.eng-tile{display:flex;align-items:center;gap:14px;border:0;text-align:left;color:var(--fg);cursor:pointer}
+.eng-tile > span:last-child{display:flex;flex-direction:column;gap:2px}
+.eng-ico{min-width:64px;height:56px;display:grid;place-items:center;border-radius:14px;font:700 15px/1.2 var(--round);text-align:center;color:var(--c-pink);background:color-mix(in srgb,var(--c-pink) 12%,transparent)}
+.eng-page{gap:14px}
+.ph-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.ph-tile{display:flex;flex-direction:column;gap:4px;border:0;text-align:left;padding:12px;border-radius:14px;background:var(--paper);box-shadow:var(--shadow);color:var(--fg);cursor:pointer}
+.ph-tile b{font:700 18px var(--round);color:var(--c-pink)}
+.ph-bar{height:6px;border-radius:3px;background:var(--raised);overflow:hidden}
+.ph-bar i{display:block;height:100%}
+.ph-group{display:flex;gap:12px;align-items:flex-start}
+.ph-g{min-width:70px;padding:8px;border-radius:12px;text-align:center;font:800 22px var(--round);color:var(--c-pink);background:color-mix(in srgb,var(--c-pink) 12%,var(--paper))}
+.ph-words{display:flex;flex-wrap:wrap;gap:8px}
+.ph-w{display:flex;align-items:center;gap:6px;border:0;padding:8px 12px;border-radius:12px;background:var(--paper);box-shadow:var(--shadow);font:500 20px var(--round);color:var(--fg);cursor:pointer}
+.ph-w b{color:var(--c-pink)}
+.ph-q{display:flex;align-items:center;justify-content:center;gap:16px;padding:22px;border-radius:20px;background:var(--paper);box-shadow:var(--shadow)}
+.ph-mask{font:600 46px/1.1 var(--round);letter-spacing:.08em}
+.ph-mask i{font-style:normal;color:var(--c-pink)}
+.ph-mask b.ok{color:var(--green)} .ph-mask b.bad{color:var(--red)}
+.diary textarea{width:100%;min-height:220px;font:400 20px/1.6 var(--round);padding:14px;border-radius:16px;border:1.5px solid var(--line);background:var(--paper);color:var(--fg);resize:vertical}
+.dbank{display:flex;flex-direction:column;gap:6px}
+.dbank > div{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dbank .tiny{min-width:90px}
+.chip{border:0;border-radius:999px;padding:6px 12px;background:color-mix(in srgb,var(--c-blue) 10%,var(--paper));color:var(--fg);font:500 16px var(--round);cursor:pointer}
+.dchk{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.dchk svg{width:18px;height:18px;color:var(--red)}
+.dchk.ok{color:var(--fg)} .dchk.ok svg{color:var(--green)}
+.dpast p{font:400 18px/1.6 var(--round);margin:8px 0 0}
+@media (max-width:600px){.eng-tiles{grid-template-columns:1fr}.ph-mask{font-size:36px}}
+.dpar{margin-top:6px}.dpar p{white-space:normal;font:400 16px/1.5 var(--round);margin:6px 0 0}

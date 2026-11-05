@@ -57,6 +57,14 @@
   <div class="s-body" id="mBody"></div>
 </section>
 
+<section id="eng" hidden aria-label="English">
+  <div class="s-top">
+    <button class="icon-btn" id="engClose" aria-label="Close"></button>
+    <span class="s-label" id="engLabel">English</span>
+  </div>
+  <div class="s-body" id="engBody"></div>
+</section>
+
 <section id="roman" hidden aria-label="Roman numerals">
   <div class="s-top">
     <button class="icon-btn" id="rnClose" aria-label="Close"></button>
@@ -88,6 +96,7 @@
 <script src="phonics.js"></script>
 <script src="readings.js"></script>
 <script src="illustrations.js"></script>
+<script src="readings-easy.js"></script>
 <script src="maths-bank.js"></script>
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
@@ -98,6 +107,7 @@
 <script src="checkup.js"></script>
 <script src="roman.js"></script>
 <script src="facts.js"></script>
+<script src="english.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -442,7 +452,7 @@ function render(){
     const s=streakOf(B().log); $("#streak").innerHTML=`${ic("flame")}${s?`${s}<span class="lbl"> day${s===1?"":"s"}</span>`:`<span class="lbl">Start a streak</span>`}`;
   }
   $("#view").innerHTML=({login:viewLogin,today:viewToday,read:viewRead,maths:viewMaths,practice:viewPractice,words:viewWords})[tab]();
-  bind(); scrollStrip();
+  bind(); if(typeof engBind==="function")engBind(); scrollStrip();
 }
 
 function viewLogin(){
@@ -524,6 +534,11 @@ function viewToday(){
   const others=cur?listsOf(B()).filter(l=>l.date!==cur&&listOpen(l)).map(l=>({l,p:listPlan(B(),l.date)})).filter(x=>x.p.fresh.length||x.p.review.length).reverse():[];
   return `<div class="stack">
     <div class="page-head"><div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${hi}, ${esc(B().name)}</h1></div></div>
+    ${planCard()}
+    <div class="eng-tiles">
+      <button class="card eng-tile" data-eng="phonics"><span class="eng-ico">ai ay<br>a-e</span><span><b>Phonics</b><span class="muted small">Sounds and spelling patterns</span></span></button>
+      <button class="card eng-tile" data-eng="diary"><span class="eng-ico">${ic("pencil")}</span><span><b>My diary</b><span class="muted small">Write about your day</span></span></button>
+    </div>
     ${cur?`<div class="section"><div class="section-title"><h3>Word lists</h3><span class="muted small">Choose a date</span></div>${dateStrip(cur)}</div>
       ${listCard(cur)}`:`<div class="card empty stack" style="align-items:center">
         <div class="badge lg">${ic("calendar")}</div><h3>No word lists yet</h3>
@@ -613,9 +628,10 @@ const READ_GOAL=600;
 const readSecs=d=>((B().reading.log[d]||{}).secs)||0;
 const readMinutes=r=>Math.max(2,Math.round(r.text.join(" ").split(/\s+/).length/130));
 function todaysReading(){
-  const R=B().reading, t=today(), ids=(R.log[t]||{}).ids||[];
+  const R=B().reading, t=today(), ids=(R.log[t]||{}).ids||[], lv=(B().prefs||{}).readLv||"Y3-4";
   if(ids.length){const last=READINGS.find(r=>r.id===ids[ids.length-1]);if(last&&!R.done[last.id])return last;}
-  return READINGS.find(r=>!R.done[r.id])||READINGS[Math.floor(Date.now()/864e5)%READINGS.length];
+  // the level a parent chose first (Year 3–4 by default), then the other level, then read again
+  return READINGS.find(r=>r.lv===lv&&!R.done[r.id])||READINGS.find(r=>!R.done[r.id])||READINGS[Math.floor(Date.now()/864e5)%READINGS.length];
 }
 function viewRead(){
   const t=today(), secs=readSecs(t), R=B().reading, r=todaysReading();
@@ -644,7 +660,7 @@ function viewRead(){
     </div>
     ${looked.length?`<div class="card stack"><h3 style="margin:0">Words you looked up</h3><div class="looked">${looked.map(l=>`<button data-sayw="${esc(l.w)}">${esc(l.w)}${ic("speaker")}</button>`).join("")}</div></div>`:""}
     <div class="section-title"><h3 style="margin:0">All stories</h3><span class="muted small">${READINGS.length} to read</span></div>
-    <div class="lib">${READINGS.map(x=>{const d=R.done[x.id];return `<button data-read="${x.id}" style="--sc:${storyColor(x)}">${storyArt(x)}<div class="lb"><span class="kind-tag">${esc(x.kind)}</span><b>${esc(x.title)}</b>
+    <div class="lib">${READINGS.slice().sort((a,b)=>(a.lv==="Y3-4"?0:1)-(b.lv==="Y3-4"?0:1)).map(x=>{const d=R.done[x.id];return `<button data-read="${x.id}" style="--sc:${storyColor(x)}">${storyArt(x)}<div class="lb"><span class="kind-tag">${esc(x.kind)} · ${x.lv==="Y3-4"?"Year 3–4":"Year 5"}</span><b>${esc(x.title)}</b>
       <span class="muted small">${readMinutes(x)} min${d?"":" · not read yet"}</span>${d?`<span class="done">${ic("check")}${d.score}/${d.n} correct</span>`:""}</div></button>`;}).join("")}</div>
   </div>`;
 }
@@ -969,8 +985,8 @@ function writePad(box,{trace}={}){
 
 /* ================= Practice engine ================= */
 let S=null, timerH=null;
-const MODE_NAME={learn:"New Words",review:"Review",full:"All 5 Steps",dict:"Dictation",lcwc:"Cover & Write",game:"Spelling Game",phonics:"Phonics Chunks",mock:"Practice Test"};
-const WRITES={learn:1,review:1,full:1,dict:1,lcwc:1,mock:1};
+const MODE_NAME={ddict:"Daily Dictation",learn:"New Words",review:"Review",full:"All 5 Steps",dict:"Dictation",lcwc:"Cover & Write",game:"Spelling Game",phonics:"Phonics Chunks",mock:"Practice Test"};
+const WRITES={ddict:1,learn:1,review:1,full:1,dict:1,lcwc:1,mock:1};
 function fullTasks(ids,tasks){
   const groups=[]; for(let i=0;i<ids.length;i+=5)groups.push(ids.slice(i,i+5));
   groups.forEach((g,k)=>{
@@ -992,6 +1008,9 @@ async function startSession(mode,ids,opt={}){
   else if(mode==="review"){
     tasks.push({t:"intro",title:`Review ${n} word${s}`,sub:"Pick the right spelling, then spell each word from dictation."});
     shuffle(ids).forEach(id=>tasks.push({t:"pick",id}));
+    shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
+  }else if(mode==="ddict"){
+    tasks.push({t:"intro",title:`Daily dictation · ${n} word${s}`,sub:"Words from your memory plan: today’s new words and the words due for review. Listen, spell, check."});
     shuffle(ids).forEach(id=>tasks.push({t:"dict",id}));
   }else if(mode==="dict"){
     tasks.push({t:"intro",title:`Dictation · ${n} word${s}`,sub:"Listen, spell the word, then check. Tap Sentence to hear it used."});
@@ -1400,7 +1419,7 @@ function tDict(st,task,w){
 }
 
 // modes that mark each word right or wrong; in the others a word counts once it has been shown
-const GRADED={learn:1,review:1,full:1,dict:1,lcwc:1,mock:1,game:1};
+const GRADED={ddict:1,learn:1,review:1,full:1,dict:1,lcwc:1,mock:1,game:1};
 function tDone(st){
   clearInterval(timerH);
   const t=today(), now=Date.now(), all=S.ids.filter(id=>B().words[id]), ids=all.filter(id=>S.res[id].first!==null||(S.shown.has(id)&&!GRADED[S.mode])), list=ids.map(id=>B().words[id]);
@@ -1410,9 +1429,10 @@ function tDone(st){
   list.forEach(w=>{
     const ok=S.res[w.id].first===true;
     if(S.mode==="learn"){w.stage=Math.max(w.stage,1);w.due=addDays(t,INTERVAL[1]);w.learnedOn=t;if(!ok)w.lapses=(w.lapses||0)+1;}
-    else if(S.mode==="review"){if(ok){w.stage=Math.min(w.stage+1,INTERVAL.length-1);w.due=addDays(t,INTERVAL[w.stage]);}else{w.stage=1;w.due=addDays(t,1);w.lapses=(w.lapses||0)+1;}}
+    else if(S.mode==="review"||(S.mode==="ddict"&&w.stage>0&&w.due<=t&&w.learnedOn!==t)){if(ok){w.stage=Math.min(w.stage+1,INTERVAL.length-1);w.due=addDays(t,INTERVAL[w.stage]);}else{w.stage=1;w.due=addDays(t,1);w.lapses=(w.lapses||0)+1;}}
     else if(S.res[w.id].first===false)w.lapses=(w.lapses||0)+1;
     if(S.res[w.id].first!==null){w.seen=(w.seen||0)+1;if(ok)w.right=(w.right||0)+1;}
+    if(S.mode==="ddict"&&S.res[w.id].first!==null)w.dict=t; // dictated today (english.js: daily dictation)
     w.last=t; w.u=now;
   });
   const lg=B().log[t]||(B().log[t]={done:0,right:0});

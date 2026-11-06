@@ -3,8 +3,8 @@
    Progress lives in book.maths: q (per question), days (the daily 20), log (answered per day). */
 const MDAY=20, MTOPIC=10;
 /* Year 5 and below only (checked against the National Curriculum for England): reflecting in the axes and
-   coordinates below zero are Year 6, and 5% is not one of the Year 5 percentage equivalents. */
-const OUT_OF_YEAR=q=>/reflected in the [xy]-axis/.test(q.q)||(/translation/.test(q.o)&&/[−-]/.test(String(q.a)))||/^What is 5% of/.test(q.q);
+   coordinates below zero are Year 6, common multiples are Year 6, and 5% is not one of the Year 5 percentage equivalents. */
+const OUT_OF_YEAR=q=>/reflected in the [xy]-axis/.test(q.q)||(/translation/.test(q.o)&&/[−-]/.test(String(q.a)))||/^What is 5% of/.test(q.q)||/common multiples/.test(q.o); // common multiples are Year 6
 for(let i=MATHS.length-1;i>=0;i--)if(OUT_OF_YEAR(MATHS[i]))MATHS.splice(i,1);
 const MQ=Object.fromEntries(MATHS.map(q=>[q.id,q]));
 const TI=t=>MATHS_TOPICS.indexOf(t);
@@ -65,10 +65,28 @@ function topicSet(t){
   markServed(ids);
   return ids;
 }
+/* ---------- 错题本 · mistakes to practise again ----------
+   Every question whose latest answer was wrong: bank questions by id, generated ones (test paper, brush-up,
+   formulas, daily paper questions) saved with their text under "w:<id>". Answering one right takes it off. */
+function registerMistakes(){const st=MB().q;for(const [k,v] of Object.entries(st))if(k.startsWith("w:")&&v.q&&!MQ[k])MQ[k]={...v.q,id:k};}
+function mistakeIds(){
+  registerMistakes(); const st=MB().q;
+  return Object.entries(st).filter(([id,s])=>s.ok===false&&MQ[id]&&!/^(p:|f:)/.test(id)).sort((a,b)=>(a[1].u||0)-(b[1].u||0)).map(x=>x[0]);
+}
+function mistakesCard(){
+  const ids=mistakeIds(), byT={}; ids.forEach(id=>{const t=MQ[id].t;byT[t]=(byT[t]||0)+1;});
+  return `<div class="card mk-card row" style="justify-content:space-between;gap:14px;flex-wrap:wrap">
+    <div class="stack tight" style="gap:4px;flex:1;min-width:240px"><span class="kind-tag" style="--kc:var(--c-red,#d64545)">${ic("x")}错题本 · Mistakes to fix</span>
+      <h3 style="margin:0">${ids.length?`${ids.length} question${ids.length>1?"s":""} to try again`:"No mistakes waiting. Brilliant!"}</h3>
+      <span class="muted small">${ids.length?Object.entries(byT).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([t,n])=>`${esc(t)} ${n}`).join(" · "):"Questions you get wrong are saved here so you can practise them again."}</span></div>
+    ${ids.length?`<button class="btn primary big" data-mistakes style="background:var(--red)">${ic("check")}Practise ${Math.min(10,ids.length)} again</button>`:""}
+  </div>`;
+}
+function openMistakes(){const ids=mistakeIds().slice(0,10);if(!ids.length)return;openMaths({kind:"topic",topic:"错题本 · Mistakes to fix",ids});}
 function topicStats(){
   const st=MB().q, out={};
   for(const t of MATHS_TOPICS)out[t]={seen:0,n:0,r:0,total:TOPIC_COUNT[t]};
-  for(const [id,s] of Object.entries(st)){const q=MQ[id];if(!q)continue;const o=out[q.t];o.seen++;o.n+=s.n||0;o.r+=s.r||0;}
+  for(const [id,s] of Object.entries(st)){const q=MQ[id];if(!q||id.startsWith("w:")||!out[q.t])continue;const o=out[q.t];o.seen++;o.n+=s.n||0;o.r+=s.r||0;}
   return out;
 }
 const dayScore=d=>{const a=Object.values(d.ans||{});return {done:a.length,right:a.filter(x=>x.ok).length,n:(d.ids||[]).length};};
@@ -183,6 +201,7 @@ function viewMaths(){
       <div class="hero-num"><b>${sc.done}<small>/${sc.n}</small></b><span class="muted small">answered today</span></div>
     </div>
     ${checkupCard()}
+    ${mistakesCard()}
     <div class="kpis">
       <div class="kpi"><b>${total}</b><span>questions answered</span></div>
       <div class="kpi"><b>${total?Math.round(right/total*100)+"%":"–"}</b><span>correct</span></div>
@@ -194,13 +213,14 @@ function viewMaths(){
     <button class="card rn-entry" data-roman><span class="rn-entry-l">I V X<br>L C D M</span>
       <span class="stack tight" style="gap:4px;text-align:left"><b>Roman numerals corner</b><span class="muted small">Learn the seven letters, play drag-and-match games and practise changing numbers to and from Roman numerals.</span></span>
       <span class="chev">${ic("chevron")}</span></button>
-    <div class="section-title"><h3 style="margin:0">Practise a topic</h3><span class="muted small">${MTOPIC} questions at a time</span></div>
+    <div class="section-title"><h3 style="margin:0">Practise a Year 5 topic</h3><span class="muted small">${MTOPIC} questions at a time</span></div>
     <div class="topics">${MATHS_TOPICS.map(t=>{const s=ts[t];return `<button class="topic" data-maths="topic" data-topic="${esc(t)}" style="--tc:${topicColor(t)}">
       <b>${esc(t)}</b><span class="muted small">${s.n?`${Math.round(s.r/s.n*100)}% correct · `:""}${s.seen} of ${s.total} done</span>
       <span class="bar"><i style="width:${s.seen/s.total*100}%"></i></span></button>`;}).join("")}</div>
   </div>`;
 }
 function bindMaths(){
+  document.querySelectorAll("#view [data-mistakes]").forEach(b=>b.onclick=openMistakes);
   document.querySelectorAll("#view [data-cu]").forEach(b=>b.onclick=()=>openCheckup());
   document.querySelectorAll("#view [data-roman]").forEach(b=>b.onclick=()=>openRoman());
   document.querySelectorAll("#view [data-facts]").forEach(b=>b.onclick=()=>openFacts());
@@ -285,7 +305,7 @@ function answer(q,v){
 }
 function record(q,ok,given){
   const M=MB(), t=today(), s=M.q[q.id]||{};
-  M.q[q.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now()};
+  M.q[q.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{})};
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
   if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
   if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}

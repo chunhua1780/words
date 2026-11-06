@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Family Progress</title>
+<meta name="theme-color" content="#eef1f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Family">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css">
+<style>
+  main{max-width:1180px;margin:0 auto;padding:20px max(16px,env(safe-area-inset-left)) 60px}
+  .fam-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .fam-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:18px;align-items:start}
+  .kid{display:flex;flex-direction:column;gap:14px}
+  .kid-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .kid-head h2{margin:0}
+  .tagy{font:700 12px var(--round);padding:3px 9px;border-radius:999px;background:color-mix(in srgb,var(--kc) 14%,var(--paper));color:var(--kc)}
+  .stat4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .stat4 div{background:var(--raised);border-radius:14px;padding:10px;text-align:center}
+  .stat4 b{display:block;font:700 22px var(--round)}
+  .stat4 span{font-size:12px;color:var(--muted)}
+  .mrow{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--sep)}
+  .mrow:first-child{border-top:0}
+  .mrow .grow{flex:1;min-width:0}
+  .mrow .ok{color:var(--green);font-weight:700}
+  .mrow .no{color:var(--muted)}
+  .bar7{display:flex;align-items:flex-end;gap:6px;height:90px}
+  .bar7 div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;font-size:11px;color:var(--muted)}
+  .bar7 i{display:block;width:100%;border-radius:6px 6px 2px 2px;background:var(--kc);min-height:2px}
+  .diary-x{font:400 15px/1.5 var(--round);background:var(--raised);border-radius:12px;padding:10px;margin:6px 0 0;white-space:pre-wrap}
+  .acc-form{display:grid;gap:10px}
+  .acc-row{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+  .acc-row input,.acc-row select{font:inherit;font-size:16px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--fg);min-width:0}
+  @media(max-width:640px){.acc-row{grid-template-columns:1fr 1fr}.stat4{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script src="core.js"></script>
+<script>
+/* Family Progress: one page for both children (Wendy on the Year 5 site, Candy on the Year 7 site).
+   Both sites keep their books in the same account system, so this page logs in to each account (read only)
+   and shows today's must-do, minutes, accuracy and the last 7 days side by side.
+   The two logins are kept on this device only. */
+let CUR=null, CURK="y5";
+function B(){return CUR;}
+const PFX=()=>CURK==="y5"?"y5:":"y7:";
+const MINE=()=>CURK==="y5"?/^(m|q)\d/:/^(k|r)\d|^gd:/;
+function dayOf(key){const D=(CUR.maths||{}).days||{};const d=D[PFX()+key];if(d)return d;const o=D[key];return o&&(o.ids||[]).length&&o.ids.every(id=>MINE().test(id))?o:null;}
+function cuGet(t){return dayOf("test-"+t);}
+</script>
+<script src="must.js"></script>
+<script>
+const SITES={y5:{label:"Year 5 site (Wendy)",parent:"https://chunhua1780.github.io/words/parent.html",kid:"https://chunhua1780.github.io/words/",kc:"var(--c-pink)",
+             items:["words","dict","phonics","read","write","maths","test"]},
+             y7:{label:"Year 7 site (Candy)",parent:"https://chunhua1780.github.io/Candy/parent.html",kid:"https://chunhua1780.github.io/Candy/",kc:"var(--c-blue)",
+             items:["words","read","maths","test","formula","paper"]}};
+const TITLE={y5:{words:"New words",test:"Maths check-up"},y7:{words:"Spelling practice",test:"Maths test"}};
+const tt=k=>(TITLE[CURK]||{})[k]||MUST_ALL[k].t;
+const SEC={words:"Words",dict:"Dictation",phonics:"Phonics",read:"Reading",write:"Writing",maths:"Maths 20",test:"Maths test",formula:"Formulas",paper:"Test paper",practice:"Other practice",other:"Menus"};
+const loadAcc=()=>{try{const a=JSON.parse(localStorage.getItem("fam-acc")||"null");if(a)return a;}catch(e){}
+  const s=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
+  const w=s("ws-session"),c=s("y7-session");
+  return [{name:"Wendy",kind:"y5",user:w?w.user:"",pass:w?w.pass:""},{name:"Candy",kind:"y7",user:c?c.user:"",pass:c?c.pass:""}];};
+let ACC=loadAcc(), BOOKS={}, ERR={}, editing=!ACC.some(a=>a.user&&a.pass), loading=false, lastLoad=0;
+async function loadAll(){
+  loading=true; render();
+  await Promise.all(ACC.map(async(a,i)=>{if(!a.user||!a.pass){ERR[i]="Not set";return;}
+    try{const r=await WS.login(String(a.user).trim().toLowerCase(),a.pass);BOOKS[i]=normBook(r&&r.data,a.user);delete ERR[i];}catch(e){ERR[i]=authMsg(e);}}));
+  loading=false; lastLoad=Date.now(); render();
+}
+const pct=(r,n)=>n?Math.round(r/n*100)+"%":"–";
+const mins=s=>s<60?(s?"<1":"0"):String(Math.round(s/60));
+function kidCard(a,i){
+  const b=BOOKS[i], S=SITES[a.kind]; CUR=b; CURK=a.kind;
+  if(a.kind==="y7")window.PAPER_TYPES=[];else delete window.PAPER_TYPES; // must.js picks the Year 7 blocks when PAPER_TYPES exists
+  if(!b)return `<div class="card kid" style="--kc:${S.kc}"><div class="kid-head"><h2>${esc(a.name)}</h2><span class="tagy">${esc(S.label)}</span></div><div class="muted">${esc(ERR[i]||"Loading…")}</div></div>`;
+  const t=today(), days=[...Array(7)].map((_,k)=>addDays(t,k-6));
+  const time=b.time||{}, tot=d=>Object.values(time[d]||{}).reduce((s,x)=>s+x,0);
+  const ml=(b.maths||{}).log||{}, md=ml[t]||{n:0,r:0}, wl=b.log[t]||{done:0,right:0};
+  const m=mustCfg(), active=mustActive(t), items=(m.on&&m.items.length?m.items:S.items).filter(k=>S.items.includes(k));
+  const st=items.map(k=>({k,...mustStatus(k,t)})), done=st.filter(x=>x.done).length;
+  const mistakes=Object.entries((b.maths||{}).q||{}).filter(([id,s])=>s.ok===false&&(id.startsWith("w:")||MINE().test(id))).length;
+  const di=((b.eng||{}).diary||{})[t];
+  const secT=Object.entries(time[t]||{}).filter(([,s])=>s>=30).sort((x,y)=>y[1]-x[1]);
+  const mx=Math.max(60,...days.map(tot));
+  return `<div class="card kid" style="--kc:${S.kc}">
+    <div class="kid-head"><div><h2>${esc(a.name)}</h2><span class="muted small">${esc(S.label)} · ${esc(b.name||a.user)}</span></div>
+      <div class="ring lg" style="--p:${st.length?done/st.length*100:0}"><span>${done}/${st.length}</span></div></div>
+    <div class="stat4">
+      <div><b>${mins(tot(t))}</b><span>minutes today</span></div>
+      <div><b>${pct(md.r,md.n)}</b><span>maths right (${md.n})</span></div>
+      <div><b>${pct(wl.right||0,wl.done||0)}</b><span>spelling right (${wl.done||0})</span></div>
+      <div><b>${mistakes}</b><span>maths mistakes to fix</span></div>
+    </div>
+    <div><div class="row" style="justify-content:space-between"><b>今日必做 · Today’s must-do</b><span class="muted small">${active?(m.lock?"On · locked until done":"On"):"Off (showing the usual blocks)"}</span></div>
+      ${st.map(x=>`<div class="mrow"><span class="${x.done?"ok":"no"}">${x.done?"✓":"○"}</span><span class="grow"><b>${esc(tt(x.k))}</b> <span class="muted small">· ${esc(x.sub)}</span></span>
+        <span class="muted small">${x.acc?pct(x.acc.r,x.acc.n)+" right · ":""}${mins(mustSecs(t,x.k))} min</span></div>`).join("")}</div>
+    ${secT.length?`<div><b>Where the time went today</b><div class="muted small">${secT.map(([k,s])=>`${esc(SEC[k]||k)} ${mins(s)} min`).join(" · ")}</div></div>`:""}
+    ${di&&di.text?`<details><summary><b>Today’s diary</b> <span class="muted small">· ${(di.text.match(/[A-Za-z’']+/g)||[]).length} words${di.done?" · finished":""}</span></summary><p class="diary-x">${esc(di.text)}</p></details>`:""}
+    <div><b>Last 7 days</b> <span class="muted small">minutes a day · maths % right</span>
+      <div class="bar7">${days.map(d=>`<div title="${d}: ${mins(tot(d))} min"><span>${mins(tot(d))}</span><i style="height:${tot(d)/mx*100}%"></i><span>${(ml[d]||{}).n?pct(ml[d].r,ml[d].n):"–"}</span><span>${d===t?"Today":WEEK[pdate(d).getDay()]}</span></div>`).join("")}</div></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${S.parent}">Full parent page · 设置今日必做</a><a class="btn ghost" href="${S.kid}">Child’s page</a></div>
+  </div>`;
+}
+function render(){
+  const ok=ACC.some(a=>a.user&&a.pass);
+  document.getElementById("app").innerHTML=`
+    <div class="fam-top"><div><div class="eyebrow">${esc(niceDate(today()))}</div><h1 style="margin:0">Family progress · 两个孩子的学习进度</h1>
+      <div class="muted small">${loading?"Loading…":lastLoad?`Updated ${new Date(lastLoad).toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} · refreshes every 2 minutes`:""}</div></div>
+      <div class="row" style="gap:8px"><button class="btn primary" id="fRefresh">Refresh</button><button class="btn" id="fEdit">${editing?"Close":"Accounts"}</button></div></div>
+    ${editing?`<div class="card stack"><b>The children’s logins</b><div class="muted small">The same usernames and passwords the children use. Kept only on this device; this page only reads.</div>
+      <div class="acc-form">${ACC.map((a,i)=>`<div class="acc-row"><input data-f="name" data-i="${i}" value="${esc(a.name)}" placeholder="Name"><select data-f="kind" data-i="${i}">${Object.entries(SITES).map(([k,s])=>`<option value="${k}" ${a.kind===k?"selected":""}>${esc(s.label)}</option>`).join("")}</select>
+        <input data-f="user" data-i="${i}" value="${esc(a.user)}" placeholder="Username" autocapitalize="none" autocorrect="off"><input data-f="pass" data-i="${i}" value="${esc(a.pass)}" placeholder="Password" type="password"></div>`).join("")}</div>
+      <div><button class="btn primary" id="fSave">Save and load</button></div></div>`:""}
+    ${ok?`<div class="fam-grid">${ACC.map(kidCard).join("")}</div>`:`<div class="card muted">Tap “Accounts” and enter both children’s logins.</div>`}`;
+  document.getElementById("fRefresh").onclick=loadAll;
+  document.getElementById("fEdit").onclick=()=>{editing=!editing;render();};
+  const sv=document.getElementById("fSave");
+  if(sv)sv.onclick=()=>{document.querySelectorAll("[data-f]").forEach(e=>{ACC[+e.dataset.i][e.dataset.f]=e.value.trim();});
+    try{localStorage.setItem("fam-acc",JSON.stringify(ACC));}catch(e){} editing=false; loadAll();};
+}
+render(); if(ACC.some(a=>a.user&&a.pass))loadAll();
+setInterval(()=>{if(!editing&&document.visibilityState==="visible")loadAll();},120000);
+</script>
+</body>
+</html>

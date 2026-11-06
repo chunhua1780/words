@@ -68,7 +68,7 @@ function normBook(d,name){
   const rd=d.reading||{};
   return {name:d.name||name||"",words:d.words||{},tests:d.tests||{},lists:d.lists||{},listsV:d.listsV||0,deleted:d.deleted||{},log:d.log||{},best:d.best||0,prefs:d.prefs||{},
     reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},maths:{q:(d.maths||{}).q||{},days:(d.maths||{}).days||{},log:(d.maths||{}).log||{}},
-    eng:{diary:(d.eng||{}).diary||{},daily:(d.eng||{}).daily||{},phon:(d.eng||{}).phon||{},plog:(d.eng||{}).plog||{}},updated:d.updated||0};
+    eng:{diary:(d.eng||{}).diary||{},daily:(d.eng||{}).daily||{},phon:(d.eng||{}).phon||{},plog:(d.eng||{}).plog||{}},time:d.time||{},updated:d.updated||0};
 }
 function mergeBooks(a,b){
   a=normBook(a);b=normBook(b);
@@ -96,13 +96,16 @@ function mergeBooks(a,b){
   const maths={q:newer(a.maths.q,b.maths.q),days:mdays,log:mlog};
   // English: diary entries, daily word picks, phonics patterns and phonics per day; keep the newer copy of each
   const eng={diary:newer(a.eng.diary,b.eng.diary),daily:newer(a.eng.daily,b.eng.daily),phon:newer(a.eng.phon,b.eng.phon),plog:newer(a.eng.plog,b.eng.plog)};
+  // time spent: seconds per day per part of the app (must.js); keep the larger count of each
+  const time={...b.time};
+  for(const [d,v] of Object.entries(a.time)){const o=time[d]||{};const m={...o};for(const [k,x] of Object.entries(v))m[k]=Math.max(o[k]||0,x||0);time[d]=m;}
   const lists={};
   for(const k of new Set([...Object.keys(a.lists),...Object.keys(b.lists)])){
     const p=a.lists[k],q=b.lists[k],it=!p?q:!q?p:((q.u||0)>(p.u||0)?q:p);
     if(del["L:"+k]&&del["L:"+k]>=(it.u||0))continue; lists[k]=it;
   }
   return {name:a.name||b.name,words:mergeMap(a.words,b.words),tests:mergeMap(a.tests,b.tests),lists,listsV:Math.max(a.listsV,b.listsV),deleted:del,log,reading,maths,eng,
-    best:Math.max(a.best,b.best),prefs:((a.prefs.u||0)>=(b.prefs.u||0)?a.prefs:b.prefs),updated:Math.max(a.updated,b.updated)};
+    time,best:Math.max(a.best,b.best),prefs:((a.prefs.u||0)>=(b.prefs.u||0)?a.prefs:b.prefs),updated:Math.max(a.updated,b.updated)};
 }
 
 /* ---------- Login session and sync ---------- */

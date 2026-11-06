@@ -4,6 +4,12 @@
    (MSTEPS, by id), and anything else is split from its explanation sentence by sentence.
    Before the answer is known the 答疑 button only shows the method (all steps but the last), so it
    helps without giving the answer away; after answering it shows the full working. */
+/* Fractions written the textbook way: numerator over a straight line over denominator.
+   "3/4" and the letter form "n/4" become stacked; "2 3/4" keeps the whole number in front. Works on escaped HTML. */
+function fracHtml(h){
+  const fr=(a,b)=>`<span class="fr"><span class="fn">${a}</span><span class="fd">${b}</span></span>`;
+  return String(h).replace(/(^|[^\w\/.,:])(\d+|[a-z])\/(\d+)(?![\w\/])/g,(m,pre,a,b)=>pre+fr(a,b));
+}
 function stepsFor(q){
   if(!q)return [];
   if(q.steps&&q.steps.length)return q.steps;

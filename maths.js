@@ -75,7 +75,7 @@ const dayScore=d=>{const a=Object.values(d.ans||{});return {done:a.length,right:
 
 /* ---------- answers ---------- */
 const MINUS=/[−–—]/g;
-const mt=s=>esc(s).replace(/(^|[\s(,:])-(\d)/g,"$1−$2");
+const mt=s=>fracHtml(esc(s).replace(/(^|[\s(,:])-(\d)/g,"$1−$2"));
 const fmtN=n=>(n<0?"−":"")+Math.abs(n).toLocaleString("en-GB",{maximumFractionDigits:3});
 function showAns(q){
   if(q.k==="c")return q.c[q.a];
@@ -169,7 +169,7 @@ function mathsCard(){
 function viewMaths(){
   const t=today(), d=dailySet(t), sc=dayScore(d), M=MB(), ts=topicStats();
   const week=[...Array(7)].map((_,k)=>addDays(t,k-6));
-  const total=Object.values(M.log).reduce((s,x)=>s+(x.n||0),0), right=Object.values(M.log).reduce((s,x)=>s+(x.r||0),0);
+  const dl=Object.entries(M.log).filter(([k])=>/^\d{4}-/.test(k)).map(x=>x[1]), total=dl.reduce((s,x)=>s+(x.n||0),0), right=dl.reduce((s,x)=>s+(x.r||0),0);
   const seen=Object.keys(M.q).filter(id=>MQ[id]).length; // quick-facts records (ids "f:…") are not bank questions
   return `<div class="stack">
     <div class="page-head"><div><div class="eyebrow">Maths · Year 5</div><h1>Daily maths</h1></div></div>
@@ -239,8 +239,8 @@ function renderMQ(){
     <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>
     <div class="m-text">${mt(q.q)} <span class="m-tools"><button class="icon-btn sm" id="mSay" aria-label="Read the question">${ic("speaker")}</button>${zhBtnHtml()}</span></div>${zhLine(q.q,"q")}
     ${mFig(q.f)}
-    ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${esc(c)}${zhLine(c,"opt")}</button>`).join("")}</div>`
-    :`<div class="m-answer ${st}"><span class="pre">${pre}</span><span class="val">${esc(q.k==="n"?MS.input.replace(/^(−?)(\d{4,})/,(m,s,d)=>s+(+d).toLocaleString("en-GB")):MS.input)}${done?"":`<i class="caret"></i>`}</span><span class="post">${esc(post)}</span></div>
+    ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${fracHtml(esc(c))}${zhLine(c,"opt")}</button>`).join("")}</div>`
+    :`<div class="m-answer ${st}"><span class="pre">${pre}</span><span class="val">${(q.k==="f"?fracHtml:x=>x)(esc(q.k==="n"?MS.input.replace(/^(−?)(\d{4,})/,(m,s,d)=>s+(+d).toLocaleString("en-GB")):MS.input))}${done?"":`<i class="caret"></i>`}</span><span class="post">${esc(post)}</span></div>
       ${done?"":`<div class="keypad ${q.k}">${keysFor(q).map(k=>`<button data-key="${k}" class="${k==="⌫"?"del":k==="space"?"sp":""}">${k==="⌫"?ic("back"):k==="space"?"space":k}</button>`).join("")}</div>
       <button class="btn primary big" id="mCheck" ${MS.input.trim()?"":"disabled"}>${MS.kind==="test"?(MS.i+1<n?"Next":"Finish"):"Check"}</button>`}`}
     <div class="m-feedback">${feedback(q)}</div>
@@ -258,7 +258,7 @@ function feedback(q){
   const st=MS.state, nx=`<button class="btn primary big" id="mNext">${MS.i+1<MS.ids.length?"Next question":"See results"}</button>`;
   if(st==="retry")return `<div class="mfb warn">${ic("x")}<div><b>Not quite. Have another go.</b><span>Stuck? Tap 答疑 for help, one step at a time.</span></div></div>${explainBox(q,false)}`;
   if(st==="right")return `<div class="mfb ok">${ic("check")}<div><b>${MS.tries>1?"Correct on your second try!":"Correct!"}</b><span>${mt(q.w)}</span></div></div>${explainBox(q,true)}${nx}`;
-  if(st==="shown")return `<div class="mfb bad">${ic("x")}<div><b>The answer is ${esc(showAns(q))}</b><span>Here is how to work it out, step by step:</span></div></div>${explainBox(q,true)}${nx}`;
+  if(st==="shown")return `<div class="mfb bad">${ic("x")}<div><b>The answer is ${fracHtml(esc(showAns(q)))}</b><span>Here is how to work it out, step by step:</span></div></div>${explainBox(q,true)}${nx}`;
   return MS.kind==="test"?"":explainBox(q,false); // before answering: help with the method only (not in a check-up)
 }
 function press(k){
@@ -301,7 +301,7 @@ function renderMResults(){
     <div class="stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div>
     <h2>${right} out of ${n} correct</h2>
     <p class="muted">${pct>=.9?"Superb work!":pct>=.7?"Great effort. Check the ones you missed below.":pct>=.4?"Good try. Read through the working for the ones you missed.":"Keep going. Every question you try helps you learn."}${MS.kind==="day"?" Questions you got wrong will come back on another day.":""}</p>
-    <div class="group">${ids.map(id=>{const q=MQ[id],ok=MS.res[id];return `<div class="cell m-row"><div class="badge ${ok?"green":"red"}">${ic(ok?"check":"x")}</div><div class="grow"><div class="ttl">${mt(q.q)}</div>${ok?"":`<div class="sub">Answer: <b>${esc(showAns(q))}</b></div>`}${resultSteps(q)}</div></div>`;}).join("")}</div>
+    <div class="group">${ids.map(id=>{const q=MQ[id],ok=MS.res[id];return `<div class="cell m-row"><div class="badge ${ok?"green":"red"}">${ic(ok?"check":"x")}</div><div class="grow"><div class="ttl">${mt(q.q)}</div>${ok?"":`<div class="sub">Answer: <b>${fracHtml(esc(showAns(q)))}</b></div>`}${resultSteps(q)}</div></div>`;}).join("")}</div>
     <button class="btn primary big" id="mDone">Done</button>
   </div>`;
   $("#mDone").onclick=closeMaths;

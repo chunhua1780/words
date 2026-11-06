@@ -822,3 +822,47 @@ input,select,textarea{font-size:max(16px,1em)}
 .dpast p{font:400 18px/1.6 var(--round);margin:8px 0 0}
 @media (max-width:600px){.eng-tiles{grid-template-columns:1fr}.ph-mask{font-size:36px}}
 .dpar{margin-top:6px}.dpar p{white-space:normal;font:400 16px/1.5 var(--round);margin:6px 0 0}
+/* stacked fractions (explain.js fracHtml) */
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.05;margin:0 .12em;font-size:.82em;text-align:center}
+.fr .fn{padding:0 .18em}
+.fr .fd{padding:0 .18em;border-top:.09em solid currentColor;align-self:stretch}
+.m-answer .fr{font-size:.75em}
+/* 今日必做 · today's must-do (must.js) */
+#must{position:fixed;inset:0;z-index:9;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(24px,env(safe-area-inset-top)) 16px 32px;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.must-card{width:100%;max-width:880px;background:var(--paper);border-radius:26px;box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:16px;animation:shPop .35s ease both}
+.must-head{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.must-head h2{margin:2px 0 4px}
+.must-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.must-tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:0;text-align:left;padding:16px;border-radius:20px;min-height:150px;cursor:pointer;color:var(--fg);
+  background:linear-gradient(150deg,color-mix(in srgb,var(--c-blue) 12%,var(--paper)),var(--paper));box-shadow:var(--shadow)}
+.must-tile:nth-child(2){background:linear-gradient(150deg,color-mix(in srgb,var(--c-teal) 13%,var(--paper)),var(--paper))}
+.must-tile:nth-child(3){background:linear-gradient(150deg,color-mix(in srgb,var(--c-pink) 12%,var(--paper)),var(--paper))}
+.must-tile:nth-child(4){background:linear-gradient(150deg,color-mix(in srgb,var(--c-orange) 13%,var(--paper)),var(--paper))}
+.must-tile:nth-child(5){background:linear-gradient(150deg,color-mix(in srgb,var(--c-purple) 12%,var(--paper)),var(--paper))}
+.must-tile b{font:700 20px var(--round)}
+.must-tile .tz{font-size:14px;color:var(--muted)}
+.must-tile.done{opacity:.75}
+.must-tile:active{transform:scale(.98)}
+.must-n{position:absolute;right:14px;top:14px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font:700 15px var(--round);background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.must-tile.done .must-n{background:var(--green-fill);color:#fff}
+.must-ic{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:color-mix(in srgb,var(--paper) 70%,transparent);flex:none}
+.must-bar{width:100%;height:7px;border-radius:4px;background:color-mix(in srgb,var(--fg) 8%,transparent);overflow:hidden;margin-top:auto}
+.must-bar i{display:block;height:100%;background:var(--green-fill)}
+.must-banner{display:flex;align-items:center;gap:14px;width:100%;border:0;text-align:left;color:var(--fg);cursor:pointer;
+  background:linear-gradient(150deg,color-mix(in srgb,var(--c-orange) 12%,var(--paper)),var(--paper) 70%)}
+.must-banner .grow{display:flex;flex-direction:column;gap:2px;flex:1}
+.must-banner .chev{color:var(--muted)}
+.must-picks{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.must-pick{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:14px;background:var(--raised);cursor:pointer;position:relative;padding-left:38px}
+.must-pick input{position:absolute;left:12px;top:13px}
+.must-pick.on{background:color-mix(in srgb,var(--c-green,#2e9a68) 14%,var(--paper));outline:1.5px solid color-mix(in srgb,var(--c-green,#2e9a68) 45%,transparent)}
+.must-table-wrap{overflow-x:auto}
+.must-table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+.must-table th,.must-table td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--sep);vertical-align:top}
+.must-table th:first-child{text-align:left;white-space:nowrap}
+.must-table thead th{font-size:12px;color:var(--muted);font-weight:600}
+.must-table td small{display:block;color:var(--muted);font-size:11px}
+.must-table td.ok{color:var(--green);font-weight:700}
+.must-table td.part{color:var(--orange);font-weight:600}
+@keyframes shPop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}

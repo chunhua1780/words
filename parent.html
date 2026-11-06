@@ -66,6 +66,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="explain.js"></script>
 <script src="maths.js"></script>
 <script src="checkup.js"></script>
+<script src="must.js"></script>
 <script src="facts.js"></script>
 <script>
 "use strict";
@@ -219,6 +220,7 @@ function viewDash(){
   if(planOpen>planDate)planOpen=planDate;
   return `<div class="stack">
     <div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${esc(b.name)}</h1></div>
+    ${mustParent()}
     <div class="kpis">
       <div class="kpi"><b>${streakOf(b.log)}</b><span>day streak</span></div>
       <div class="kpi"><b>${(b.log[t]||{}).done||0}</b><span>words practised today</span></div>
@@ -265,6 +267,7 @@ function viewDash(){
 }
 
 function bind(){
+  if(typeof mustParentBind==="function")mustParentBind();
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});
   const f=$("#authForm");

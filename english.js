@@ -226,7 +226,7 @@ function diaryView(){
     <div class="card"><b>Today’s idea:</b> ${esc(prompt)}${zhLine(prompt)}
       <div class="muted small" style="margin-top:6px">Think: Who? Where? What happened first, next and last? How did you feel?</div></div>
     <div class="dbank">${DIARY_BANK.map(([h,ws])=>`<div><span class="muted tiny">${h}</span>${ws.split(",").map(x=>`<button class="chip" data-ins="${esc(x)}">${esc(x)}</button>`).join("")}</div>`).join("")}</div>
-    <textarea id="dText" rows="9" placeholder="Today I…" spellcheck="false" autocapitalize="sentences">${esc(d.text||"")}</textarea>
+    <textarea id="dText" rows="9" placeholder="Today I…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" writingsuggestions="false" data-gramm="false" data-enable-grammarly="false">${esc(d.text||"")}</textarea>
     <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn" id="dRead">${ic("speaker")}Read it to me</button><button class="btn" id="dSpell">${ic("check")}Check my spelling</button><button class="btn primary" id="dDone">${ic("check")}I’ve finished</button></div>
     <div id="dSpellOut"></div>
     <div class="card stack tight" id="dChecks"></div>

@@ -1004,3 +1004,8 @@ input,select,textarea{font-size:max(16px,1em)}
 .nf-cell{flex:0 0 calc((100% - 30px)/10);min-width:0;font-size:clamp(11px,1.9vw,16px);padding:5px 1px}
 .nf-tri.sub .nf-cell{min-width:0}
 @media (max-width:620px){.nf-cell{flex:0 0 56px}}
+/* Hear it, spell it (phonics) */
+.ps-in{flex:1;min-height:64px;display:flex;align-items:center;padding:6px 16px;border-radius:16px;background:var(--paper);box-shadow:var(--shadow);font:700 clamp(30px,7vw,44px) var(--word,var(--round));letter-spacing:.06em}
+.ps-in.right{color:var(--green-fill,#2e9d5b)} .ps-in.shown b{color:#d63333}
+.ps-kbd{display:flex;flex-direction:column;gap:6px;padding:8px 4px;border-radius:16px;background:color-mix(in srgb,var(--fg) 7%,var(--bg))}
+.ps-kbd .kb{height:54px;font-size:24px}

@@ -11,7 +11,7 @@
 const MUST_ALL={
   words:  {icon:"sparkle",  min:10, t:"New words",          tz:"新单词"},
   dict:   {icon:"headphones",min:10,t:"Dictation",          tz:"听写"},
-  phonics:{icon:"wave",     min:10, t:"Phonics",            tz:"自然拼读"},
+  phonics:{icon:"wave",     min:15, t:"Phonics",            tz:"自然拼读"},
   read:   {icon:"book",     min:15, t:"Reading",            tz:"阅读"},
   write:  {icon:"pencil",   min:10, t:"Writing: my diary",  tz:"写作"},
   maths:  {icon:"maths",    min:15, t:"Maths: today’s 20",  tz:"每日20题"},
@@ -52,7 +52,7 @@ function mustStatus(k,t=today()){
     const left=ws.filter(w=>w.dict!==t).length;
     return {done:ws.length>0&&left===0,p:ws.length?(ws.length-left)/ws.length:0,sub:ws.length?(left?`${left} word${left>1?"s":""} to spell`:"All spelled"):"Learn new words first",acc:null};
   }
-  if(k==="phonics"){const d=((b.eng||{}).plog||{})[t]||{n:0,r:0};return {done:d.n>=10,p:Math.min(1,d.n/10),sub:`${Math.min(10,d.n)} of 10 questions`,acc:acc(d.r,d.n)};}
+  if(k==="phonics"){const d=((b.eng||{}).plog||{})[t]||{n:0,r:0},sn=d.sn||0;return {done:d.n>=20&&sn>=10,p:(Math.min(20,d.n)+Math.min(10,sn))/30,sub:`${Math.min(20,d.n)} of 20 questions · ${Math.min(10,sn)} of 10 words spelt`,acc:acc(d.r+(d.sr||0),d.n+sn)};}
   if(k==="read"){
     const secs=((b.reading.log[t]||{}).secs)||0, fin=Object.values(b.reading.done).filter(x=>x.date===t);
     return {done:secs>=600,p:Math.min(1,secs/600),sub:`${Math.floor(secs/60)} of 10 minutes${fin.length?` · ${fin.length} story finished`:""}`,acc:acc(fin.reduce((s,x)=>s+x.score,0),fin.reduce((s,x)=>s+x.n,0))};
@@ -93,7 +93,7 @@ function mustLaunch(k){
     return startSession("dict",p.all.map(w=>w.id),{listDate:d});
   }
   if(k==="dict"){const ws=dictLeft(t).length?dictLeft(t):dictSet(t);if(ws.length)return startSession("ddict",ws.map(w=>w.id),{listDate:t});toast("Learn today’s new words first.");return mustGate(true);}
-  if(k==="phonics")return openEnglish("pq",{set:phQuiz(),i:0,r:0,pick:null});
+  if(k==="phonics"){openEnglish("phonics");return phToday();}
   if(k==="read")return openReader(todaysReading().id);
   if(k==="write")return openDiary();
   if(k==="maths"){const d=dailySet(t);return openMaths({kind:"day",date:t,ids:d.ids});}

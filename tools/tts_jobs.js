@@ -16,7 +16,7 @@ const addS=s=>{s=key(s);if(s&&s.length>3)sents.add(s);};
 // statutory lists and phonics (Year 5 site)
 const eng=load('english.js');
 if(eng){for(const m of eng.matchAll(/words:"([^"]+)"\.split/g))m[1].split(" ").forEach(addW);
-  for(const m of eng.matchAll(/,w:"([^"]+)"\}/g))m[1].replace(/[\[\]]/g,"").split(" ").forEach(addW);}
+  for(const m of eng.matchAll(/,w:"([^"]+)"\}/g))m[1].replace(/\|[^\]]*\]/g,"]").replace(/[\[\]]/g,"").split(" ").forEach(addW);}
 // Year 7 weekly words
 const w7=load('words7.js'); if(w7){let WW;eval(w7+';WW=WEEK_WORDS;');for(const [,ws] of WW)for(const x of ws){addW(x[0]);if(x[2])addS(x[2]);}}
 // the child's own words and example sentences

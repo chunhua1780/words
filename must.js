@@ -18,8 +18,9 @@ const MUST_ALL={
   test:   {icon:"doc",      min:15, t:"Maths test",         tz:"数学小测"},
   formula:{icon:"layers",   min:10, t:"Formula quiz",       tz:"公式练习"},
   paper:  {icon:"puzzle",   min:10, t:"Test paper practice",tz:"试卷题型"},
+  fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
 };
-const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","maths","test","formula","paper"]:["words","dict","phonics","read","write","maths","test"];
+const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","test","fix"];
 const mustCfg=()=>{const m=(B().prefs||{}).must||{};return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 
@@ -50,8 +51,12 @@ function mustStatus(k,t=today()){
   if(k==="test"){const d=typeof cuGet==="function"?cuGet(t):null,a=d?Object.values(d.ans||{}):[];const n=d?d.ids.length:15;
     return {done:!!d&&a.length>=n,p:a.length/n,sub:d&&a.length>=n?`Score ${a.filter(x=>x.ok).length}/${n}`:`${a.length} of ${n} answered`,acc:acc(a.filter(x=>x.ok).length,a.length)};}
   if(k==="formula"||k==="paper"){const g=mLog((k==="formula"?"fm:":"pp:")+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
+  if(k==="fix"){const g=mLog("fx:"+t)||{n:0,r:0},left=t===today()?mustFixLeft():(g.left||0),start=Math.max(left,(g.start||0));
+    return {done:left===0,p:start?1-left/start:1,sub:left?`${left} mistake${left>1?"s":""} to fix`:(g.n?`All fixed · ${g.r} put right`:"No mistakes to fix"),acc:acc(g.r,g.n)};}
   return {done:false,p:0,sub:"",acc:null};
 }
+/* mistakes still waiting: the latest answer was wrong (generated types p:/f: are only summaries) */
+function mustFixLeft(){const q=((B().maths||{}).q)||{};return Object.entries(q).filter(([id,s])=>s&&s.ok===false&&!/^(p:|f:)/.test(id)&&(typeof MQ==="undefined"||MQ[id]||(id.startsWith("w:")&&s.q))).length;}
 const mustTz=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"单词练习":MUST_ALL[k].tz;
 const mustTitle=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"Spelling practice":MUST_ALL[k].t;
 /* time: seconds per part of the app on a day */
@@ -77,6 +82,7 @@ function mustLaunch(k){
   if(k==="test")return openCheckup();
   if(k==="formula")return openMaths({kind:"topic",topic:"Formula quiz",ids:fmSet()});
   if(k==="paper")return openMaths({kind:"topic",topic:"Test paper: mixed",ids:paperSet("mix")});
+  if(k==="fix"){if(!mustFixLeft()){toast("No mistakes to fix. Brilliant!");return mustGate(true);}return openMistakes();}
 }
 function mustHide(){const e=document.getElementById("must");if(e)e.hidden=true;}
 function mustGate(force){
@@ -120,6 +126,7 @@ function mustSection(){
   const vis=id=>{const e=document.getElementById(id);return !!e&&!e.hidden;};
   if(vis("session"))return typeof S!=="undefined"&&S&&S.mode==="ddict"?"dict":"words";
   if(vis("maths")){if(typeof MS==="undefined"||!MS)return "practice";const id=MS.ids&&MS.ids[0]||"";
+    if(MS.fix)return "fix";
     return MS.kind==="test"?"test":MS.kind==="day"?"maths":String(id).startsWith("g:fm:")?"formula":/^g:(?!rv)/.test(id)?"paper":"practice";}
   if(vis("reader"))return "read";
   if(vis("eng"))return typeof EV!=="undefined"&&EV&&EV.view==="diary"?"write":"phonics";

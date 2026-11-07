@@ -168,7 +168,8 @@ function mathsBlock(){
   const sc=d=>dayOf(d)?dayScore(dayOf(d)):null;
   const week=days.slice(-7).map(sc).filter(Boolean), wn=week.reduce((a,s)=>a+s.done,0), wr=week.reduce((a,s)=>a+s.right,0);
   const ts=topicStats(), tops=MATHS_TOPICS.filter(x=>ts[x].n);
-  const miss=Object.entries(M.q).filter(([id,s])=>s.ok===false&&MQ[id]).sort((a,c)=>(c[1].u||0)-(a[1].u||0)).slice(0,8).map(([id])=>MQ[id]);
+  const mk=mistakeIds(), miss=mk.slice().reverse().slice(0,10).map(id=>MQ[id]), yd=addDays(t,-1), ysc=sc(yd), fx=d=>M.log["fx:"+d]||null;
+  const fixOn=mustCfg().items.includes("fix")&&mustCfg().on;
   const today20=sc(t);
   return `<div class="card stack">
     <div class="row" style="justify-content:space-between"><h3>Maths</h3><span class="muted small">${wn?`${wr}/${wn} correct this week`:"No maths yet this week"}</span></div>
@@ -180,7 +181,13 @@ function mathsBlock(){
     <div><div class="muted small" style="margin-bottom:4px">Quick facts known by heart (3 quick right answers in a row) · ${Object.entries(M.q).filter(([id,x])=>id.startsWith("f:")&&x.last===t).length} practised today</div>
       ${["add","sub","mul20","div20","mul10","div10"].map(k=>{const S=FACT_SETS[k],f=factStats(k),p=Math.round(f.known/f.total*100);return `<div class="tacc"><span>${S.sym} ${esc(S.name)} ${esc(S.sub)}</span><span class="bar"><i style="width:${p}%"></i></span><span class="v">${f.known}/${f.total}${f.missed?` · ${f.missed} missed`:""}</span></div>`;}).join("")}</div>
     ${tops.length?`<div><div class="muted small" style="margin-bottom:4px">Correct by topic</div>${tops.map(x=>{const s=ts[x],p=Math.round(s.r/s.n*100);return `<div class="tacc"><span>${esc(x)}</span><span class="bar"><i style="width:${p}%"></i></span><span class="v">${p}% · ${s.n} tried</span></div>`;}).join("")}</div>`:""}
-    ${miss.length?`<div><div class="muted small" style="margin-bottom:4px">Recent mistakes (these come back in later daily sets)</div>${miss.map(q=>`<div class="miss"><div>${mt(q.q)}</div><div class="muted small">${esc(q.t)} · answer <b>${esc(showAns(q))}</b></div></div>`).join("")}</div>`:""}
+    <div class="card mk-card stack" style="margin:0">
+      <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b>错题本 · Mistakes to fix: ${mk.length}</b>
+        <span class="muted small">Yesterday: ${ysc&&ysc.done?`${ysc.right}/${ysc.n} correct`:"no daily set"}${fx(yd)?` · fixed ${fx(yd).r}`:""} · Today fixed: ${fx(t)?fx(t).r:0}</span></div>
+      <div class="muted small">Every wrong answer is saved here. After each set your child can redo the wrong ones straight away, again and again until all are right; a question leaves the list only when it is answered right. 做错的题会一直留在错题本里，直到做对为止。</div>
+      ${fixOn?`<div class="notice">${ic("check")} “错题重做 · Fix my mistakes” is in today’s must-do: it is only done when the list is empty.</div>`:`<button class="btn" id="fixMust">${ic("plus")}Add “错题重做” to today’s must-do (every day)</button>`}
+      ${miss.length?`<div>${miss.map(q=>`<div class="miss"><div>${mt(q.q)}</div><div class="muted small">${esc(q.t||"")} · answer <b>${esc(showAns(q))}</b></div></div>`).join("")}${mk.length>10?`<div class="muted small">…and ${mk.length-10} more</div>`:""}</div>`:""}
+    </div>
   </div>`;
 }
 
@@ -242,8 +249,10 @@ function viewDash(){
       <label class="toggle"><span>This is a dictation test<br><span class="muted tiny">Your child can start practising before the test day.</span></span><input type="checkbox" id="pTest" ${isTest?"checked":""}></label>
       ${isTest?`<label class="field">Start practising on<input type="date" id="pOpen" value="${planOpen}" max="${planDate}"></label>
         <div class="muted tiny">Before this day the list is locked. In the last week before the test every word is practised daily.</div>`:`<div class="muted tiny">${planDate>t?`The list stays locked until ${esc(niceDate(planDate))}.`:"The list is ready to study now."}</div>`}
+      <div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><label class="btn" for="pFile" style="cursor:pointer">${ic("doc")}从 Word 文档导入 · Import from Word</label><input type="file" id="pFile" accept=".docx,.txt,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" hidden>
+        <span class="muted tiny">Or copy the list in Word and paste it below. Numbers, meanings and Chinese are left out automatically. 也可以在 Word 里复制，直接粘贴到下面。</span></div>
       <label class="field">Words, one per line or separated by commas<textarea id="pWords" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="confidential&#10;essential&#10;substantial">${esc(planDraft)}</textarea></label>
-      <div class="row" style="justify-content:space-between"><span class="muted small" id="pCount">${parseWords(planDraft).length} words</span><button class="btn primary big" id="pSave">${ic("plus")}Save to ${esc(shortDate(planDate))}</button></div>
+      <div class="row" style="justify-content:space-between"><span class="muted small" id="pCount">${planWords().length} words</span><button class="btn primary big" id="pSave">${ic("plus")}Save to ${esc(shortDate(planDate))}</button></div>
       ${msg?`<div class="notice">${msg}</div>`:""}
     </div>
 
@@ -270,6 +279,31 @@ function viewDash(){
   </div>`;
 }
 
+/* ---------- word lists from a Word document (or text pasted from one) ----------
+   Each line keeps only the English word or short phrase at its start: numbering, bullets,
+   meanings after a dash/colon/tab, and Chinese are dropped. Long sentences are skipped. */
+function cleanImport(text){
+  const out=[];
+  String(text).replace(/\r/g,"").split("\n").forEach(line=>{
+    line.split(/[,;，；、]+/).forEach(part=>{
+      let w=part.replace(/^\s*(\(?\d+[\.\)、:：]?|[a-z][\.\)]|[-•●▪◦*·])\s+/i,"").split(/\t| [-–—=:：]| ?[:：(（\[【=]|[　-鿿＀-￯]/)[0].trim();
+      if(w&&/[a-z]/i.test(w)&&!/\d/.test(w)&&w.split(/\s+/).length<=3)out.push(w);
+    });
+  });
+  return out.join("\n");
+}
+const planWords=()=>parseWords(cleanImport(planDraft));
+function loadScript(src){return new Promise((ok,no)=>{if(window.JSZip)return ok();const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s);});}
+async function readDocFile(f){
+  if(/\.docx$/i.test(f.name)){
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const z=await JSZip.loadAsync(await f.arrayBuffer()), x=await z.file("word/document.xml").async("string");
+    return x.split(/<\/w:p>/).map(p=>(p.replace(/<w:tab\/>/g,"\t").match(/<w:t[^>]*>[^<]*<\/w:t>|\t/g)||[]).map(t=>t==="\t"?"\t":t.replace(/<[^>]+>/g,"")).join("")).join("\n")
+      .replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&apos;/g,"'").replace(/&quot;/g,'"');
+  }
+  if(/\.doc$/i.test(f.name))throw new Error("old");
+  return await f.text();
+}
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
@@ -286,11 +320,17 @@ function bind(){
   document.querySelectorAll("[data-pdate]").forEach(b=>b.onclick=()=>{keep();planDate=b.dataset.pdate;planOpen=null;msg="";render();});
   const pt=$("#pTest"); if(pt)pt.onchange=()=>{keep();const ex=B().lists[planDate];if(ex){ex.test=pt.checked;ex.open=pt.checked?(ex.open||planOpen):planDate;ex.u=Date.now();Store.save();}render();};
   const po=$("#pOpen"); if(po)po.onchange=()=>{keep();const ex=B().lists[planDate];if(ex&&ex.test&&po.value){ex.open=po.value>planDate?planDate:po.value;ex.u=Date.now();Store.save();}};
-  const pw=$("#pWords"); if(pw)pw.oninput=()=>{planDraft=pw.value;$("#pCount").textContent=parseWords(pw.value).length+" words";};
+  const pfi=$("#pFile"); if(pfi)pfi.onchange=async()=>{const f=pfi.files[0];if(!f)return;keep();
+    try{const ws=parseWords(cleanImport(await readDocFile(f)));if(!ws.length){msg="No English words found in that file.";render();return;}
+      const have=planWords().map(w=>w.toLowerCase()),add=ws.filter(w=>!have.includes(w.toLowerCase()));
+      planDraft=[...planWords(),...add].join("\n");msg=`Found ${ws.length} words in “${esc(f.name)}”. Check the list, then tap Save. 已读取 ${ws.length} 个单词，请检查后点保存。`;}
+    catch(e){msg=e.message==="old"?"This is an old .doc file. In Word choose File → Save As → .docx, then import again. 请先另存为 .docx 格式。":"Could not read that file. Try copying the words and pasting them instead.";}
+    pfi.value="";render();$("#pWords")&&$("#pWords").scrollIntoView({block:"center"});};
+  const pw=$("#pWords"); if(pw)pw.oninput=()=>{planDraft=pw.value;$("#pCount").textContent=planWords().length+" words";};
   const ps=$("#pSave");
   if(ps)ps.onclick=()=>{
     keep();
-    const list=parseWords(planDraft);
+    const list=planWords();
     if(!list.length){msg="Type at least one English word.";render();return;}
     const r=addWordsToBook(B(),list,{date:planDate,title:planTitle.trim(),test:planTest,open:planTest?planOpen:planDate});
     Store.save();
@@ -305,6 +345,7 @@ function bind(){
   document.querySelectorAll("[data-dellist]").forEach(b=>b.onclick=()=>{
     if(!b.classList.contains("danger")){b.classList.add("danger");b.textContent="Tap again to delete this list";setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("danger");b.textContent="Delete list";}},3500);return;}
     deleteList(B(),b.dataset.dellist);Store.save();render();});
+  const fm=$("#fixMust"); if(fm)fm.onclick=()=>{const b=B(),m=mustCfg(),items=mustSite().filter(k=>k==="fix"||m.items.includes(k));b.prefs={...b.prefs,must:{...m,on:true,mode:m.on?m.mode:"every",items:m.on?items:items.length>1?items:["maths","fix"]},u:Date.now()};if(b.prefs.must.mode==="today")b.prefs.must.date=today();Store.save();render();};
   const pf=$("#pwForm");
   if(pf)pf.onsubmit=async e=>{
     e.preventDefault();const a=$("#pw1").value.trim(),c=$("#pw2").value.trim();

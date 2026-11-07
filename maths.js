@@ -82,7 +82,15 @@ function mistakesCard(){
     ${ids.length?`<button class="btn primary big" data-mistakes style="background:var(--red)">${ic("check")}Practise ${Math.min(10,ids.length)} again</button>`:""}
   </div>`;
 }
-function openMistakes(){const ids=mistakeIds().slice(0,10);if(!ids.length)return;openMaths({kind:"topic",topic:"错题本 · Mistakes to fix",ids});}
+/* redo the ones just got wrong, straight away, again and again until all are right */
+function redoIds(ids){registerMistakes();const st=MB().q;
+  return [...new Set(ids.filter(id=>MS.res[id]===false).map(id=>{const q=MQ[id];return q&&q.gen?"w:"+String(id).replace(/^g[a-z]*:/,""):id;}))].filter(id=>MQ[id]&&st[id]&&st[id].ok===false);}
+function redoBtn(){const r=redoIds(MS.ids);MS.redo=r;
+  if(!r.length)return MS.fix?`<div class="notice" style="text-align:center">${ic("check")} 全部改对了！All fixed. Brilliant!</div>`:"";
+  return `<button class="btn primary big" id="mRedo" style="background:var(--red)">${ic("check")}马上重做错题 · Redo the ${r.length} wrong one${r.length>1?"s":""}</button>
+    <div class="muted small" style="text-align:center">${MS.fix?"Keep going until every one is right. 直到全部做对为止。":"Fix them now while you remember. 做错的题现在马上重做一遍。"}</div>`;}
+function bindRedo(){const b=document.getElementById("mRedo");if(b)b.onclick=()=>{const r=MS.redo.slice(0,10);openMaths({kind:"topic",topic:"错题本 · Mistakes to fix",ids:r,fix:true});};}
+function openMistakes(){const ids=mistakeIds().slice(0,10);if(!ids.length)return;openMaths({kind:"topic",topic:"错题本 · Mistakes to fix",ids,fix:true});}
 function topicStats(){
   const st=MB().q, out={};
   for(const t of MATHS_TOPICS)out[t]={seen:0,n:0,r:0,total:TOPIC_COUNT[t]};
@@ -309,6 +317,7 @@ function record(q,ok,given){
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
   if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
   if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
+  if(MS.fix){const F=M.log["fx:"+t]=M.log["fx:"+t]||{n:0,r:0};F.n++;if(ok)F.r++;F.left=mistakeIds().length;F.start=Math.max(F.start||0,F.left+(ok?1:0));F.u=Date.now();} // 错题重做 progress (must.js)
   MS.res[q.id]=ok; Store.save();
 }
 function nextQ(){MS.i++;MS.exp=0;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}
@@ -320,11 +329,12 @@ function renderMResults(){
   $("#mBody").innerHTML=`<div class="m-q m-results">
     <div class="stars">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div>
     <h2>${right} out of ${n} correct</h2>
-    <p class="muted">${pct>=.9?"Superb work!":pct>=.7?"Great effort. Check the ones you missed below.":pct>=.4?"Good try. Read through the working for the ones you missed.":"Keep going. Every question you try helps you learn."}${MS.kind==="day"?" Questions you got wrong will come back on another day.":""}</p>
+    <p class="muted">${pct>=.9?"Superb work!":pct>=.7?"Great effort. Check the ones you missed below.":pct>=.4?"Good try. Read through the working for the ones you missed.":"Keep going. Every question you try helps you learn."}${MS.kind==="day"?" Wrong ones are saved in 错题本 to fix.":""}</p>
     <div class="group">${ids.map(id=>{const q=MQ[id],ok=MS.res[id];return `<div class="cell m-row"><div class="badge ${ok?"green":"red"}">${ic(ok?"check":"x")}</div><div class="grow"><div class="ttl">${mt(q.q)}</div>${ok?"":`<div class="sub">Answer: <b>${fracHtml(esc(showAns(q)))}</b></div>`}${resultSteps(q)}</div></div>`;}).join("")}</div>
-    <button class="btn primary big" id="mDone">Done</button>
+    ${redoBtn()}
+    <button class="btn ${MS.redo.length?"":"primary "}big" id="mDone">Done</button>
   </div>`;
-  $("#mDone").onclick=closeMaths;
+  $("#mDone").onclick=closeMaths; bindRedo();
   zhFill($("#mBody"));
 }
 document.addEventListener("keydown",e=>{

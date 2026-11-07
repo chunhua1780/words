@@ -52,7 +52,7 @@ details.list[open] .chev{transform:rotate(90deg)}
     </div>
     <span class="spacer"></span>
     <span class="chip" id="sync" hidden></span>
-    <button class="chip" id="showLogin">账号密码</button>
+    <button class="chip" id="showLogin">Login 账号密码</button>
     <button class="chip" id="out" hidden>Log out</button>
   </header>
   <main id="view" style="margin-top:20px"></main>
@@ -369,5 +369,6 @@ render();
   catch(e){err=e.message==="bad_login"?"Please log in again.":authMsg(e);if(e.message==="bad_login")clearSession();render();}
 })();
 </script>
+<script src="zhui.js"></script>
 </body>
 </html>

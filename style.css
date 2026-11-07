@@ -1009,3 +1009,12 @@ input,select,textarea{font-size:max(16px,1em)}
 .ps-in.right{color:var(--green-fill,#2e9d5b)} .ps-in.shown b{color:#d63333}
 .ps-kbd{display:flex;flex-direction:column;gap:6px;padding:8px 4px;border-radius:16px;background:color-mix(in srgb,var(--fg) 7%,var(--bg))}
 .ps-kbd .kb{height:54px;font-size:24px}
+/* English first; Chinese under it only when 中文 is on (zhui.js) */
+.zh-t{display:none}
+html.zh-on .zh-t{display:block;font-size:.82em;font-weight:500;line-height:1.35;color:var(--muted);margin-top:2px;letter-spacing:0;text-transform:none}
+html:not(.zh-on) .zh{display:none}
+.zh-all{font-weight:700}
+.zh-all.on{background:var(--c-red,#d64545);color:#fff}
+.zh-float{position:fixed;right:14px;top:14px;z-index:30;box-shadow:var(--shadow)}
+.nf-lv .zh-t{background:none;padding:0;color:inherit;opacity:.85}
+.chip .zh-t{display:none!important}

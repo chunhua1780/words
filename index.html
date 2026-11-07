@@ -24,7 +24,7 @@
     <span class="chip" id="sync" hidden></span>
     <span class="chip" id="streak" hidden></span>
     <button class="chip" id="soundTest" title="Test sound"></button>
-    <button class="chip" id="pwChip" hidden>改密码</button>
+    <button class="chip" id="pwChip" hidden>Password 改密码</button>
     <button class="chip kid" id="kid" hidden></button>
   </header>
   <nav class="tabs" role="tablist" hidden>
@@ -1501,5 +1501,6 @@ render();
   catch(e){authErr=e.message==="bad_login"?"Please log in again.":authMsg(e);if(e.message==="bad_login")clearSession();render();}
 })();
 </script>
+<script src="zhui.js"></script>
 </body>
 </html>

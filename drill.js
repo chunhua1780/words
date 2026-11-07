@@ -39,10 +39,10 @@ function nfGrid(f){
 }
 function nfSteps(f){
   const g=nfGrid(f), c=f.x+f.y, p=f.x*f.y, hi=g.row, lo=g.cell;
-  if(f.op==="+")return [`看「加法口诀表」。 Look at the adding table.`,`往下找到第 ${hi} 行（大的数 ${hi}）。 Go down to row ${hi} (the bigger number).`,`往右找到 ${lo}+${hi} 这一格。${f.x!==lo?` ${f.x}+${f.y} 和 ${lo}+${hi} 一样。`:""} Go along to ${lo}+${hi}.`,`等号后面就是答案：${f.x} + ${f.y} = ${f.ans}。 The number after = is the answer.`];
-  if(f.op==="−")return [`看「减法口诀表」。 Look at the taking-away table.`,`往下找到 ${c} 开头的那一行。 Go down to the row that starts with ${c}.`,`往右找到 ${c}−${f.y} 这一格。 Go along to ${c}−${f.y}.`,`等号后面就是答案：${c} − ${f.y} = ${f.ans}。 The number after = is the answer.`];
-  if(f.op==="×")return [`看「乘法口诀表」。 Look at the times table.`,`往下找到第 ${hi} 行（大的数 ${hi}）。 Go down to row ${hi} (the bigger number).`,`往右找到 ${lo}×${hi} 这一格。 Go along to ${lo}×${hi}.`,`等号后面就是答案：${f.x} × ${f.y} = ${f.ans}。 The number after = is the answer.`];
-  return [`除法就是倒过来的乘法，看「乘法口诀表」。 Division is times backwards: look at the times table.`,`往下找到第 ${hi} 行。 Go down to row ${hi}.`,`往右找到 ${lo}×${hi}=${p} 这一格。 Go along to ${lo}×${hi}=${p}.`,`另一个数 ${f.x} 就是答案：${p} ÷ ${f.y} = ${f.x}。 The other number, ${f.x}, is the answer.`];
+  if(f.op==="+")return [`看「加法口诀表」。 Look at the adding table.`,`往下找到第 ${hi} 行（大的数 ${hi}）。 Go down to row ${hi} (the bigger number).`,`往右找到 ${lo}+${hi} 这一格。${f.x!==lo?` ${f.x}+${f.y} 和 ${lo}+${hi} 一样。`:""} Go along to ${lo}+${hi}.`,`等号后面的数就是答案。 The number after = is the answer.`];
+  if(f.op==="−")return [`看「减法口诀表」。 Look at the taking-away table.`,`往下找到 ${c} 开头的那一行。 Go down to the row that starts with ${c}.`,`往右找到 ${c}−${f.y} 这一格。 Go along to ${c}−${f.y}.`,`等号后面的数就是答案。 The number after = is the answer.`];
+  if(f.op==="×")return [`看「乘法口诀表」。 Look at the times table.`,`往下找到第 ${hi} 行（大的数 ${hi}）。 Go down to row ${hi} (the bigger number).`,`往右找到 ${lo}×${hi} 这一格。 Go along to ${lo}×${hi}.`,`等号后面的数就是答案。 The number after = is the answer.`];
+  return [`除法就是倒过来的乘法，看「乘法口诀表」。 Division is times backwards: look at the times table.`,`往下找：哪一行里有 ${f.y}× 或 ×${f.y} 并且等于 ${p}？ Go down the rows to find a cell with ${f.y} that equals ${p}.`,`找到 =${p} 的那一格。 Find the cell that ends in = ${p}.`,`那一格里 ${f.y} 以外的另一个数就是答案。 The other number in that cell (not ${f.y}) is the answer.`];
 }
 function nfList(f,lv,reveal){
   const g=nfGrid(f);

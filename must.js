@@ -21,7 +21,11 @@ const MUST_ALL={
   fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
 };
 const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","write","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","test","fix"];
-const mustCfg=()=>{const m=(B().prefs||{}).must||{};return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
+/* Until a parent saves their own choice, a default must-do list is on (no lock) so the child always sees today's tasks */
+const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","words","read","write","fix"]:["words","dict","phonics","read","write","maths"];
+const mustCfg=()=>{const m=(B().prefs||{}).must;
+  if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:false,auto:true};
+  return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 
 /* ---------- how each block is going (only reads saved data, so the parent page can use it too) ---------- */
@@ -110,13 +114,23 @@ function mustGate(force){
   const lt=el.querySelector("#mustLater"); if(lt)lt.onclick=()=>{try{sessionStorage.setItem("must-later",t);}catch(e){}el.hidden=true;};
 }
 /* after every render of the page: banner button, then the pop-up if it is needed */
-function mustAfterRender(){document.querySelectorAll("#view [data-mustopen]").forEach(b=>b.onclick=()=>mustGate(true));mustGate();}
-/* a small banner on the Today page to reopen the card */
+function mustAfterRender(){document.querySelectorAll("#view [data-mustopen]").forEach(b=>b.onclick=()=>mustGate(true));
+  document.querySelectorAll("#view [data-mustgo]").forEach(b=>b.onclick=()=>{const s=mustStatus(b.dataset.mustgo);mustLaunch(b.dataset.mustgo);if(s.done&&typeof toast==="function")toast("Already done. Extra practice is great!");});
+  mustGate();}
+/* the Today page: a big 今日必做 card at the top, one row per task with a Start button */
 function mustBanner(){
   if(!Store.book||!mustActive())return "";
-  const m=mustCfg(), st=m.items.map(k=>mustStatus(k)), done=st.filter(x=>x.done).length;
-  return `<button class="card must-banner" data-mustopen><span class="must-ic">${ic("star")}</span><span class="grow"><b>今日必做 · Today’s must-do: ${done} of ${st.length} done</b>
-    <span class="muted small">${done===st.length?"All done today!":"Tap to see what is left"}</span></span><span class="chev">${ic("chevron")}</span></button>`;
+  const m=mustCfg(), st=m.items.map(k=>({k,...mustStatus(k)})), done=st.filter(x=>x.done).length, all=done===st.length;
+  const left=st.filter(x=>!x.done).reduce((s,x)=>s+MUST_ALL[x.k].min,0), nextK=(st.find(x=>!x.done)||{}).k;
+  return `<section class="card must-today ${all?"all":""}">
+    <div class="mt-head"><div class="mt-title"><span class="mt-star">${ic("star")}</span><div><h2>今日必做 · Today’s must-do</h2>
+      <div class="muted">${all?"All done today. Well done! 今天全部完成，太棒了！":`${st.length-done} left · about ${left} minutes · 还剩 ${st.length-done} 项`}</div></div></div>
+      <div class="ring lg" style="--p:${st.length?done/st.length*100:0}"><span>${done}/${st.length}</span></div></div>
+    <div class="mt-list">${st.map((x,i)=>`<button class="mt-row ${x.done?"done":""} ${x.k===nextK?"next":""}" data-mustgo="${x.k}">
+      <span class="mt-n">${x.done?ic("check"):i+1}</span><span class="must-ic">${ic(MUST_ALL[x.k].icon)}</span>
+      <span class="mt-txt"><b>${esc(mustTitle(x.k))} <span class="tz">${mustTz(x.k)}</span></b><span class="muted small">${esc(x.sub)}</span><span class="must-bar"><i style="width:${Math.round(x.p*100)}%"></i></span></span>
+      <span class="mt-go">${x.done?"Done ✓":x.k===nextK?"Start 开始":"Go"}</span></button>`).join("")}</div>
+  </section>`;
 }
 
 /* ---------- time spent, counted while the page is visible and in use ---------- */
@@ -158,6 +172,7 @@ function mustParent(){
       <label class="row" style="gap:6px"><input type="checkbox" id="mustLock" ${m.lock?"checked":""}> Lock the rest of the app until done</label>
     </div>
     <div class="must-picks">${items.map(k=>`<label class="must-pick ${m.items.includes(k)?"on":""}"><input type="checkbox" data-mustitem="${k}" ${m.items.includes(k)?"checked":""}><b>${esc(mustTitle(k))}</b><span class="muted tiny">${mustTz(k)} · ~${MUST_ALL[k].min} min</span></label>`).join("")}</div>
+    ${m.auto?`<div class="notice">Using the default list until you change it here. 目前使用默认的必做项目，可以在这里修改。</div>`:""}
     <div class="muted small">${m.on?(m.mode==="today"&&m.date!==t?"Set for an earlier day: tick “Today only” again to set it for today.":`${m.items.length} block${m.items.length===1?"":"s"}, about ${m.items.reduce((s,k)=>s+MUST_ALL[k].min,0)} minutes.`):"Off: the child’s page opens as normal."}</div>
     <div class="must-table-wrap"><table class="must-table"><thead><tr><th></th>${cols.map(k=>`<th>${esc(mustTitle(k))}</th>`).join("")}<th>Time · right</th></tr></thead><tbody>${days.map(row).join("")}</tbody></table></div>
     <div class="muted tiny">Each cell: ✓ done (or how far), then the % of answers right, then the minutes spent on it. Time counts only while the page is open and in use.</div>

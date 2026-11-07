@@ -893,3 +893,29 @@ input,select,textarea{font-size:max(16px,1em)}
 .hist-wrong{color:#d63333;text-decoration:line-through}
 .hist-right{color:var(--green,#2e9d5b)}
 .quick small{opacity:.75;font-weight:500}
+/* 今日必做 at the top of the Today page */
+.must-today{display:flex;flex-direction:column;gap:14px;padding:20px;border:3px solid var(--c-orange,#f08a24);background:linear-gradient(160deg,color-mix(in srgb,var(--c-orange,#f08a24) 14%,var(--paper)),var(--paper) 60%)}
+.must-today.all{border-color:var(--green-fill,#2e9d5b);background:linear-gradient(160deg,color-mix(in srgb,var(--green-fill,#2e9d5b) 14%,var(--paper)),var(--paper) 60%)}
+.mt-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mt-title{display:flex;align-items:center;gap:12px}
+.mt-title h2{margin:0;font:800 clamp(22px,4.5vw,30px)/1.15 var(--round)}
+.mt-star{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;flex:none;background:var(--c-orange,#f08a24);color:#fff}
+.must-today.all .mt-star{background:var(--green-fill,#2e9d5b)}
+.mt-star svg{width:30px;height:30px}
+.mt-list{display:flex;flex-direction:column;gap:10px}
+.mt-row{display:flex;align-items:center;gap:12px;width:100%;border:0;text-align:left;padding:12px 14px;border-radius:16px;background:var(--paper);box-shadow:var(--shadow);color:var(--fg);cursor:pointer}
+.mt-row:active{transform:scale(.99)}
+.mt-row.next{outline:3px solid var(--c-orange,#f08a24)}
+.mt-row.done{opacity:.7}
+.mt-row.done b{text-decoration:line-through;text-decoration-color:color-mix(in srgb,var(--fg) 35%,transparent)}
+.mt-n{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none;font:800 17px var(--round);background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.mt-row.done .mt-n{background:var(--green-fill,#2e9d5b);color:#fff}
+.mt-row.next .mt-n{background:var(--c-orange,#f08a24);color:#fff}
+.mt-txt{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.mt-txt b{font:700 19px var(--round)}
+.mt-txt .tz{font:500 15px var(--round);color:var(--muted)}
+.mt-txt .must-bar{margin-top:4px}
+.mt-go{flex:none;font:700 15px var(--round);padding:9px 14px;border-radius:999px;background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.mt-row.next .mt-go{background:var(--c-orange,#f08a24);color:#fff}
+.mt-row.done .mt-go{background:transparent;color:var(--green-fill,#2e9d5b)}
+@media (max-width:520px){.mt-row .must-ic{display:none}.mt-go{padding:8px 10px;font-size:14px}}

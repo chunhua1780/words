@@ -553,9 +553,9 @@ function viewToday(){
   const t=today(), cur=curDate(), hour=new Date().getHours(), hi=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
   const others=cur?listsOf(B()).filter(l=>l.date!==cur&&listOpen(l)).map(l=>({l,p:listPlan(B(),l.date)})).filter(x=>x.p.fresh.length||x.p.review.length).reverse():[];
   return `<div class="stack">
-    <div class="page-head"><div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${hi}, ${esc(B().name)}</h1></div></div>
+    <div class="page-head"><div><div class="eyebrow">${esc(niceDate(t))}</div><h1 style="font-size:clamp(22px,4vw,30px)">${hi}, ${esc(B().name)}</h1></div></div>
     ${typeof mustBanner==="function"?mustBanner():""}
-    ${planCard()}
+    ${typeof mustActive==="function"&&mustActive()?"":planCard()}
     <div class="eng-tiles">
       <button class="card eng-tile" data-eng="phonics"><span class="eng-ico">ai ay<br>a-e</span><span><b>Phonics</b><span class="muted small">Sounds and spelling patterns</span></span></button>
       <button class="card eng-tile" data-eng="diary"><span class="eng-ico">${ic("pencil")}</span><span><b>My diary</b><span class="muted small">Write about your day</span></span></button>

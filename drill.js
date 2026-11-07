@@ -24,53 +24,58 @@ function openDrill(){
   window.__busy=true; nfEl().hidden=false; document.body.style.overflow="hidden"; nfShow();
 }
 function closeDrill(){window.__busy=false;nfEl().hidden=true;document.body.style.overflow="";NF=null;Store.save();if(typeof render==="function")render();}
-/* ---------- the 口诀 list for one question: one small table of whole sums, found line by line ----------
-   +  8 + 5 → the "8 + …" list (8 + 1 = 9 … 8 + 10 = 18): find the line "8 + 5", the answer is after =
-   −  13 − 5 → the "13 − …" list: find "13 − 5", the answer is after =
-   ×  4 × 3 → the 3 times table (1 × 3 = 3 … 10 × 3 = 30): find "4 × 3", the answer is after =
-   ÷  18 ÷ 3 → the 3 times table: find the line that ends "= 18"; its first number is the answer */
-function nfLines(f){
-  if(f.op==="+")return {title:`${f.x} 加几 · ${f.x} + …`,lines:fRange(1,10).map(n=>({n,l:`${f.x} + ${n}`,r:f.x+n})),target:f.y};
-  if(f.op==="−"){const c=f.x+f.y;return {title:`${c} 减几 · ${c} − …`,lines:fRange(1,Math.min(10,c)).map(n=>({n,l:`${c} − ${n}`,r:c-n})),target:f.y};}
-  return {title:`${f.y} 的乘法口诀 · ${f.y} times table`,lines:fRange(1,10).map(n=>({n,l:`${n} × ${f.y}`,r:n*f.y})),target:f.x};
+/* ---------- the 口诀表, laid out like the classic 九九乘法口诀表 (a staircase of whole sums) ----------
+   加法口诀表: row n holds 1+n … n+n (rows 1–10).        8 + 3 → row 8, the cell 3+8=11 (order does not matter)
+   减法口诀表: row c holds c−1 … (answers 1–10), rows 2–20. 13 − 5 → row 13, the cell 13−5=8
+   乘法口诀表: row n holds 1×n … n×n (rows 1–10).        4 × 3 → row 4, the cell 3×4=12
+   ÷ uses the 乘法口诀表: 18 ÷ 3 → row 6, the cell 3×6=18: the other number, 6, is the answer. */
+function nfGrid(f){
+  const add=f.op==="+", sub=f.op==="−", mul=!add&&!sub, sym=add?"+":"×";
+  if(sub){const rows=[];for(let c=2;c<=20;c++){const cells=[];for(let k=Math.max(1,c-10);k<=Math.min(10,c-1);k++)cells.push({k,t:`${c}−${k}`,r:c-k});rows.push({n:c,cells});}
+    const c=f.x+f.y; return {title:"减法口诀表 · Taking away within 20",rows,row:c,cell:f.y,sym:"−"};}
+  const rows=fRange(1,10).map(n=>({n,cells:fRange(1,n).map(k=>({k,t:`${k}${sym}${n}`,r:add?k+n:k*n}))}));
+  const a=f.op==="÷"?f.x:f.x, b=f.y, hi=Math.max(a,b), lo=Math.min(a,b);
+  return {title:add?"加法口诀表 · Adding within 20":"乘法口诀表 · Times table",rows,row:hi,cell:lo,sym};
 }
 function nfSteps(f){
-  const c=f.x+f.y, p=f.x*f.y;
-  if(f.op==="+")return [`第1步：看「${f.x} 加几」这张表。 Look at the ${f.x} + … list.`,`第2步：从上往下找到 ${f.x} + ${f.y} 这一行。 Go down to the line ${f.x} + ${f.y}.`,`第3步：等号后面的数就是答案：${f.x} + ${f.y} = ${f.ans}。 The number after = is the answer.`];
-  if(f.op==="−")return [`第1步：看「${c} 减几」这张表。 Look at the ${c} − … list.`,`第2步：从上往下找到 ${c} − ${f.y} 这一行。 Go down to the line ${c} − ${f.y}.`,`第3步：等号后面的数就是答案：${c} − ${f.y} = ${f.ans}。 The number after = is the answer.`];
-  if(f.op==="×")return [`第1步：看「${f.y} 的乘法口诀」。 Look at the ${f.y} times table.`,`第2步：从上往下找到 ${f.x} × ${f.y} 这一行。 Go down to the line ${f.x} × ${f.y}.`,`第3步：等号后面的数就是答案：${f.x} × ${f.y} = ${f.ans}。 The number after = is the answer.`];
-  return [`第1步：除法就是倒过来的乘法。看「${f.y} 的乘法口诀」。 Division is times backwards: look at the ${f.y} times table.`,`第2步：从上往下找，等号后面是 ${p} 的那一行。 Go down until a line ends in = ${p}.`,`第3步：这一行最前面的数就是答案：${f.x} × ${f.y} = ${p}，所以 ${p} ÷ ${f.y} = ${f.x}。 The first number of that line is the answer.`];
+  const g=nfGrid(f), c=f.x+f.y, p=f.x*f.y, hi=g.row, lo=g.cell;
+  if(f.op==="+")return [`看「加法口诀表」。 Look at the adding table.`,`往下找到第 ${hi} 行（大的数 ${hi}）。 Go down to row ${hi} (the bigger number).`,`往右找到 ${lo}+${hi} 这一格。${f.x!==lo?` ${f.x}+${f.y} 和 ${lo}+${hi} 一样。`:""} Go along to ${lo}+${hi}.`,`等号后面就是答案：${f.x} + ${f.y} = ${f.ans}。 The number after = is the answer.`];
+  if(f.op==="−")return [`看「减法口诀表」。 Look at the taking-away table.`,`往下找到 ${c} 开头的那一行。 Go down to the row that starts with ${c}.`,`往右找到 ${c}−${f.y} 这一格。 Go along to ${c}−${f.y}.`,`等号后面就是答案：${c} − ${f.y} = ${f.ans}。 The number after = is the answer.`];
+  if(f.op==="×")return [`看「乘法口诀表」。 Look at the times table.`,`往下找到第 ${hi} 行（大的数 ${hi}）。 Go down to row ${hi} (the bigger number).`,`往右找到 ${lo}×${hi} 这一格。 Go along to ${lo}×${hi}.`,`等号后面就是答案：${f.x} × ${f.y} = ${f.ans}。 The number after = is the answer.`];
+  return [`除法就是倒过来的乘法，看「乘法口诀表」。 Division is times backwards: look at the times table.`,`往下找到第 ${hi} 行。 Go down to row ${hi}.`,`往右找到 ${lo}×${hi}=${p} 这一格。 Go along to ${lo}×${hi}=${p}.`,`另一个数 ${f.x} 就是答案：${p} ÷ ${f.y} = ${f.x}。 The other number, ${f.x}, is the answer.`];
 }
 function nfList(f,lv,reveal){
-  const {title,lines,target}=nfLines(f), div=f.op==="÷";
-  const cover=n=>{if(reveal||lv<2)return false;const id=f.op==="+"?`f:+:${f.x}:${n}`:f.op==="−"?`f:-:${f.x+f.y}:${n}`:`f:x:${n}:${f.y}`;
-    if(((MB().q[id]||{}).st||0)>=FACT_KNOWN)return true; return ((n*7+NF.i*3)%5)<2;};
-  return `<div class="nf-list ${reveal?"reveal":""}" id="nfList"><div class="nf-lt">${esc(title)}</div>
-    ${lines.map(x=>{const hit=reveal&&x.n===target, c=cover(x.n);
-      const left=div?`<span class="nf-a ${hit?"glow":""}">${x.n}</span> × ${f.y}`:esc(x.l);
-      return `<div class="nf-line ${hit?"target":""}" data-l="${x.n}"><span class="nf-l">${left}</span><span class="nf-eq">=</span><span class="nf-r ${!div&&hit?"glow":""} ${div&&hit?"glow":""}">${c?`<i class="nf-cov">?</i>`:x.r}</span></div>`;}).join("")}
+  const g=nfGrid(f);
+  const cover=(n,k)=>{if(reveal||lv<2)return false;if(n===g.row&&k===g.cell)return NF.i%2===0;return ((n*7+k*13+NF.i*3)%5)<2;};
+  return `<div class="nf-list nf-tri ${g.sym==="−"?"sub":""} ${reveal?"reveal":""}" id="nfList"><div class="nf-lt">${esc(g.title)}</div>
+    ${g.rows.map(r=>`<div class="nf-row ${reveal&&r.n===g.row?"rowhit":""}" data-r="${r.n}">${r.cells.map(c=>{const hit=reveal&&r.n===g.row&&c.k===g.cell;
+      return `<span class="nf-cell ${hit?"target":""}" data-c="${c.k}">${c.t}=<b class="${hit?"glow":""}">${cover(r.n,c.k)?"?":c.r}</b></span>`;}).join("")}</div>`).join("")}
   </div>`;
 }
-/* the step-by-step demo: step 1 the list lights up, step 2 a marker goes down line by line, step 3 the answer */
+/* the step-by-step demo: 1 the table, 2 down to the row, 3 along to the cell, 4 the answer */
 let nfAnimT=[];
 function nfAnimate(){
   nfAnimT.forEach(clearTimeout); nfAnimT=[];
   const f=NF.facts[NF.i], box=document.getElementById("nfList"), st=document.getElementById("nfSteps"); if(!box||!st)return;
-  const {target,lines}=nfLines(f), steps=nfSteps(f), div=f.op==="÷", p=f.x*f.y;
-  box.classList.remove("reveal"); box.querySelectorAll(".nf-line").forEach(l=>l.classList.remove("scan","target","seen"));
+  const g=nfGrid(f), steps=nfSteps(f);
+  box.classList.remove("reveal"); box.querySelectorAll(".rowhit,.scan,.target,.seen").forEach(e=>e.classList.remove("rowhit","scan","target","seen"));
   box.querySelectorAll(".glow").forEach(e=>e.classList.remove("glow"));
-  box.querySelectorAll(".nf-cov").forEach(e=>{const l=e.closest(".nf-line");const x=lines.find(y=>y.n===+l.dataset.l);e.outerHTML=String(x.r);});
-  const show=k=>{st.innerHTML=steps.map((t,i)=>`<div class="nf-step ${i===k?"on":i<k?"past":""}"><b>${i+1}</b><span>${esc(t.replace(/^第\d步：/,""))}</span></div>`).join("");};
+  box.querySelectorAll(".nf-cell b").forEach(b=>{if(b.textContent==="?"){const c=b.closest(".nf-cell"),r=b.closest(".nf-row");const row=g.rows.find(x=>x.n===+r.dataset.r),cell=row.cells.find(x=>x.k===+c.dataset.c);b.textContent=cell.r;}});
+  const show=k=>{st.innerHTML=steps.map((t,i)=>`<div class="nf-step ${i===k?"on":i<k?"past":""}"><b>${i+1}</b><span>${esc(t)}</span></div>`).join("");};
   const at=(ms,fn)=>nfAnimT.push(setTimeout(()=>{if(NF&&NF.facts[NF.i]===f)fn();},ms));
   show(0); box.classList.add("pulse"); at(1400,()=>box.classList.remove("pulse"));
-  let t=1500; const order=lines.map(x=>x.n), stop=div?order.find(n=>n*f.y===p):target;
-  at(t,()=>show(1));
-  for(const n of order){
-    at(t+=550,()=>{box.querySelectorAll(".nf-line.scan").forEach(l=>{l.classList.remove("scan");l.classList.add("seen");});const l=box.querySelector(`[data-l="${n}"]`);if(l){l.classList.add("scan");l.scrollIntoView({block:"nearest",behavior:"smooth"});}});
-    if(n===stop)break;
+  let t=1500; at(t,()=>show(1));
+  for(const r of g.rows){ // down the rows
+    at(t+=380,()=>{box.querySelectorAll(".nf-row.scan").forEach(x=>{x.classList.remove("scan");x.classList.add("seen");});const e=box.querySelector(`[data-r="${r.n}"]`);if(e){e.classList.add("scan");e.scrollIntoView({block:"nearest",behavior:"smooth"});}});
+    if(r.n===g.row)break;
   }
-  at(t+=900,()=>{show(2);const l=box.querySelector(`[data-l="${stop}"]`);if(!l)return;l.classList.remove("scan");l.classList.add("target");
-    (div?l.querySelector(".nf-a"):l.querySelector(".nf-r")).classList.add("glow");});
+  at(t+=700,()=>{show(2);const e=box.querySelector(`[data-r="${g.row}"]`);if(e){e.classList.remove("scan");e.classList.add("rowhit");}});
+  const row=g.rows.find(r=>r.n===g.row);
+  for(const c of row.cells){ // along the row
+    at(t+=450,()=>{const e=box.querySelector(`[data-r="${g.row}"]`);if(!e)return;e.querySelectorAll(".nf-cell.scan").forEach(x=>x.classList.remove("scan"));const x=e.querySelector(`[data-c="${c.k}"]`);if(x)x.classList.add("scan");});
+    if(c.k===g.cell)break;
+  }
+  at(t+=800,()=>{show(3);const x=box.querySelector(`[data-r="${g.row}"] [data-c="${g.cell}"]`);if(!x)return;x.classList.remove("scan");x.classList.add("target");x.querySelector("b").classList.add("glow");});
 }
 function nfOpts(f){
   const a=f.ans, s=new Set([a]), near=[a+1,a-1,a+2,a-2,a+10,a-10,f.op==="×"||f.op==="÷"?a+f.y:a+3].filter(x=>x>=0&&x!==a);
@@ -91,7 +96,7 @@ function nfShow(){
       ${ok?"":`<button class="btn primary big" id="nfNext">Next 下一题</button>`}`:""}
     ${showT?`<div class="nf-tablebox">
         <button class="btn nf-demo" id="nfDemo">${ic("play")}演示怎么用表 · Show me how</button>
-        <div class="nf-steps" id="nfSteps">${nfSteps(f).map((t,i)=>`<div class="nf-step"><b>${i+1}</b><span>${esc(t.replace(/^第\d步：/,""))}</span></div>`).join("")}</div>
+        <div class="nf-steps" id="nfSteps">${nfSteps(f).map((t,i)=>`<div class="nf-step"><b>${i+1}</b><span>${esc(t)}</span></div>`).join("")}</div>
         ${nfList(f,done?1:lv,done)}</div>`
       :`<button class="btn" id="nfPeek">${ic("layers")}Peek at the table 看一眼口诀表</button>`}
   </div>`;

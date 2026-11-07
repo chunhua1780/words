@@ -986,3 +986,21 @@ input,select,textarea{font-size:max(16px,1em)}
 .nf-cov{font-style:normal;display:inline-block;min-width:1.6em;text-align:center;border-radius:8px;background:color-mix(in srgb,var(--fg) 12%,var(--paper));color:var(--muted)}
 .nf-line{grid-template-columns:1fr auto 1fr}
 .nf-line .nf-r{justify-self:start}
+/* classic staircase 口诀表 (drill.js) */
+.nf-tablebox{max-width:900px}
+.nf-tri{gap:3px;padding:10px 8px;overflow-x:auto}
+.nf-row{display:flex;gap:3px;padding:2px;border-radius:10px;transition:background .25s}
+.nf-row.scan{background:color-mix(in srgb,var(--c-orange,#f08a24) 22%,transparent)}
+.nf-row.seen{opacity:.5}
+.nf-row.rowhit{background:color-mix(in srgb,var(--c-orange,#f08a24) 14%,transparent)}
+.nf-list.reveal .nf-row:not(.rowhit){opacity:.5}
+.nf-cell{flex:none;min-width:72px;padding:5px 4px;border-radius:8px;text-align:center;white-space:nowrap;font:700 clamp(12px,2.1vw,16px) var(--round);background:color-mix(in srgb,var(--c-blue,#2a6fdb) 8%,var(--paper));border:1px solid color-mix(in srgb,var(--fg) 8%,transparent);transition:transform .2s,background .2s}
+.nf-tri.sub .nf-cell{min-width:68px;background:color-mix(in srgb,var(--green-fill,#2e9d5b) 8%,var(--paper))}
+.nf-cell b{font-weight:800}
+.nf-cell.scan{background:var(--c-orange,#f08a24);color:#fff;transform:scale(1.12)}
+.nf-cell.target{background:color-mix(in srgb,var(--green-fill,#2e9d5b) 25%,var(--paper));transform:scale(1.15);box-shadow:0 0 0 3px var(--green-fill,#2e9d5b)}
+.nf-cell .glow{padding:0 5px;border-radius:6px}
+@media (max-width:620px){.nf-cell{min-width:58px;padding:4px 2px}}
+.nf-cell{flex:0 0 calc((100% - 30px)/10);min-width:0;font-size:clamp(11px,1.9vw,16px);padding:5px 1px}
+.nf-tri.sub .nf-cell{min-width:0}
+@media (max-width:620px){.nf-cell{flex:0 0 56px}}

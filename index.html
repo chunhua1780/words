@@ -24,6 +24,7 @@
     <span class="chip" id="sync" hidden></span>
     <span class="chip" id="streak" hidden></span>
     <button class="chip" id="soundTest" title="Test sound"></button>
+    <button class="chip" id="pwChip" hidden>改密码</button>
     <button class="chip kid" id="kid" hidden></button>
   </header>
   <nav class="tabs" role="tablist" hidden>
@@ -436,6 +437,18 @@ document.querySelectorAll("nav.tabs button").forEach(b=>{const [l,i]=TABS[b.data
 $("#soundTest").innerHTML=ic("speaker")+`<span class="lbl">Test sound</span>`;
 $("#soundTest").onclick=()=>say("Hello! Let's practise some spellings.");
 $("#quit").innerHTML=ic("x"); $("#mClose").innerHTML=ic("x"); $("#mClose").onclick=()=>closeMaths();
+$("#pwChip").onclick=async()=>{
+  if(!Store.user)return;
+  const a=prompt(`改密码（用户名：${Store.user}）\n\n请输入新密码，至少 4 个字母或数字：`);
+  if(a===null)return; const n=a.trim();
+  if(n.length<4){alert("密码至少要 4 位，没有修改。");return;}
+  const c=prompt("请再输入一次新密码：");
+  if(c===null)return;
+  if(c.trim()!==n){alert("两次输入的不一样，没有修改。");return;}
+  try{await WS.changePassword(Store.user,Store.pass,n);Store.pass=n;saveSession(Store.user,n);
+    alert(`密码已改好！\n\n用户名：${Store.user}\n新密码：${n}\n\n请记下来，家长后台也用这个新密码。`);}
+  catch(x){alert("没改成功："+authMsg(x));}
+};
 $("#kid").onclick=()=>{
   const b=$("#kid");
   if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Tap again to log out";setTimeout(()=>{b.classList.remove("warn");if(Store.book)render();},3000);return;}
@@ -448,7 +461,7 @@ function render(){
   const logged=!!Store.book;
   if(!logged)tab="login"; else if(tab==="login")tab="today";
   document.body.dataset.sec=tab==="login"?"today":tab;
-  $("nav.tabs").hidden=!logged; ["#streak","#kid"].forEach(x=>$(x).hidden=!logged); if(!logged)$("#sync").hidden=true;
+  $("nav.tabs").hidden=!logged; ["#streak","#kid","#pwChip"].forEach(x=>$(x).hidden=!logged); if(!logged)$("#sync").hidden=true;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tab));
   if(logged){
     if(!$("#kid").classList.contains("warn"))$("#kid").innerHTML=`${ic("person")}<span class="lbl">${esc(B().name)}</span>`;

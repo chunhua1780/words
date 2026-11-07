@@ -259,10 +259,10 @@ function viewDash(){
     ${englishBlock()}
     ${mathsBlock()}
 
-    <details class="card"><summary><b>Change password</b></summary>
+    <details class="card"><summary><b>Change password · 改密码</b></summary>
       <form class="stack" id="pwForm" style="margin-top:14px;gap:12px">
-        <label class="field">New password<input type="password" id="pw1" autocomplete="new-password" required></label>
-        <label class="field">New password again<input type="password" id="pw2" autocomplete="new-password" required></label>
+        <label class="field">New password · 新密码（至少 4 位）<input type="text" autocapitalize="none" autocorrect="off" id="pw1" autocomplete="new-password" required></label>
+        <label class="field">New password again · 再输一次<input type="text" autocapitalize="none" autocorrect="off" id="pw2" autocomplete="new-password" required></label>
         <div class="err" id="pwMsg" style="color:var(--red)"></div>
         <button class="btn" type="submit">Change password</button>
       </form>
@@ -307,7 +307,7 @@ function bind(){
     deleteList(B(),b.dataset.dellist);Store.save();render();});
   const pf=$("#pwForm");
   if(pf)pf.onsubmit=async e=>{
-    e.preventDefault();const a=$("#pw1").value,c=$("#pw2").value;
+    e.preventDefault();const a=$("#pw1").value.trim(),c=$("#pw2").value.trim();
     if(a!==c){$("#pwMsg").textContent="The two passwords are different.";return;}
     try{await WS.changePassword(Store.user,Store.pass,a);Store.pass=a;saveSession(Store.user,a);$("#pwMsg").style.color="var(--green)";$("#pwMsg").textContent="Password changed. Use the new one on the iPad too.";pf.reset();}
     catch(x){$("#pwMsg").textContent=authMsg(x);}

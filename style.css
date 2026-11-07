@@ -961,3 +961,28 @@ input,select,textarea{font-size:max(16px,1em)}
 .nf-sum span{padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--green-fill,#2e9d5b) 12%,var(--paper))}
 .nf-sum span.bad{background:color-mix(in srgb,#d63333 12%,var(--paper))}
 @media (max-width:520px){.nf-opts{grid-template-columns:repeat(2,1fr)}}
+/* 口诀 list and the step-by-step demo (drill.js) */
+.nf-tablebox{width:100%;max-width:520px;margin:0 auto;align-items:stretch}
+.nf-demo{align-self:center}
+.nf-steps{display:flex;flex-direction:column;gap:6px}
+.nf-step{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border-radius:12px;background:color-mix(in srgb,var(--fg) 5%,var(--paper));font-size:16px;line-height:1.35;transition:background .3s}
+.nf-step b{width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;background:color-mix(in srgb,var(--fg) 12%,transparent);font:800 14px var(--round)}
+.nf-step.on{background:color-mix(in srgb,var(--c-orange,#f08a24) 22%,var(--paper));font-weight:600}
+.nf-step.on b{background:var(--c-orange,#f08a24);color:#fff}
+.nf-step.past b{background:var(--green-fill,#2e9d5b);color:#fff}
+.nf-list{display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:18px;background:var(--paper);box-shadow:var(--shadow);border:3px solid transparent;transition:border-color .3s}
+.nf-list.pulse{border-color:var(--c-orange,#f08a24);animation:nfPulse .7s ease-in-out 2}
+@keyframes nfPulse{50%{transform:scale(1.03)}}
+.nf-lt{text-align:center;font:800 20px var(--round);color:var(--c-blue,#2a6fdb);padding-bottom:6px;border-bottom:2px dashed color-mix(in srgb,var(--fg) 12%,transparent);margin-bottom:4px}
+.nf-line{display:grid;grid-template-columns:1fr auto 3.2em;gap:10px;align-items:center;padding:6px 14px;border-radius:12px;font:700 clamp(20px,5vw,26px) var(--round);transition:background .25s,transform .25s}
+.nf-line .nf-l{text-align:right}
+.nf-line .nf-eq{color:var(--muted)}
+.nf-line.seen{opacity:.55}
+.nf-line.scan{background:color-mix(in srgb,var(--c-orange,#f08a24) 25%,var(--paper));transform:scale(1.04)}
+.nf-line.target{background:color-mix(in srgb,var(--green-fill,#2e9d5b) 22%,var(--paper));transform:scale(1.06)}
+.nf-list.reveal .nf-line:not(.target){opacity:.55}
+.glow{display:inline-block;padding:0 8px;border-radius:10px;background:var(--green-fill,#2e9d5b);color:#fff;animation:nfGlow .8s ease-in-out 2}
+@keyframes nfGlow{50%{transform:scale(1.25)}}
+.nf-cov{font-style:normal;display:inline-block;min-width:1.6em;text-align:center;border-radius:8px;background:color-mix(in srgb,var(--fg) 12%,var(--paper));color:var(--muted)}
+.nf-line{grid-template-columns:1fr auto 1fr}
+.nf-line .nf-r{justify-self:start}

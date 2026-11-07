@@ -70,7 +70,7 @@ function mustStatus(k,t=today()){
   return {done:false,p:0,sub:"",acc:null};
 }
 /* mistakes still waiting: the latest answer was wrong (generated types p:/f: are only summaries) */
-function mustFixLeft(){const q=((B().maths||{}).q)||{};return Object.entries(q).filter(([id,s])=>s&&s.ok===false&&!/^(p:|f:)/.test(id)&&(typeof MQ==="undefined"||MQ[id]||(id.startsWith("w:")&&s.q))).length;}
+function mustFixLeft(){if(typeof mistakeIds==="function")return mistakeIds().length;const q=((B().maths||{}).q)||{};return Object.entries(q).filter(([id,s])=>s&&s.ok===false&&!/^(p:|f:)/.test(id)&&(typeof MQ==="undefined"||MQ[id]||(id.startsWith("w:")&&s.q))).length;}
 const mustTz=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"单词练习":MUST_ALL[k].tz;
 const mustTitle=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"Spelling practice":MUST_ALL[k].t;
 /* time: seconds per part of the app on a day */

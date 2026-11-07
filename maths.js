@@ -4,7 +4,9 @@
 const MDAY=20, MTOPIC=10;
 /* Year 5 and below only (checked against the National Curriculum for England): reflecting in the axes and
    coordinates below zero are Year 6, common multiples are Year 6, and 5% is not one of the Year 5 percentage equivalents. */
-const OUT_OF_YEAR=q=>/reflected in the [xy]-axis/.test(q.q)||(/translation/.test(q.o)&&/[−-]/.test(String(q.a)))||/^What is 5% of/.test(q.q)||/common multiples/.test(q.o); // common multiples are Year 6
+const OUT_OF_YEAR=q=>/reflected in the [xy]-axis/.test(q.q)||(/translation/.test(q.o)&&/[−-]/.test(String(q.a)))||/^What is 5% of/.test(q.q)||/common multiples/.test(q.o) // common multiples are Year 6
+  ||/highest common factor|lowest common multiple|largest prime factor|prime factori[sz]/i.test(q.q) // secondary-school (Year 7) wording: kept on Candy’s site only
+  ||/[²³]\s*[+−×-]\s*\d+[²³]/.test(q.q); // sums of powers are Year 7 (order of operations with indices)
 for(let i=MATHS.length-1;i>=0;i--)if(OUT_OF_YEAR(MATHS[i]))MATHS.splice(i,1);
 const MQ=Object.fromEntries(MATHS.map(q=>[q.id,q]));
 const TI=t=>MATHS_TOPICS.indexOf(t);

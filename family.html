@@ -115,14 +115,20 @@ function render(){
       <div class="row" style="gap:8px"><button class="btn primary" id="fRefresh">Refresh</button><button class="btn" id="fEdit">${editing?"Close":"Accounts"}</button></div></div>
     ${editing?`<div class="card stack"><b>The children’s logins</b><div class="muted small">The same usernames and passwords the children use. Kept only on this device; this page only reads.</div>
       <div class="acc-form">${ACC.map((a,i)=>`<div class="acc-row"><input data-f="name" data-i="${i}" value="${esc(a.name)}" placeholder="Name"><select data-f="kind" data-i="${i}">${Object.entries(SITES).map(([k,s])=>`<option value="${k}" ${a.kind===k?"selected":""}>${esc(s.label)}</option>`).join("")}</select>
-        <input data-f="user" data-i="${i}" value="${esc(a.user)}" placeholder="Username" autocapitalize="none" autocorrect="off"><input data-f="pass" data-i="${i}" value="${esc(a.pass)}" placeholder="Password" type="password"></div>`).join("")}</div>
-      <div><button class="btn primary" id="fSave">Save and load</button></div></div>`:""}
+        <input data-f="user" data-i="${i}" value="${esc(a.user)}" placeholder="Username" autocapitalize="none" autocorrect="off"><input data-f="pass" data-i="${i}" value="${esc(a.pass)}" placeholder="Password" type="text" autocapitalize="none" autocorrect="off"></div>`).join("")}</div>
+      <div class="row" style="gap:8px"><button class="btn primary" id="fSave">Save and load</button><button class="btn" id="fDev">用这台设备上已登录的账号</button></div><div class="muted small">用户名不分大小写；密码要和孩子登录时完全一样。</div></div>`:""}
     ${ok?`<div class="fam-grid">${ACC.map(kidCard).join("")}</div>`:`<div class="card muted">Tap “Accounts” and enter both children’s logins.</div>`}`;
   document.getElementById("fRefresh").onclick=loadAll;
   document.getElementById("fEdit").onclick=()=>{editing=!editing;render();};
   const sv=document.getElementById("fSave");
   if(sv)sv.onclick=()=>{document.querySelectorAll("[data-f]").forEach(e=>{ACC[+e.dataset.i][e.dataset.f]=e.value.trim();});
     try{localStorage.setItem("fam-acc",JSON.stringify(ACC));}catch(e){} editing=false; loadAll();};
+  const dv=document.getElementById("fDev");
+  if(dv)dv.onclick=()=>{const g=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
+    const found={y5:g("ws-session"),y7:g("y7-session")};let n=0;
+    ACC.forEach(a=>{const f=found[a.kind];if(f&&f.user){a.user=f.user;a.pass=f.pass;n++;}});
+    if(!n){alert("这台设备上没有找到孩子已登录的账号。请在孩子平时用的设备上打开这个页面再点。");return;}
+    render();};
 }
 render(); if(ACC.some(a=>a.user&&a.pass))loadAll();
 setInterval(()=>{if(!editing&&document.visibilityState==="visible")loadAll();},120000);

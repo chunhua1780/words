@@ -52,6 +52,7 @@ details.list[open] .chev{transform:rotate(90deg)}
     </div>
     <span class="spacer"></span>
     <span class="chip" id="sync" hidden></span>
+    <button class="chip" id="showLogin">账号密码</button>
     <button class="chip" id="out" hidden>Log out</button>
   </header>
   <main id="view" style="margin-top:20px"></main>
@@ -76,6 +77,9 @@ Store.onStatus=s=>{const c=$("#sync");c.innerHTML=SYNC_TEXT[s]?`<i class="dot"><
 Store.onRemote=()=>{if(!document.activeElement||!/INPUT|TEXTAREA/.test(document.activeElement.tagName))render();};
 $("#out").onclick=()=>{const b=$("#out");if(!b.classList.contains("warn")){b.classList.add("warn");b.textContent="Tap again to log out";setTimeout(()=>{b.classList.remove("warn");b.textContent="Log out";},3000);return;}
   b.classList.remove("warn");b.textContent="Log out";Store.logout();render();};
+
+$("#showLogin").onclick=()=>{const s=loadSession();
+  alert(s&&s.user?`这台设备上登录的账号\n\n用户名：${s.user}\n密码：${s.pass}`:"这台设备上还没有登录的账号。\n请在孩子平时用的那台设备上打开这个页面再看。");};
 
 function nextWeekday(dow){const d=new Date();const add=((dow-d.getDay())+7)%7||7;d.setDate(d.getDate()+add);return dstr(d);}
 const accuracy=w=>w.seen?Math.round((w.right||0)/w.seen*100):null;

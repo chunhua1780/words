@@ -16,7 +16,7 @@ const TOPIC_COUNT={}; MATHS.forEach(q=>TOPIC_COUNT[q.t]=(TOPIC_COUNT[q.t]||0)+1)
    both children use the same account. Older entries without the prefix still count if their questions are ours. */
 const DAYP="y5:";
 function dayOf(key){const M=MB();const d=M.days[DAYP+key];if(d)return d;const o=M.days[key];return o&&(o.ids||[]).length&&o.ids.every(id=>MQ[id])?o:null;}
-function MB(){const b=B();b.maths=b.maths||{};b.maths.q=b.maths.q||{};b.maths.days=b.maths.days||{};b.maths.log=b.maths.log||{};return b.maths;}
+function MB(){const b=B();b.maths=b.maths||{};b.maths.q=b.maths.q||{};b.maths.days=b.maths.days||{};b.maths.log=b.maths.log||{};b.maths.hist=b.maths.hist||{};return b.maths;}
 function seedRand(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}
   return ()=>{h+=0x6D2B79F5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 
@@ -318,6 +318,9 @@ function record(q,ok,given){
   if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
   if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
   if(MS.fix){const F=M.log["fx:"+t]=M.log["fx:"+t]||{n:0,r:0};F.n++;if(ok)F.r++;F.left=mistakeIds().length;F.start=Math.max(F.start||0,F.left+(ok?1:0));F.u=Date.now();} // 错题重做 progress (must.js)
+  // every answer of the day, for the parent page: the question, the child's answer, the right answer
+  try{const H=M.hist[t]=M.hist[t]||[],n=new Date();if(H.length<400)H.push({q:String(q.q||"").slice(0,240),a:String(showAns(q)).slice(0,40),v:String(given==null?"":given).slice(0,40),ok,
+    s:MS.kind==="day"?"Daily 20":MS.kind==="test"?"Test":MS.fix?"Fix mistakes":String(MS.topic||"Practice").slice(0,40),tr:MS.tries||1,f:q.fig?1:0,tm:String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")});}catch(e){}
   MS.res[q.id]=ok; Store.save();
 }
 function nextQ(){MS.i++;MS.exp=0;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}
@@ -347,3 +350,37 @@ document.addEventListener("keydown",e=>{
   if(k==="Backspace")k="⌫"; else if(k==="-")k="−"; else if(k===" ")k="space"; else if(q.k==="r")k=k.toUpperCase();
   if(keysFor(q).includes(k)||(q.k==="t"&&/^[\d:,−]$/.test(k))){press(k);e.preventDefault();}
 });
+
+/* ---------- 每天做题记录 · every question of a day, for the parent page ----------
+   From M.hist (saved since this was added); for older days, rebuilt from the daily 20 and the daily test. */
+function histOf(date){
+  const M=MB(); if((M.hist[date]||[]).length)return M.hist[date];
+  const out=[], add=(d,src)=>{if(!d)return;for(const id of d.ids||[]){const a=(d.ans||{})[id],q=MQ[id];if(!a||!q)continue;
+    out.push({q:String(q.q||""),a:String(showAns(q)),v:String(a.v==null?"":a.v),ok:!!a.ok,s:src,tr:a.tries||1,f:q.fig?1:0,tm:""});}};
+  add(typeof dailySet==="function"?dailySet(date,false):dayOf(date),"Daily 20");
+  if(typeof cuGet==="function")add(cuGet(date),"Test");
+  return out;
+}
+let HIST_DAY=null, HIST_BAD=false;
+function histBlock(){
+  const t=today(), d=HIST_DAY||t, days=[...Array(10)].map((_,k)=>addDays(t,-k));
+  const all=histOf(d), list=HIST_BAD?all.filter(x=>!x.ok):all, right=all.filter(x=>x.ok).length;
+  const by={}; list.forEach(x=>(by[x.s]=by[x.s]||[]).push(x));
+  const nm=x=>x===t?"今天 Today":x===addDays(t,-1)?"昨天 Yesterday":x===addDays(t,-2)?"前天":shortDate(x);
+  return `<div class="card stack" id="hist">
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">每天做题记录 · Every question, every day</h3>
+      <span class="muted small">${all.length?`${right} / ${all.length} right (${Math.round(right/all.length*100)}%)`:"Nothing answered"}</span></div>
+    <div class="quick">${days.map(x=>{const h=histOf(x);return `<button class="${x===d?"on":""}" data-hday="${x}">${esc(nm(x))}${h.length?` <small>${h.filter(y=>y.ok).length}/${h.length}</small>`:""}</button>`;}).join("")}</div>
+    <label class="row" style="gap:6px"><input type="checkbox" id="histBad" ${HIST_BAD?"checked":""}> 只看做错的 · Only the wrong ones</label>
+    ${list.length?Object.entries(by).map(([s,xs])=>`<div><div class="muted small" style="margin:6px 0 4px"><b>${esc(s)}</b> · ${xs.filter(x=>x.ok).length}/${xs.length} right</div>
+      <div class="hist-list">${xs.map(x=>`<div class="hist-row ${x.ok?"ok":"bad"}"><span class="hist-mk">${x.ok?"✓":"✗"}</span>
+        <div class="grow"><div>${mt(x.q)}${x.f?` <span class="muted tiny">(with a picture)</span>`:""}</div>
+        <div class="small">Answer given · 孩子的答案: <b class="${x.ok?"":"hist-wrong"}">${x.v?fracHtml(esc(x.v)):"(blank)"}</b>${x.ok?(x.tr>1?` <span class="muted">· right on the 2nd try</span>`:""):` · Correct · 正确答案: <b class="hist-right">${fracHtml(esc(x.a))}</b>`}</div></div>
+        <span class="muted tiny">${esc(x.tm||"")}</span></div>`).join("")}</div></div>`).join("")
+      :`<div class="muted small">${all.length?"No wrong answers on this day. 这天没有做错的题。":"No questions answered on this day. 这天没有做题。"}</div>`}
+  </div>`;
+}
+function histBind(){
+  document.querySelectorAll("[data-hday]").forEach(b=>b.onclick=()=>{HIST_DAY=b.dataset.hday;render();setTimeout(()=>{const h=document.getElementById("hist");if(h)h.scrollIntoView({block:"start"});},50);});
+  const hb=document.getElementById("histBad"); if(hb)hb.onchange=()=>{HIST_BAD=hb.checked;render();};
+}

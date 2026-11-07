@@ -53,6 +53,7 @@ const MINE=()=>CURK==="y5"?/^(m|q)\d/:/^(k|r)\d|^gd:/;
 function dayOf(key){const D=(CUR.maths||{}).days||{};const d=D[PFX()+key];if(d)return d;const o=D[key];return o&&(o.ids||[]).length&&o.ids.every(id=>MINE().test(id))?o:null;}
 function cuGet(t){return dayOf("test-"+t);}
 </script>
+<script src="diary.js"></script>
 <script src="must.js"></script>
 <script>
 const SITES={y5:{label:"Year 5 site (Wendy)",parent:"https://chunhua1780.github.io/words/parent.html",kid:"https://chunhua1780.github.io/words/",kc:"var(--c-pink)",
@@ -69,13 +70,14 @@ const loadAcc=()=>{try{const a=JSON.parse(localStorage.getItem("fam-acc")||"null
 let ACC=loadAcc(), BOOKS={}, ERR={}, editing=!ACC.some(a=>a.user&&a.pass), loading=false, lastLoad=0;
 async function loadAll(){
   loading=true; render();
-  await Promise.all(ACC.map(async(a,i)=>{if(!a.user||!a.pass){ERR[i]="Not set";return;}
-    try{const r=await WS.login(String(a.user).trim().toLowerCase(),a.pass);BOOKS[i]=normBook(r&&r.data,a.user);delete ERR[i];}catch(e){ERR[i]=authMsg(e);}}));
+  try{await Promise.all(ACC.map(async(a,i)=>{if(!a.user||!a.pass){ERR[i]="Not set";return;}
+    try{const r=await WS.login(String(a.user).trim().toLowerCase(),a.pass);BOOKS[i]=normBook(r&&r.data,a.user);delete ERR[i];}catch(e){ERR[i]=authMsg(e);}}));}catch(e){}
   loading=false; lastLoad=Date.now(); render();
 }
 const pct=(r,n)=>n?Math.round(r/n*100)+"%":"–";
 const mins=s=>s<60?(s?"<1":"0"):String(Math.round(s/60));
-function kidCard(a,i){
+function kidCard(a,i){try{return kidCard0(a,i);}catch(e){return `<div class="card kid"><h2>${esc(a.name)}</h2><div class="err">Could not show this card: ${esc(e.message)}</div></div>`;}}
+function kidCard0(a,i){
   const b=BOOKS[i], S=SITES[a.kind]; CUR=b; CURK=a.kind;
   if(a.kind==="y7")window.PAPER_TYPES=[];else delete window.PAPER_TYPES; // must.js picks the Year 7 blocks when PAPER_TYPES exists
   if(!b)return `<div class="card kid" style="--kc:${S.kc}"><div class="kid-head"><h2>${esc(a.name)}</h2><span class="tagy">${esc(S.label)}</span></div><div class="muted">${esc(ERR[i]||"Loading…")}</div></div>`;
@@ -101,7 +103,10 @@ function kidCard(a,i){
       ${st.map(x=>`<div class="mrow"><span class="${x.done?"ok":"no"}">${x.done?"✓":"○"}</span><span class="grow"><b>${esc(tt(x.k))}</b> <span class="muted small">· ${esc(x.sub)}</span></span>
         <span class="muted small">${x.acc?pct(x.acc.r,x.acc.n)+" right · ":""}${mins(mustSecs(t,x.k))} min</span></div>`).join("")}</div>
     ${secT.length?`<div><b>Where the time went today</b><div class="muted small">${secT.map(([k,s])=>`${esc(SEC[k]||k)} ${mins(s)} min`).join(" · ")}</div></div>`:""}
-    ${di&&di.text?`<details><summary><b>Today’s diary</b> <span class="muted small">· ${(di.text.match(/[A-Za-z’']+/g)||[]).length} words${di.done?" · finished":""}</span></summary><p class="diary-x">${esc(di.text)}</p></details>`:""}
+    ${di&&di.text?`<details><summary><b>Today’s diary · 今天的日记</b> <span class="muted small">· ${wordsOfText(di.text).length} words${di.done?` · handed in · ${(di.fix||[]).length} spelling mistakes`:" · not handed in"}</span></summary><p class="dv-text">${diaryMarked(di.text,di.fix)}</p></details>`:`<div class="muted small">No diary today yet. 今天还没写日记。</div>`}
+    ${[t,addDays(t,-1),addDays(t,-2)].map((d,k)=>{const H=((b.maths||{}).hist||{})[d]||[];if(!H.length)return "";const r=H.filter(x=>x.ok).length;
+      return `<details ${k===0&&H.some(x=>!x.ok)?"":""}><summary><b>${["今天 Today","昨天 Yesterday","前天"][k]} · ${H.length} questions</b> <span class="muted small">· ${r}/${H.length} right · ${H.length-r} wrong</span></summary>
+        <div class="hist-list">${H.map(x=>`<div class="hist-row ${x.ok?"ok":"bad"}"><span class="hist-mk">${x.ok?"✓":"✗"}</span><div class="grow"><div>${esc(x.q)}</div><div class="small">孩子的答案: <b class="${x.ok?"":"hist-wrong"}">${esc(x.v||"(blank)")}</b>${x.ok?"":` · 正确答案: <b class="hist-right">${esc(x.a)}</b>`} <span class="muted tiny">· ${esc(x.s)} ${esc(x.tm||"")}</span></div></div></div>`).join("")}</div></details>`;}).join("")}
     <div><b>Last 7 days</b> <span class="muted small">minutes a day · maths % right</span>
       <div class="bar7">${days.map(d=>`<div title="${d}: ${mins(tot(d))} min"><span>${mins(tot(d))}</span><i style="height:${tot(d)/mx*100}%"></i><span>${(ml[d]||{}).n?pct(ml[d].r,ml[d].n):"–"}</span><span>${d===t?"Today":WEEK[pdate(d).getDay()]}</span></div>`).join("")}</div></div>
     <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${S.parent}">Full parent page · 设置今日必做</a><a class="btn ghost" href="${S.kid}">Child’s page</a></div>

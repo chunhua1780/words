@@ -7,7 +7,8 @@ const SB_KEY="sb_publishable_pOM3IfVWYiscQ-cz9vAwvA_F2Ht6zg1";
 async function rpc(fn,args){
   let r;
   try{
-    r=await fetch(`${SB_URL}/rest/v1/rpc/${fn}`,{method:"POST",cache:"no-store",
+    const ac=typeof AbortController!=="undefined"?new AbortController():null; if(ac)setTimeout(()=>ac.abort(),25000); // never wait for ever
+    r=await fetch(`${SB_URL}/rest/v1/rpc/${fn}`,{method:"POST",cache:"no-store",signal:ac?ac.signal:undefined,
       headers:{apikey:SB_KEY,Authorization:"Bearer "+SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(args)});
   }catch(e){const err=new Error("offline");err.offline=true;throw err;}
   const t=await r.text(); let j=null; try{j=t?JSON.parse(t):null;}catch(e){}
@@ -67,7 +68,7 @@ function normBook(d,name){
   d=d&&typeof d==="object"?d:{};
   const rd=d.reading||{};
   return {name:d.name||name||"",words:d.words||{},tests:d.tests||{},lists:d.lists||{},listsV:d.listsV||0,deleted:d.deleted||{},log:d.log||{},best:d.best||0,prefs:d.prefs||{},
-    reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},maths:{q:(d.maths||{}).q||{},days:(d.maths||{}).days||{},log:(d.maths||{}).log||{}},
+    reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},maths:{q:(d.maths||{}).q||{},days:(d.maths||{}).days||{},log:(d.maths||{}).log||{},hist:(d.maths||{}).hist||{}},
     eng:{diary:(d.eng||{}).diary||{},daily:(d.eng||{}).daily||{},phon:(d.eng||{}).phon||{},plog:(d.eng||{}).plog||{}},time:d.time||{},updated:d.updated||0};
 }
 function mergeBooks(a,b){
@@ -92,8 +93,12 @@ function mergeBooks(a,b){
   for(const [d,v] of Object.entries(a.maths.days)){const o=mdays[d],na=Object.keys(v.ans||{}).length,no=o?Object.keys(o.ans||{}).length:-1;
     if(!o||na>no||(na===no&&(v.u||0)>=(o.u||0)))mdays[d]=v;}
   const mlog={...b.maths.log};
-  for(const [d,v] of Object.entries(a.maths.log)){const o=mlog[d];mlog[d]=!o?v:{n:Math.max(o.n||0,v.n||0),r:Math.max(o.r||0,v.r||0)};}
-  const maths={q:newer(a.maths.q,b.maths.q),days:mdays,log:mlog};
+  for(const [d,v] of Object.entries(a.maths.log)){const o=mlog[d];mlog[d]=!o?v:{...((o.u||0)>(v.u||0)?{...v,...o}:{...o,...v}),n:Math.max(o.n||0,v.n||0),r:Math.max(o.r||0,v.r||0)};}
+  // every answer of a day (for the parent page): keep the longer record of each day, and only the last 45 days
+  const mhist={...b.maths.hist}, hcut=dstr(new Date(Date.now()-45*864e5));
+  for(const [d,v] of Object.entries(a.maths.hist))if(!mhist[d]||(v||[]).length>(mhist[d]||[]).length)mhist[d]=v;
+  for(const d in mhist)if(d<hcut)delete mhist[d];
+  const maths={q:newer(a.maths.q,b.maths.q),days:mdays,log:mlog,hist:mhist};
   // English: diary entries, daily word picks, phonics patterns and phonics per day; keep the newer copy of each
   const eng={diary:newer(a.eng.diary,b.eng.diary),daily:newer(a.eng.daily,b.eng.daily),phon:newer(a.eng.phon,b.eng.phon),plog:newer(a.eng.plog,b.eng.plog)};
   // time spent: seconds per day per part of the app (must.js); keep the larger count of each

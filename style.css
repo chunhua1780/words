@@ -867,3 +867,29 @@ input,select,textarea{font-size:max(16px,1em)}
 .must-table td.part{color:var(--orange);font-weight:600}
 @keyframes shPop{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:none}}
 .mk-card{background:linear-gradient(150deg,color-mix(in srgb,var(--red) 9%,var(--paper)),var(--paper) 70%)}
+/* diary with its own keyboard (diary.js) */
+#diaryOv{position:fixed;inset:0;z-index:12;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0);background:var(--bg)}
+#diaryOv .s-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 16px 16px}
+#diaryOv .diary{max-width:900px;margin:0 auto}
+#diaryOv textarea{width:100%;min-height:170px;font:20px/1.55 var(--round,system-ui);padding:12px 14px;border-radius:14px;border:2px solid var(--line,#ccc);background:var(--paper,#fff);color:var(--fg);resize:vertical;caret-color:var(--c-blue,#2a6fdb)}
+.kbd{flex:none;background:color-mix(in srgb,var(--fg) 8%,var(--bg));padding:6px 4px calc(6px + env(safe-area-inset-bottom,0));display:flex;flex-direction:column;gap:6px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.kbd-row{display:flex;gap:5px;justify-content:center;max-width:900px;margin:0 auto;width:100%}
+.kb{flex:1 1 0;min-width:0;height:48px;border:0;border-radius:9px;background:var(--paper,#fff);color:var(--fg);font:600 21px var(--round,system-ui);box-shadow:0 1px 0 rgba(0,0,0,.25);cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}
+.kb:active{background:color-mix(in srgb,var(--c-blue,#2a6fdb) 25%,var(--paper,#fff))}
+.kb-fn{flex:1.4 1 0;font-size:17px;background:color-mix(in srgb,var(--fg) 14%,var(--paper,#fff))}
+.kb-fn.on{background:var(--c-blue,#2a6fdb);color:#fff}
+.kb-space{flex:5 1 0;font-size:16px}
+@media (max-width:520px){.kb{height:42px;font-size:18px}.kbd-row{gap:3px}}
+.dv-text{font:19px/1.7 var(--round,system-ui);white-space:normal;margin:0}
+.dv-bad{text-decoration:underline wavy #d63333;text-underline-offset:3px}
+.dv-fix{color:#d63333;font-weight:700;margin-left:2px}
+.dv-pair{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,#d63333 9%,var(--paper,#fff))}
+/* every question of a day (parent page) */
+.hist-list{display:flex;flex-direction:column;gap:6px}
+.hist-row{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:12px;background:color-mix(in srgb,var(--green,#2e9d5b) 7%,var(--paper,#fff))}
+.hist-row.bad{background:color-mix(in srgb,#d63333 9%,var(--paper,#fff))}
+.hist-mk{font:800 18px var(--round,system-ui);width:20px;flex:none;color:var(--green,#2e9d5b)}
+.hist-row.bad .hist-mk{color:#d63333}
+.hist-wrong{color:#d63333;text-decoration:line-through}
+.hist-right{color:var(--green,#2e9d5b)}
+.quick small{opacity:.75;font-weight:500}

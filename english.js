@@ -90,12 +90,12 @@ function phQuiz(n=10,only){
 
 /* ---------- the English screen (phonics and writing) ---------- */
 let EV=null;
-function openEnglish(view,arg){window.__busy=true;$("#eng").hidden=false;document.body.style.overflow="hidden";engShow(view,arg);}
+function openEnglish(view,arg){if(view==="diary"){openDiary();return;}window.__busy=true;$("#eng").hidden=false;document.body.style.overflow="hidden";engShow(view,arg);}
 function closeEnglish(){stopAudio();window.__busy=false;$("#eng").hidden=true;document.body.style.overflow="";EV=null;render();}
 function engShow(view,arg){
   EV={view,arg,...(EV&&EV.view===view?EV:{})}; EV.view=view; EV.arg=arg; $("#engBody").scrollTop=0;
   $("#engLabel").textContent={phonics:"Phonics: sounds and spellings",lesson:"Phonics lesson",pq:"Phonics practice",diary:"My diary"}[view]||"English";
-  ({phonics:phHub,lesson:phLesson,pq:phRun,diary:diaryView})[view](arg);
+  ({phonics:phHub,lesson:phLesson,pq:phRun})[view](arg);
 }
 
 function phHub(){
@@ -150,115 +150,7 @@ function phRun(st){
   zhFill($("#engBody"));
 }
 
-/* ---------- 4. Writing: a diary every day ---------- */
-const DIARY_TARGET=()=>Math.max(30,+((B().prefs||{}).diaryWords)||60);
-const DIARY_PROMPTS=[
-  "What did you do today? Write about the best part of your day.",
-  "Write about something you did at school today. What did you learn?",
-  "Who did you spend time with today? What did you do together?",
-  "Write about a meal you had today. What did it look, smell and taste like?",
-  "What was the funniest or most surprising thing that happened today?",
-  "Write about something you found hard today, and how you tried again.",
-  "Where did you go today? Describe the place: what could you see and hear?",
-];
-const DIARY_BANK=[["Time words","Today,In the morning,First,Next,Then,After that,Later,In the afternoon,In the evening,Finally"],
-  ["Joining words","and,because,but,so,when,while,after,before,although"],
-  ["Feelings","happy,excited,proud,tired,nervous,surprised,disappointed,worried,calm,curious"],
-  ["Describing","delicious,enormous,tiny,noisy,quiet,colourful,freezing,sunny,exciting,brilliant"]];
-const sentencesOf=txt=>String(txt).replace(/\s+/g," ").trim().split(/(?<=[.!?])\s+/).filter(s=>/[a-z]/i.test(s));
-const wordsOfText=txt=>(String(txt).match(/[A-Za-z’']+/g)||[]);
-/* What the diary does well and what to fix (a simple, kind check, not a mark) */
-function diaryCheck(txt){
-  const ws=wordsOfText(txt), sents=sentencesOf(txt), low=" "+norm(txt)+" ";
-  const capsOK=sents.length>0&&sents.every(s=>/^["“‘(]?[A-Z]/.test(s.trim()));
-  const stops=/[.!?]["”’]?\s*$/.test(txt.trim());
-  const iOK=!/(^|[^A-Za-z’'])i([^A-Za-z’']|$)/.test(txt);
-  const has=list=>list.split(",").some(x=>low.includes(" "+x.toLowerCase()+" ")||low.includes(" "+x.toLowerCase()+","));
-  return [
-    {ok:ws.length>=DIARY_TARGET(),t:`At least ${DIARY_TARGET()} words (${ws.length} so far)`},
-    {ok:sents.length>=5,t:`At least 5 sentences (${sents.length} so far)`},
-    {ok:capsOK,t:"Every sentence starts with a capital letter"},
-    {ok:stops&&sents.length>0,t:"Sentences end with . ! or ?"},
-    {ok:iOK,t:"“I” is always a capital letter"},
-    {ok:has(DIARY_BANK[0][1]),t:"Uses a time word (First, Then, After that…)"},
-    {ok:has(DIARY_BANK[1][1]),t:"Joins ideas with because, but, so or when"},
-    {ok:has(DIARY_BANK[2][1]),t:"Says how you felt"},
-  ];
-}
-/* Possible spelling mistakes: words that are not among the 40,000 most common English words (words-common.js,
-   loaded the first time it is needed), with up to three suggestions: words that sound the same come first,
-   then near spellings, then the more common word. */
-let COMMON=null, COMMON_RANK=null, commonLoading=null;
-function loadCommon(){
-  if(COMMON)return Promise.resolve(true);
-  if(!commonLoading)commonLoading=new Promise(res=>{const s=document.createElement("script");s.src="words-common.js";
-    s.onload=()=>{COMMON=new Set(COMMON_WORDS);COMMON_RANK=new Map(COMMON_WORDS.map((w,i)=>[w,i]));res(true);};s.onerror=()=>{commonLoading=null;res(false);};document.head.appendChild(s);});
-  return commonLoading;
-}
-const CONTRACTIONS=new Set("i'm i've i'll i'd you're you've you'll you'd he's she's it's we're we've we'll they're they've they'll that's there's what's who's where's here's let's don't doesn't didn't can't couldn't won't wouldn't shouldn't isn't aren't wasn't weren't hasn't haven't hadn't mustn't".split(" "));
-function knownWord(w){
-  w=w.toLowerCase().replace(/’/g,"'"); if(w.length<2||!COMMON)return true;
-  if(w.includes("'"))return CONTRACTIONS.has(w)||COMMON.has(w.replace(/'s$/,""));
-  if(COMMON.has(w))return true;
-  const own=new Set(words().map(x=>norm(x.w))); return own.has(w);
-}
-/* A rough "sounds like" key: delishus and delicious both give dVlVshVs */
-function soundKey(w){
-  return w.toLowerCase().replace(/ph/g,"f").replace(/wh/g,"w").replace(/gh/g,"").replace(/[ct]i(?=[aou])/g,"sh").replace(/ch/g,"sh").replace(/ck|q|c(?=[aoulrt]|$)|k/g,"k").replace(/c(?=[eiy])/g,"s").replace(/x/g,"ks").replace(/z/g,"s")
-    .replace(/(.)\1+/g,"$1").replace(/[aeiouy]+/g,"V").replace(/V$/,"").replace(/e$/,"");
-}
-function closeWords(w){
-  if(!COMMON)return [];
-  w=w.toLowerCase(); const key=soundKey(w), out=[];
-  const ed=(a,b)=>{if(Math.abs(a.length-b.length)>3)return 9;const m=[...Array(b.length+1).keys()];for(let i=1;i<=a.length;i++){let p=m[0];m[0]=i;for(let j=1;j<=b.length;j++){const t=m[j];m[j]=Math.min(m[j]+1,m[j-1]+1,p+(a[i-1]===b[j-1]?0:1));p=t;}}return m[b.length];};
-  for(const c of COMMON_WORDS){
-    if(c[0]!==w[0]&&!(/^[ck]/.test(c)&&/^[ck]/.test(w))||Math.abs(c.length-w.length)>3)continue;
-    const d=ed(w,c), same=soundKey(c)===key; if(d>3&&!same)continue; if(d>2&&!same)continue;
-    out.push([(same?0:2)+d+Math.log10(1+COMMON_RANK.get(c))/2,c]);
-  }
-  return out.sort((a,b)=>a[0]-b[0]).slice(0,3).map(x=>x[1]);
-}
-function diaryView(){
-  const t=today(), E=B().eng, d=E.diary[t]||{text:""}, prompt=DIARY_PROMPTS[Math.floor(pdate(t)/864e5)%DIARY_PROMPTS.length];
-  const past=Object.entries(E.diary).filter(([k,v])=>k!==t&&v.text).sort((a,b)=>a[0]<b[0]?1:-1).slice(0,10);
-  $("#engBody").innerHTML=`<div class="m-q eng-page diary">
-    <div class="eyebrow">${esc(niceDate(t))}</div>
-    <div class="card"><b>Today’s idea:</b> ${esc(prompt)}${zhLine(prompt)}
-      <div class="muted small" style="margin-top:6px">Think: Who? Where? What happened first, next and last? How did you feel?</div></div>
-    <div class="dbank">${DIARY_BANK.map(([h,ws])=>`<div><span class="muted tiny">${h}</span>${ws.split(",").map(x=>`<button class="chip" data-ins="${esc(x)}">${esc(x)}</button>`).join("")}</div>`).join("")}</div>
-    <textarea id="dText" rows="9" placeholder="Today I…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" writingsuggestions="false" data-gramm="false" data-enable-grammarly="false">${esc(d.text||"")}</textarea>
-    <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn" id="dRead">${ic("speaker")}Read it to me</button><button class="btn" id="dSpell">${ic("check")}Check my spelling</button><button class="btn primary" id="dDone">${ic("check")}I’ve finished</button></div>
-    <div id="dSpellOut"></div>
-    <div class="card stack tight" id="dChecks"></div>
-    ${past.length?`<div class="section-title"><h3 style="margin:0">Earlier diary pages</h3></div>${past.map(([k,v])=>`<details class="card dpast"><summary><b>${esc(niceDate(k))}</b> <span class="muted small">· ${wordsOfText(v.text).length} words</span></summary><p>${esc(v.text).replace(/\n/g,"<br>")}</p></details>`).join("")}`:""}
-  </div>`;
-  const ta=$("#dText");
-  const save=()=>{E.diary[t]={...(E.diary[t]||{}),text:ta.value,words:wordsOfText(ta.value).length,u:Date.now()};Store.save();};
-  const checks=()=>{const c=diaryCheck(ta.value);$("#dChecks").innerHTML=`<b>Checklist</b>${c.map(x=>`<div class="dchk ${x.ok?"ok":""}">${ic(x.ok?"check":"x")}<span>${esc(x.t)}</span></div>`).join("")}`;};
-  let tm=null; ta.oninput=()=>{checks();clearTimeout(tm);tm=setTimeout(save,700);};
-  checks();
-  $("#engBody").querySelectorAll("[data-ins]").forEach(b=>b.onclick=()=>{const v=ta.value,s=ta.selectionStart??v.length,before=v.slice(0,s),add=b.dataset.ins;
-    const sp=before&&!/\s$/.test(before)?" ":""; ta.value=before+sp+add+" "+v.slice(s); ta.focus(); const pos=(before+sp+add+" ").length; ta.setSelectionRange(pos,pos); ta.oninput();});
-  $("#dRead").onclick=()=>readAloud(ta.value||"You have not written anything yet.",$("#dRead"));
-  $("#dSpell").onclick=async()=>{
-    const out=$("#dSpellOut"); out.innerHTML=`<div class="muted small">Checking…</div>`;
-    await loadCommon();
-    const bad=[...new Set(wordsOfText(ta.value).filter(w=>w==="I"||!/^[A-Z][a-z]/.test(w)||sentencesOf(ta.value).some(s=>s.trim().startsWith(w))).filter(w=>!knownWord(w)).map(w=>w.toLowerCase()))].slice(0,12); // capitalised words mid-sentence are names
-    out.innerHTML=bad.length?`<div class="card stack tight"><b>Check these words</b><span class="muted small">They might be spelt wrong. Tap a suggestion to fix it, or tap ${ic("speaker")} to hear it.</span>
-      ${bad.map(w=>`<div class="row" style="gap:8px;flex-wrap:wrap"><s>${esc(w)}</s>→${closeWords(w).map(c=>`<button class="chip" data-fix="${esc(w)}" data-to="${esc(c)}">${esc(c)}</button><button class="icon-btn sm" data-say-w="${esc(c)}">${ic("speaker")}</button>`).join("")||`<span class="muted small">no suggestion</span>`}</div>`).join("")}
-      <button class="btn" id="dAddWords">Add the corrected words to today’s word list</button></div>`
-      :`<div class="mfb ok">${ic("check")}<div><b>No spelling problems found.</b><span>Well done!</span></div></div>`;
-    out.querySelectorAll("[data-say-w]").forEach(b=>b.onclick=()=>say(b.dataset.sayW));
-    out.querySelectorAll("[data-fix]").forEach(b=>b.onclick=()=>{const re=new RegExp(`\\b${b.dataset.fix.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}\\b`,"gi");
-      ta.value=ta.value.replace(re,m=>/^[A-Z]/.test(m)?b.dataset.to[0].toUpperCase()+b.dataset.to.slice(1):b.dataset.to);b.closest(".row").style.opacity=.4;
-      (EV.fixed=EV.fixed||new Set()).add(b.dataset.to); ta.oninput();});
-    const aw=$("#dAddWords"); if(aw)aw.onclick=()=>{const list=[...(EV.fixed||[])];if(!list.length){toast("Tap a suggestion first");return;}
-      addWordsToBook(B(),list,{date:today()});Store.save();toast(`Added ${list.length} word${list.length>1?"s":""} to today’s list`);aw.disabled=true;};
-  };
-  $("#dDone").onclick=()=>{save();const c=diaryCheck(ta.value),n=wordsOfText(ta.value).length;
-    if(n<DIARY_TARGET()){toast(`Keep going: ${DIARY_TARGET()-n} more words`);return;}
-    E.diary[t]={...E.diary[t],done:true,score:c.filter(x=>x.ok).length,u:Date.now()};Store.save();beep(true,true);toast("Diary saved. Great writing!");closeEnglish();};
-}
+/* ---------- 4. Writing: the diary is in diary.js (own keyboard, spelling checked when handed in) ---------- */
 
 /* ---------- 5. Today's plan: about an hour ---------- */
 function planItems(){
@@ -296,7 +188,7 @@ function engBind(){
     else if(k==="dict"){const ws=dictLeft(t).length?dictLeft(t):dictSet(t); if(ws.length)startSession("ddict",ws.map(w=>w.id),{listDate:t}); else toast("Learn today’s new words first.");}
     else if(k==="phonics")openEnglish("pq",{set:phQuiz(),i:0,r:0,pick:null});
     else if(k==="read")openReader(todaysReading().id);
-    else if(k==="write")openEnglish("diary");
+    else if(k==="write")openDiary();
     else if(k==="maths")setTab("maths");
   });
   document.querySelectorAll("#view [data-eng]").forEach(b=>b.onclick=()=>openEnglish(b.dataset.eng));

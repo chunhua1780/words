@@ -20,7 +20,7 @@ const MUST_ALL={
   paper:  {icon:"puzzle",   min:10, t:"Test paper practice",tz:"试卷题型"},
   fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
 };
-const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","test","fix"];
+const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","write","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","test","fix"];
 const mustCfg=()=>{const m=(B().prefs||{}).must||{};return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 
@@ -77,7 +77,7 @@ function mustLaunch(k){
   if(k==="dict"){const ws=dictLeft(t).length?dictLeft(t):dictSet(t);if(ws.length)return startSession("ddict",ws.map(w=>w.id),{listDate:t});toast("Learn today’s new words first.");return mustGate(true);}
   if(k==="phonics")return openEnglish("pq",{set:phQuiz(),i:0,r:0,pick:null});
   if(k==="read")return openReader(todaysReading().id);
-  if(k==="write")return openEnglish("diary");
+  if(k==="write")return openDiary();
   if(k==="maths"){const d=dailySet(t);return openMaths({kind:"day",date:t,ids:d.ids});}
   if(k==="test")return openCheckup();
   if(k==="formula")return openMaths({kind:"topic",topic:"Formula quiz",ids:fmSet()});
@@ -128,6 +128,7 @@ function mustSection(){
   if(vis("maths")){if(typeof MS==="undefined"||!MS)return "practice";const id=MS.ids&&MS.ids[0]||"";
     if(MS.fix)return "fix";
     return MS.kind==="test"?"test":MS.kind==="day"?"maths":String(id).startsWith("g:fm:")?"formula":/^g:(?!rv)/.test(id)?"paper":"practice";}
+  if(vis("diaryOv"))return "write";
   if(vis("reader"))return "read";
   if(vis("eng"))return typeof EV!=="undefined"&&EV&&EV.view==="diary"?"write":"phonics";
   if(vis("shapes"))return "formula";

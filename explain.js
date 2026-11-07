@@ -15,7 +15,7 @@ function stepsFor(q){
   if(q.steps&&q.steps.length)return q.steps;
   if(typeof MSTEPS!=="undefined"&&MSTEPS[q.id])return MSTEPS[q.id];
   const w=String(q.w||"").trim(); if(!w)return [];
-  return w.split(/(?<=[.!?])\s+(?=[A-Z0-9(£−“"'√∛])/).map(s=>s.trim()).filter(Boolean);
+  return w.replace(/([.!?])\s+(?=[A-Z0-9(£−“"'√∛])/g,"$1\u0001").split("\u0001").map(s=>s.trim()).filter(Boolean);
 }
 /* The hint (before the answer is known) stops before the first step that states the answer */
 const exNorm=s=>String(s).replace(/-/g,"−").replace(/(\d),(?=\d{3})/g,"$1").replace(/\s+/g," ").toLowerCase();

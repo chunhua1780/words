@@ -67,6 +67,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="explain.js"></script>
 <script src="maths.js"></script>
 <script src="checkup.js"></script>
+<script src="diary.js"></script>
 <script src="must.js"></script>
 <script src="facts.js"></script>
 <script>
@@ -160,7 +161,7 @@ function englishBlock(){
     ${daily.length?`<div><b>Daily words this week</b>${daily.map(x=>`<div class="rrow"><div><b>${esc(shortDate(x.d))}</b><div class="muted tiny">${x.ws.map(w=>esc(w.w)+(w.lapses?"<sup>✗"+w.lapses+"</sup>":"")).join(", ")}</div></div><span class="score ${x.learned===x.ws.length?"good":"ok"}">${x.learned}/${x.ws.length} learned</span></div>`).join("")}</div>`:`<div class="muted small">No daily words yet. They start the next time she opens her page.</div>`}
     <div><b>Phonics</b> <span class="muted small">· ${days.map(d=>(E.plog[d]||{}).n||0).reduce((a,c)=>a+c,0)} questions this week</span>
       ${ph.length?`<div class="muted small">Hardest patterns: ${ph.slice(0,4).map(x=>`${esc(x.k)} (${x.acc}% of ${x.n})`).join(" · ")}</div>`:`<div class="muted small">Not started yet.</div>`}</div>
-    <div><b>Diary</b>${diary.length?diary.map(([d,v])=>`<details class="dpar"><summary>${esc(shortDate(d))} · ${(v.text.match(/[A-Za-z’']+/g)||[]).length} words${v.done?" · finished":" · not finished"}</summary><p>${esc(v.text).replace(/\n/g,"<br>")}</p></details>`).join(""):`<div class="muted small">No diary pages yet.</div>`}</div>
+    <div class="muted small">The diary, with spelling corrections, is in its own section below.</div>
   </div>`;
 }
 function mathsBlock(){
@@ -232,6 +233,8 @@ function viewDash(){
   return `<div class="stack">
     <div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${esc(b.name)}</h1></div>
     ${mustParent()}
+    ${histBlock()}
+    ${diaryParent()}
     <div class="kpis">
       <div class="kpi"><b>${streakOf(b.log)}</b><span>day streak</span></div>
       <div class="kpi"><b>${(b.log[t]||{}).done||0}</b><span>words practised today</span></div>
@@ -306,6 +309,7 @@ async function readDocFile(f){
 }
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
+  histBind(); diaryParentBind();
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});
   const f=$("#authForm");

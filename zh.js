@@ -25,7 +25,7 @@ function speakPrep(t){
 }
 function raChunks(t){
   const out=[];
-  t.split(/(?<=[.?!:;])\s+/).forEach(s=>{
+  t.replace(/([.?!:;])\s+/g,"$1\u0001").split("\u0001").forEach(s=>{
     while(s.length>180){ // too long for one go: cut at a comma, else at a space
       let cut=s.lastIndexOf(", ",180); if(cut<60)cut=s.lastIndexOf(" ",180); if(cut<1)cut=180;
       out.push(s.slice(0,cut+1).trim()); s=s.slice(cut+1).trim();

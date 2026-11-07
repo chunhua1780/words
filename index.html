@@ -171,17 +171,18 @@ function tts(text,{rate=.85,onend,onstart,id=++speakId}={}){
 /* British English sources. "Slow" asks the voice to speak slowly instead of slowing the recording down (which distorts it). */
 const googleUrl=(text,slow)=>"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en-GB"+(slow?"&ttsspeed=0.35":"")+"&q="+encodeURIComponent(text);
 const youdaoUrl=text=>"https://dict.youdao.com/dictvoice?type=1&audio="+encodeURIComponent(text);
-/* Words with a stored recording (audio/w/, listed in audio/index.js) play from this site, so they never depend on an outside service. */
-function storedAudio(text){
-  if(typeof WORD_AUDIO==="undefined")return null;
-  const k=String(text).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-  return WORD_AUDIO.has(k)?"audio/w/"+k+".mp3":null;
+/* Stored British recordings (Microsoft's neural British voice, made by tools/build_tts.py and listed in
+   audio/index.js) play from this site first: words (normal and slow), letters, example sentences and the
+   reading passages. Anything else uses Google's British voice, then Youdao; the device voice comes last. */
+function storedAudio(text,slow){
+  const k=String(text).toLowerCase().replace(/’/g,"'").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  if(typeof WORD_AUDIO!=="undefined"&&WORD_AUDIO.has(k))return (slow?"audio/ws/":"audio/w/")+k+".mp3";
+  return slow?null:storedSent(text);
 }
-/* Other words: Google first, because it always sends real MP3. Youdao sends some words as WAV marked as MP3,
-   which iPad Safari will not play (the word stayed silent), so it comes second. */
 function sources(text,fragment,slow){
-  if(fragment||slow)return [googleUrl(text,slow)];
-  const own=storedAudio(text);
+  if(fragment)return [googleUrl(text,slow)];
+  const own=storedAudio(text,slow);
+  if(slow)return own?[own,googleUrl(text,true)]:[googleUrl(text,true)];
   return own?[own,googleUrl(text),youdaoUrl(text)]:[googleUrl(text),youdaoUrl(text)];
 }
 const warmed=new Set();
@@ -195,12 +196,13 @@ function showSoundTip(){
   t.textContent="No sound? Tap any Play button. Check the iPad isn't on Silent (swipe down from the top right, look at the bell) and the volume is up.";
   t.hidden=false; setTimeout(()=>t.hidden=true,8000);
 }
-function say(text,{slow=false,onend,onstart,fragment=false}={}){
+function say(text,opts={}){
+  const {slow=false,onend,onstart,fragment=false}=opts;
   if(!text)return;
   if("speechSynthesis" in window)speechSynthesis.cancel();
   const id=++speakId;
   let fired=false; const fire=()=>{if(!fired&&id===speakId){fired=true;onend&&onend();}};
-  const list=navigator.onLine===false?[]:sources(text,fragment,slow);
+  const list=opts.src?[opts.src]:navigator.onLine===false?[storedAudio(text,slow)].filter(Boolean):sources(text,fragment,slow);
   const w=!fragment&&!slow&&findWord(text); if(w&&w.audio&&/-uk\./.test(w.audio))list.push(w.audio);
   let begun=false; const begin=()=>{if(!begun&&id===speakId){begun=true;onstart&&onstart();}};
   let k=-1, started=false;
@@ -227,6 +229,7 @@ function say(text,{slow=false,onend,onstart,fragment=false}={}){
 /* Spell letter by letter. Each letter is said by its name (A = "ay", S = "ess"); it lights up when its sound starts. */
 function sayLetter(ch,{onend,onstart}={}){
   const l=ch.toLowerCase();
+  if(typeof LETTER_AUDIO!=="undefined"&&/^[a-z]$/.test(l))return say(Phonics.LETTER_NAMES[l]||ch,{src:"audio/l/"+l+".mp3",onend,onstart});
   if(voice)tts(Phonics.LETTER_NAMES[l]||ch,{rate:.75,onend,onstart});
   else say(Phonics.LETTER_NAMES[l]||ch,{fragment:true,onend,onstart});
 }
@@ -687,7 +690,7 @@ function viewRead(){
 let RD=null, rTimer=null, rFs=21;
 try{rFs=+localStorage.getItem("ws-fs")||21;}catch(e){}
 $("#rClose").innerHTML=ic("x"); $("#rSize").innerHTML=ic("textsize");
-$("#rListen").hidden=!("speechSynthesis" in window);
+
 function openReader(id){
   const r=READINGS.find(x=>x.id===id); if(!r)return;
   RD={r,phase:"read",qi:0,score:0,answers:[],orders:r.questions.map(q=>shuffle(q.o.map((_,i)=>i))),looked:new Set()};
@@ -817,20 +820,18 @@ async function openWord(span){
 
 /* ---- Read aloud (device voice), paragraph by paragraph ---- */
 let listening=false;
-function stopListen(){listening=false;try{speechSynthesis.cancel();}catch(e){}document.querySelectorAll("p.reading").forEach(p=>p.classList.remove("reading"));$("#rListen").innerHTML=ic("play");}
+function stopListen(){listening=false;stopAudio();document.querySelectorAll("p.reading").forEach(p=>p.classList.remove("reading"));$("#rListen").innerHTML=ic("play");}
 $("#rListen").onclick=()=>{
   if(!RD||RD.phase!=="read")return;
   if(listening){stopListen();return;}
-  listening=true; $("#rListen").innerHTML=ic("pause");
-  const ps=[...document.querySelectorAll(".article p")]; let i=0;
+  stopAudio(); listening=true; $("#rListen").innerHTML=ic("pause");
+  const ps=[...document.querySelectorAll(".article p[data-p]")]; let i=0; const id=++speakId;
   const nextP=()=>{
     document.querySelectorAll("p.reading").forEach(p=>p.classList.remove("reading"));
-    if(!listening||i>=ps.length){stopListen();return;}
+    if(!listening||id!==speakId||i>=ps.length){if(id===speakId)stopListen();return;}
     const p=ps[i++]; p.classList.add("reading"); p.scrollIntoView({behavior:"smooth",block:"center"});
-    speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(p.textContent.replace(/\n/g," ")); u.lang="en-GB"; u.rate=.92; if(voice)u.voice=voice;
-    u.onend=()=>{if(listening)setTimeout(nextP,250);}; u.onerror=()=>stopListen();
-    speechSynthesis.speak(u);
+    const src=(RD.r.text||[])[+p.dataset.p]||p.textContent;
+    playChunks(raChunks(speakPrep(src)),{id,onend:()=>{if(listening&&id===speakId)setTimeout(nextP,250);}});
   };
   nextP();
 };

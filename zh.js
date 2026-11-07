@@ -1,11 +1,9 @@
 /* ================= Reading maths questions aloud, and Chinese translation =================
    Shared by both study sites (same file in each repo).
 
-   readAloud: the device's own voice reads first. It works offline and copes with long questions, which
-   the online voice could not (Google only reads up to about 200 letters, so long questions stayed silent).
-   The text is cut into sentences so no browser stops part way. If the device voice does not start within
-   1.5 seconds, the sentences are played one after another from Google's voice instead. Tapping the
-   speaker again stops it.
+   readAloud: the text is cut into sentences. Each sentence plays from a stored British recording when the
+   site has one (audio/s/), otherwise from Google's British voice, and only then from the device's own
+   voice. Tapping the speaker again stops it.
 
    Chinese: the 中 button shows a Chinese translation under the question, the answer choices, the
    feedback and the worked steps. It stays on for the next questions until it is tapped again. Translations
@@ -34,6 +32,32 @@ function raChunks(t){
   });
   return out;
 }
+/* stored recordings of sentences: audio/s/<hash>.mp3, listed in SENT_AUDIO (audio/index.js) */
+function sentKey(t){t=String(t).replace(/\s+/g," ").trim();let h=0x811c9dc5;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h.toString(16).padStart(8,"0")+t.length.toString(36);}
+function storedSent(t){if(typeof SENT_AUDIO==="undefined")return null;const k=sentKey(t);return SENT_AUDIO.has(k)?"audio/s/"+k+".mp3":null;}
+/* Play sentences one after another: the stored British recording, else Google's British voice, else the device voice */
+function playChunks(chunks,{id=++speakId,onend}={}){
+  let i=0;
+  const next=()=>{
+    if(id!==speakId)return;
+    if(i>=chunks.length){onend&&onend();return;}
+    const c=chunks[i++], srcs=[storedSent(c),navigator.onLine===false?null:googleUrl(c)].filter(Boolean);
+    let k=-1, started=false, done=false;
+    const finish=()=>{if(!done&&id===speakId){done=true;next();}};
+    const tryNext=()=>{
+      if(id!==speakId||done)return; k++; started=false;
+      if(k>=srcs.length){tts(c,{rate:.9,onend:finish,id});return;}
+      player.onended=finish; player.onplaying=()=>{started=true;};
+      player.onerror=()=>{if(id===speakId&&!started)tryNext();};
+      player.src=srcs[k]; try{player.playbackRate=1;player.defaultPlaybackRate=1;}catch(e){}
+      const kk=k;
+      player.play().catch(err=>{if(id!==speakId||kk!==k)return;if(err&&err.name==="NotAllowedError"){showSoundTip();k=srcs.length;tryNext();}else tryNext();});
+      setTimeout(()=>{if(id===speakId&&kk===k&&!started&&!done)tryNext();},3000);
+    };
+    tryNext();
+  };
+  next();
+}
 let raBtn=null;
 function raDone(){if(raBtn)raBtn.classList.remove("playing");raBtn=null;}
 function readAloud(text,btn){
@@ -42,37 +66,7 @@ function readAloud(text,btn){
   const chunks=raChunks(speakPrep(text)); if(!chunks.length)return;
   const id=++speakId;
   raBtn=btn||null; if(btn)btn.classList.add("playing");
-  const fin=()=>{if(id===speakId)raDone();};
-  setTimeout(fin,4000+chunks.join(" ").length*120); // never leave the button stuck
-  let online=false;
-  const viaGoogle=()=>{
-    if(id!==speakId||online)return; online=true;
-    try{speechSynthesis.cancel();}catch(e){}
-    if(navigator.onLine===false){showSoundTip();fin();return;}
-    let i=0;
-    const next=()=>{
-      if(id!==speakId)return;
-      if(i>=chunks.length){fin();return;}
-      const k=i++;
-      player.onended=next; player.onplaying=null;
-      player.onerror=()=>{if(id===speakId&&i===k+1)next();};
-      player.src=googleUrl(chunks[k]);
-      try{player.playbackRate=1;player.defaultPlaybackRate=1;}catch(e){}
-      player.play().catch(err=>{if(id!==speakId||i!==k+1)return; if(err&&err.name==="NotAllowedError"){showSoundTip();fin();} else next();});
-    };
-    next();
-  };
-  if(!("speechSynthesis" in window)){viaGoogle();return;}
-  const ss=speechSynthesis; let started=false;
-  try{ss.cancel();ss.resume();}catch(e){}
-  chunks.forEach((c,k)=>{
-    const u=new SpeechSynthesisUtterance(c); u.lang="en-GB"; u.rate=.9; if(voice)u.voice=voice;
-    u.onstart=()=>{started=true;};
-    if(k===chunks.length-1)u.onend=fin;
-    u.onerror=e=>{if(id===speakId&&!started&&!/interrupted|canceled/.test(e.error||""))viaGoogle();};
-    ss.speak(u);
-  });
-  setTimeout(()=>{if(id===speakId&&!started&&!ss.speaking)viaGoogle();},1500);
+  playChunks(chunks,{id,onend:()=>{if(id===speakId)raDone();}});
 }
 
 /* ---------- Chinese translation ---------- */

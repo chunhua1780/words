@@ -27,7 +27,7 @@ function dailySet(date,create=true){
   const M=MB(), ex=dayOf(date); if(ex&&ex.ids.length)return ex;
   if(!create)return null;
   const rnd=seedRand((Store.user||"")+"|"+date), st=M.q;
-  const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
+  const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&!id.startsWith("w:")&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
   const byT={}; for(const q of MATHS)if(!st[q.id]&&!SERVED[q.id]&&!retry.includes(q.id))(byT[q.t]=byT[q.t]||[]).push(q.id);
   const need=MDAY-retry.length, picked=[], cnt={};
   for(let g=0;picked.length<need&&g<400;g++){
@@ -37,7 +37,7 @@ function dailySet(date,create=true){
     picked.push(byT[t].splice(Math.floor(rnd()*byT[t].length),1)[0]); cnt[t]=(cnt[t]||0)+1;
   }
   if(picked.length<need){ // the whole bank has been seen: bring back the oldest ones
-    const old=Object.entries(st).filter(([id])=>MQ[id]&&!retry.includes(id)).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1);
+    const old=Object.entries(st).filter(([id])=>MQ[id]&&!id.startsWith("w:")&&!retry.includes(id)).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1);
     for(const [id] of old){if(picked.length>=need)break;picked.push(id);}
   }
   const ids=[...retry,...picked].sort((a,b)=>TI(MQ[a].t)-TI(MQ[b].t)||(a<b?-1:1));
@@ -211,6 +211,8 @@ function viewMaths(){
       <div class="hero-num"><b>${sc.done}<small>/${sc.n}</small></b><span class="muted small">answered today</span></div>
     </div>
     ${checkupCard()}
+    ${typeof drillCard==="function"?drillCard():""}
+    ${typeof calcCard==="function"?calcCard():""}
     ${mistakesCard()}
     <div class="kpis">
       <div class="kpi"><b>${total}</b><span>questions answered</span></div>
@@ -314,9 +316,12 @@ function answer(q,v){
   renderMQ();
 }
 function record(q,ok,given){
-  const M=MB(), t=today(), s=M.q[q.id]||{};
-  M.q[q.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{})};
+  const M=MB(), t=today(), key=q.gen?"p:"+q.gen:q.id, s=M.q[key]||{}; // generated questions keep one record per type
+  M.q[key]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{})};
+  if(q.gen&&!ok){const {id,gen,...keep}=q;M.q["w:"+String(q.id).replace(/^g[a-z]*:/,"")]={n:1,r:0,ok:false,last:t,u:Date.now(),q:keep};} // wrong: keep it for 错题本
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
+  if(q.gen){const g=q.gen.split("-")[0],G=M.log[g+":"+t]=M.log[g+":"+t]||{n:0,r:0};G.n++;if(ok)G.r++;G.u=Date.now();
+    const i=String(q.id).split(":").pop();if(g==="cc"){G.done=[...new Set([...(G.done||[]),i])];}} // per-day counts (must.js)
   if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
   if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
   if(MS.fix){const F=M.log["fx:"+t]=M.log["fx:"+t]||{n:0,r:0};F.n++;if(ok)F.r++;F.left=mistakeIds().length;F.start=Math.max(F.start||0,F.left+(ok?1:0));F.u=Date.now();} // 错题重做 progress (must.js)

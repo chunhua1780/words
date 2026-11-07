@@ -57,12 +57,12 @@ function cuGet(t){return dayOf("test-"+t);}
 <script src="must.js"></script>
 <script>
 const SITES={y5:{label:"Year 5 site (Wendy)",parent:"https://chunhua1780.github.io/words/parent.html",kid:"https://chunhua1780.github.io/words/",kc:"var(--c-pink)",
-             items:["words","dict","phonics","read","write","maths","test","fix"]},
+             items:["words","dict","phonics","read","write","maths","facts","calc","test","fix"]},
              y7:{label:"Year 7 site (Candy)",parent:"https://chunhua1780.github.io/Candy/parent.html",kid:"https://chunhua1780.github.io/Candy/",kc:"var(--c-blue)",
              items:["words","read","maths","test","formula","paper","fix"]}};
 const TITLE={y5:{words:"New words",test:"Maths check-up"},y7:{words:"Spelling practice",test:"Maths test"}};
 const tt=k=>(TITLE[CURK]||{})[k]||MUST_ALL[k].t;
-const SEC={words:"Words",dict:"Dictation",phonics:"Phonics",read:"Reading",write:"Writing",maths:"Maths 20",test:"Maths test",formula:"Formulas",paper:"Test paper",fix:"Fix mistakes",practice:"Other practice",other:"Menus"};
+const SEC={words:"Words",dict:"Dictation",phonics:"Phonics",read:"Reading",write:"Writing",maths:"Maths 20",test:"Maths test",formula:"Formulas",paper:"Test paper",fix:"Fix mistakes",facts:"Number facts",calc:"Division & fractions",practice:"Other practice",other:"Menus"};
 const loadAcc=()=>{try{const a=JSON.parse(localStorage.getItem("fam-acc")||"null");if(a)return a;}catch(e){}
   const s=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
   const w=s("ws-session"),c=s("y7-session");

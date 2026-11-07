@@ -176,6 +176,8 @@ function mathsBlock(){
     <div class="row" style="justify-content:space-between"><h3>Maths</h3><span class="muted small">${wn?`${wr}/${wn} correct this week`:"No maths yet this week"}</span></div>
     <div class="muted small">Today: ${today20&&today20.done?`${today20.done} of ${today20.n} answered, ${today20.right} correct`:"not started"} · ${Object.keys(M.q).filter(id=>MQ[id]).length} of ${MATHS.length} bank questions tried</div>
     ${cuParent()}
+    <label class="muted small">口诀表 level (number facts within 20): <select id="nfLevelSel">${[[0,"Automatic (moves up when ready)"],[1,"1 · whole table shown"],[2,"2 · part of the table covered"],[3,"3 · from memory"]].map(([v,n])=>`<option value="${v}" ${(+(B().prefs||{}).nfLevel||0)===v?"selected":""}>${n}</option>`).join("")}</select>
+      ${(()=>{const l=(MB().log||{}).nflv;return l?` · now level ${l.lv}`:"";})()}</label>
     <div class="act teal">${days.map(d=>{const s=sc(d);return `<div title="${d}: ${s?s.right+"/"+s.n+" correct":"no daily set"}" style="height:${s?s.right/MDAY*100:0}%"></div>`;}).join("")}</div>
     <div class="act-l">${days.map((d,i)=>`<span>${i%2?"":WEEK[pdate(d).getDay()][0]+pdate(d).getDate()}</span>`).join("")}</div>
     <div class="muted tiny">Bars show the daily ${MDAY}: correct answers out of ${MDAY}.</div>
@@ -310,6 +312,7 @@ async function readDocFile(f){
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
   histBind(); diaryParentBind();
+  const nfs=$("#nfLevelSel"); if(nfs)nfs.onchange=()=>{setPref("nfLevel",+nfs.value);render();};
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});
   const f=$("#authForm");

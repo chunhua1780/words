@@ -19,16 +19,18 @@ const MUST_ALL={
   formula:{icon:"layers",   min:10, t:"Formula quiz",       tz:"公式练习"},
   paper:  {icon:"puzzle",   min:10, t:"Test paper practice",tz:"试卷题型"},
   fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
+  facts:  {icon:"star",     min:5,  t:"Number facts (table)",tz:"口诀表口算"},
+  calc:   {icon:"maths",    min:10, t:"Division & fractions",tz:"笔算：除法和分数"},
   ftest:  {icon:"doc",      min:10, t:"Spelling test words",tz:"听写测验单词"},
 };
-const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","write","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","test","fix"];
+const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","write","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","facts","calc","test","fix"];
 /* the next spelling test (a word list marked as a test, e.g. every Friday), if one is open to practise */
 function nextTestList(t=today()){
   const b=B(); if(!b||!b.lists)return null;
   return Object.values(b.lists).filter(l=>l.test&&l.date>=t&&listOpen(l)&&wordsIn(b,l.date).length).sort((a,c)=>a.date<c.date?-1:1)[0]||null;
 }
 /* Until a parent saves their own choice, a default must-do list is on (no lock) so the child always sees today's tasks */
-const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","words","read","write","fix"]:["words","dict","phonics","read","write","maths"];
+const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","words","read","write","fix"]:["words","dict","phonics","read","write","maths","facts","calc"];
 const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];return c;}; // a coming spelling test is always first
 const mustCfg0=()=>{const m=(B().prefs||{}).must;
   if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:false,auto:true};
@@ -62,6 +64,8 @@ function mustStatus(k,t=today()){
   if(k==="test"){const d=typeof cuGet==="function"?cuGet(t):null,a=d?Object.values(d.ans||{}):[];const n=d?d.ids.length:15;
     return {done:!!d&&a.length>=n,p:a.length/n,sub:d&&a.length>=n?`Score ${a.filter(x=>x.ok).length}/${n}`:`${a.length} of ${n} answered`,acc:acc(a.filter(x=>x.ok).length,a.length)};}
   if(k==="formula"||k==="paper"){const g=mLog((k==="formula"?"fm:":"pp:")+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
+  if(k==="facts"){const g=mLog("nf:"+t)||{n:0,r:0};return {done:g.n>=20,p:Math.min(1,g.n/20),sub:`${Math.min(20,g.n)} of 20 facts · level ${g.lv||(typeof nfLevel==="function"?nfLevel():1)}`,acc:acc(g.r,g.n)};}
+  if(k==="calc"){const g=mLog("cc:"+t)||{n:0,r:0},d=(g.done||[]).length;return {done:d>=12,p:Math.min(1,d/12),sub:`${d} of 12 · 6 divisions, 6 fractions`,acc:acc(g.r,g.n)};}
   if(k==="ftest"){const l=nextTestList(t);if(!l)return {done:true,p:1,sub:"No spelling test coming up",acc:null};
     const p=listPlan(b,l.date,t),n=p.all.length,left=p.fresh.length+p.review.length;
     return {done:left===0,p:n?(n-Math.min(n,left))/n:1,sub:left?`${left} of ${n} words to practise · test ${shortDate(l.date)}`:`All ${n} practised today · test ${shortDate(l.date)}`,acc:null};}
@@ -96,6 +100,8 @@ function mustLaunch(k){
   if(k==="test")return openCheckup();
   if(k==="formula")return openMaths({kind:"topic",topic:"Formula quiz",ids:fmSet()});
   if(k==="paper")return openMaths({kind:"topic",topic:"Test paper: mixed",ids:paperSet("mix")});
+  if(k==="facts")return openDrill();
+  if(k==="calc")return openCalc();
   if(k==="ftest"){const l=nextTestList();if(!l){toast("No spelling test coming up.");return mustGate(true);}
     const p=listPlan(B(),l.date);if(p.fresh.length)return startSession("learn",p.fresh.map(w=>w.id),{listDate:l.date});
     if(p.review.length)return startSession("review",p.review.map(w=>w.id),{listDate:l.date});return startSession("dict",p.all.map(w=>w.id),{listDate:l.date});}
@@ -173,8 +179,10 @@ function mustSection(){
   if(vis("session"))return typeof S!=="undefined"&&S&&S.mode==="ddict"?"dict":"words";
   if(vis("maths")){if(typeof MS==="undefined"||!MS)return "practice";const id=MS.ids&&MS.ids[0]||"";
     if(MS.fix)return "fix";
+    if(/^g:cc:/.test(id))return "calc";
     return MS.kind==="test"?"test":MS.kind==="day"?"maths":String(id).startsWith("g:fm:")?"formula":/^g:(?!rv)/.test(id)?"paper":"practice";}
   if(vis("diaryOv"))return "write";
+  if(vis("drillOv"))return "facts";
   if(vis("reader"))return "read";
   if(vis("eng"))return typeof EV!=="undefined"&&EV&&EV.view==="diary"?"write":"phonics";
   if(vis("shapes"))return "formula";

@@ -919,3 +919,14 @@ input,select,textarea{font-size:max(16px,1em)}
 .mt-row.next .mt-go{background:var(--c-orange,#f08a24);color:#fff}
 .mt-row.done .mt-go{background:transparent;color:var(--green-fill,#2e9d5b)}
 @media (max-width:520px){.mt-row .must-ic{display:none}.mt-go{padding:8px 10px;font-size:14px}}
+/* the next spelling test, above 今日必做 */
+.test-top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:18px 20px;border:3px solid var(--c-red,#d64545);background:linear-gradient(160deg,color-mix(in srgb,var(--c-red,#d64545) 12%,var(--paper)),var(--paper) 60%)}
+.tt-date{width:84px;flex:none;display:flex;flex-direction:column;align-items:center;border-radius:18px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow);font:700 13px var(--round)}
+.tt-date span:first-child{width:100%;text-align:center;background:var(--c-red,#d64545);color:#fff;padding:4px 0}
+.tt-date b{font:800 36px/1.1 var(--round);padding-top:4px}
+.tt-date span:last-child{padding-bottom:6px;color:var(--muted)}
+.tt-main{flex:1;min-width:220px;display:flex;flex-direction:column;gap:5px}
+.tt-main h2{margin:0;font:800 clamp(21px,4vw,27px)/1.2 var(--round)}
+.tt-main .eyebrow{color:var(--c-red,#d64545)}
+.tt-btns{display:flex;flex-direction:column;gap:8px}
+@media (max-width:620px){.tt-btns{flex-direction:row;flex-wrap:wrap;width:100%}.tt-btns .btn{flex:1}}

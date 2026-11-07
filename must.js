@@ -19,7 +19,7 @@ const MUST_ALL={
   formula:{icon:"layers",   min:10, t:"Formula quiz",       tz:"公式练习"},
   paper:  {icon:"puzzle",   min:10, t:"Test paper practice",tz:"试卷题型"},
   fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
-  facts:  {icon:"star",     min:5,  t:"Number facts (table)",tz:"口诀表口算"},
+  facts:  {icon:"star",     min:10,  t:"Number facts (table)",tz:"口诀表口算"},
   calc:   {icon:"maths",    min:10, t:"Division & fractions",tz:"笔算：除法和分数"},
   ftest:  {icon:"doc",      min:10, t:"Spelling test words",tz:"听写测验单词"},
 };
@@ -64,7 +64,7 @@ function mustStatus(k,t=today()){
   if(k==="test"){const d=typeof cuGet==="function"?cuGet(t):null,a=d?Object.values(d.ans||{}):[];const n=d?d.ids.length:15;
     return {done:!!d&&a.length>=n,p:a.length/n,sub:d&&a.length>=n?`Score ${a.filter(x=>x.ok).length}/${n}`:`${a.length} of ${n} answered`,acc:acc(a.filter(x=>x.ok).length,a.length)};}
   if(k==="formula"||k==="paper"){const g=mLog((k==="formula"?"fm:":"pp:")+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
-  if(k==="facts"){const g=mLog("nf:"+t)||{n:0,r:0};return {done:g.n>=20,p:Math.min(1,g.n/20),sub:`${Math.min(20,g.n)} of 20 facts · level ${g.lv||(typeof nfLevel==="function"?nfLevel():1)}`,acc:acc(g.r,g.n)};}
+  if(k==="facts"){const g=mLog("nf:"+t)||{n:0,r:0};return {done:g.n>=60,p:Math.min(1,g.n/60),sub:`${Math.min(60,g.n)} of 60 facts · level ${g.lv||(typeof nfLevel==="function"?nfLevel():1)}`,acc:acc(g.r,g.n)};}
   if(k==="calc"){const g=mLog("cc:"+t)||{n:0,r:0},d=(g.done||[]).length;return {done:d>=12,p:Math.min(1,d/12),sub:`${d} of 12 · 6 divisions, 6 fractions`,acc:acc(g.r,g.n)};}
   if(k==="ftest"){const l=nextTestList(t);if(!l)return {done:true,p:1,sub:"No spelling test coming up",acc:null};
     const p=listPlan(b,l.date,t),n=p.all.length,left=p.fresh.length+p.review.length;

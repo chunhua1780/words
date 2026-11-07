@@ -7,19 +7,19 @@
    After a day's 20: 18 or more right, mostly quick → next level; fewer than 12 right → back a level.
    A parent can fix the level on the parent page. Each fact also updates its Quick facts record ("f:…"),
    and the day's marks are kept in book.maths.log["nf:<date>"], the level in book.maths.log["nflv"]. */
-const NF_N=20, NF_FAST=6000;
+const NF_N=60, NF_FAST=6000; // 60 a session: 15 each of + − (within 20) and × ÷ (up to 12 × 12)
 const nfLevel=()=>{const p=+((B().prefs||{}).nfLevel)||0;if(p)return p;const l=(MB().log||{}).nflv;return l&&l.lv?l.lv:1;};
 const nfAuto=()=>!(+((B().prefs||{}).nfLevel));
 let NF=null;
 function nfEl(){
   let el=document.getElementById("drillOv"); if(el)return el;
   el=document.createElement("section"); el.id="drillOv"; el.hidden=true; el.setAttribute("aria-label","Number facts");
-  el.innerHTML=`<div class="s-top"><button class="icon-btn" id="nfClose" aria-label="Close">${ic("x")}</button><span class="s-label">口诀表 · Number facts within 20</span><span class="muted small" id="nfProg" style="margin-left:auto"></span></div>
+  el.innerHTML=`<div class="s-top"><button class="icon-btn" id="nfClose" aria-label="Close">${ic("x")}</button><span class="s-label">口诀表 · Number facts: + − within 20, × ÷ to 12 × 12</span><span class="muted small" id="nfProg" style="margin-left:auto"></span></div>
     <div class="s-body" id="nfBody"></div>`;
   document.body.appendChild(el); el.querySelector("#nfClose").onclick=closeDrill; return el;
 }
 function openDrill(){
-  const facts=factPick("mix20",NF_N);
+  const q=NF_N/4, facts=shuffle([...factPick("add",q),...factPick("sub",q),...factPick("mul1x",q),...factPick("div1x",q)]);
   NF={facts,i:0,r:0,ms:0,lv:nfLevel(),t0:0,picked:null,peek:false,res:[]};
   window.__busy=true; nfEl().hidden=false; document.body.style.overflow="hidden"; nfShow();
 }
@@ -33,7 +33,7 @@ function nfGrid(f){
   const add=f.op==="+", sub=f.op==="−", mul=!add&&!sub, sym=add?"+":"×";
   if(sub){const rows=[];for(let c=2;c<=20;c++){const cells=[];for(let k=Math.max(1,c-10);k<=Math.min(10,c-1);k++)cells.push({k,t:`${c}−${k}`,r:c-k});rows.push({n:c,cells});}
     const c=f.x+f.y; return {title:"减法口诀表 · Taking away within 20",rows,row:c,cell:f.y,sym:"−"};}
-  const rows=fRange(1,10).map(n=>({n,cells:fRange(1,n).map(k=>({k,t:`${k}${sym}${n}`,r:add?k+n:k*n}))}));
+  const rows=fRange(1,add?10:12).map(n=>({n,cells:fRange(1,n).map(k=>({k,t:`${k}${sym}${n}`,r:add?k+n:k*n}))}));
   const a=f.op==="÷"?f.x:f.x, b=f.y, hi=Math.max(a,b), lo=Math.min(a,b);
   return {title:add?"加法口诀表 · Adding within 20":"乘法口诀表 · Times table",rows,row:hi,cell:lo,sym};
 }
@@ -47,9 +47,9 @@ function nfSteps(f){
 function nfList(f,lv,reveal){
   const g=nfGrid(f);
   const cover=(n,k)=>{if(reveal||lv<2)return false;if(n===g.row&&k===g.cell)return NF.i%2===0;return ((n*7+k*13+NF.i*3)%5)<2;};
-  return `<div class="nf-list nf-tri ${g.sym==="−"?"sub":""} ${reveal?"reveal":""}" id="nfList"><div class="nf-lt">${esc(g.title)}</div>
+  return `<div class="nf-list nf-tri ${g.sym==="−"?"sub":g.sym==="×"?"mul":""} ${reveal?"reveal":""}" id="nfList"><div class="nf-lt">${esc(g.title)}</div>
     ${g.rows.map(r=>`<div class="nf-row ${reveal&&r.n===g.row?"rowhit":""}" data-r="${r.n}">${r.cells.map(c=>{const hit=reveal&&r.n===g.row&&c.k===g.cell;
-      return `<span class="nf-cell ${hit?"target":""}" data-c="${c.k}">${c.t}=<b class="${hit?"glow":""}">${cover(r.n,c.k)?"?":c.r}</b></span>`;}).join("")}</div>`).join("")}
+      return `<span class="nf-cell ${hit?"target":""}" data-c="${c.k}"><span class="nf-e">${c.t}</span><span class="nf-v">=<b class="${hit?"glow":""}">${cover(r.n,c.k)?"?":c.r}</b></span></span>`;}).join("")}</div>`).join("")}
   </div>`;
 }
 /* the step-by-step demo: 1 the table, 2 down to the row, 3 along to the cell, 4 the answer */
@@ -123,14 +123,14 @@ function nfEnd(){
   let msg="", nlv=lv;
   if(nfAuto()){
     const quick=NF.res.filter(x=>x.ok&&x.ms<=NF_FAST).length;
-    if(r>=18&&quick>=14&&lv<3){nlv=lv+1;msg=`Brilliant! Next time: level ${nlv}${nlv===2?" (part of the table is covered)":" (from memory)"}. 下次升级！`;}
-    else if(r<12&&lv>1){nlv=lv-1;msg=`Next time the table helps a bit more (level ${nlv}). 下次多用表格帮忙。`;}
-    else msg=lv<3?`Get 18 right, most within ${NF_FAST/1000} seconds, to move up a level. 答对18道、大部分6秒内，就能升级。`:"Keep it up: all from memory! 继续保持！";
+    if(r>=Math.ceil(n*.9)&&quick>=Math.ceil(n*.7)&&lv<3){nlv=lv+1;msg=`Brilliant! Next time: level ${nlv}${nlv===2?" (part of the table is covered)":" (from memory)"}. 下次升级！`;}
+    else if(r<Math.ceil(n*.6)&&lv>1){nlv=lv-1;msg=`Next time the table helps a bit more (level ${nlv}). 下次多用表格帮忙。`;}
+    else msg=lv<3?`Get ${Math.ceil(n*.9)} of ${n} right, most within ${NF_FAST/1000} seconds, to move up a level. 答对${Math.ceil(n*.9)}道、大部分6秒内，就能升级。`:"Keep it up: all from memory! 继续保持！";
     const M=MB(); M.log.nflv={lv:nlv,u:Date.now()};
   }
   Store.save(); if(typeof beep==="function")beep(true,true);
   $("#nfBody").innerHTML=`<div class="nf-wrap m-results">
-    <div class="stars">${"★".repeat(r>=18?3:r>=14?2:r>=8?1:0)}${"☆".repeat(3-(r>=18?3:r>=14?2:r>=8?1:0))}</div>
+    <div class="stars">${(k=>"★".repeat(k)+"☆".repeat(3-k))(r>=n*.9?3:r>=n*.7?2:r>=n*.4?1:0)}</div>
     <h2>${r} out of ${n} right</h2><p class="muted">Average ${avg} seconds a question · level ${lv}</p>
     <div class="notice">${esc(msg)}</div>
     <div class="nf-sum">${NF.res.map(x=>`<span class="${x.ok?"ok":"bad"}">${esc(x.q)} = ${x.a}${x.ok?"":` <s>${x.v}</s>`}</span>`).join("")}</div>
@@ -140,7 +140,7 @@ function nfEnd(){
 function drillCard(){
   const g=((MB().log||{})["nf:"+today()])||{n:0,r:0}, lv=nfLevel();
   return `<div class="card maths-card"><div class="badge lg" style="background:var(--c-orange,#f08a24);color:#fff">±</div>
-    <div class="grow stack tight" style="gap:4px"><span class="kind-tag">口诀表 · Number facts</span><h3 style="margin:0">+ − × ÷ within 20</h3>
+    <div class="grow stack tight" style="gap:4px"><span class="kind-tag">口诀表 · Number facts</span><h3 style="margin:0">${NF_N} facts: + − within 20, × ÷ to 12 × 12</h3>
       <div class="muted small">Level ${lv}: ${lv===1?"find the answer in the table":lv===2?"part of the table is covered":"from memory"}${g.n?` · today ${Math.min(g.n,NF_N)} done, ${g.r} right`:""}</div></div>
     <button class="btn primary" data-drill>${g.n>=NF_N?"Again":"Start"}</button></div>`;
 }

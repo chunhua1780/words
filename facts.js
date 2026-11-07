@@ -2,7 +2,7 @@
    Each fact (e.g. 7 + 8) has its own record in book.maths.q under an id starting "f:", so it syncs
    and merges like any maths answer: n tries, r right, ok last result, ms last time taken,
    st = quick right answers in a row. A fact is "known" after FACT_KNOWN quick right answers in a row. */
-const FACT_KNOWN=3, FACT_SESSION=20;
+const FACT_KNOWN=3, FACT_SESSION=60;
 /* Time settings on this device: the speed goal (default 5 s) and the sprint length (default 2 minutes) */
 const fxPref=(k,d)=>{try{const v=+localStorage.getItem("fx-"+k);return v||d;}catch(e){return d;}};
 const fxSetPref=(k,v)=>{try{localStorage.setItem("fx-"+k,v);}catch(e){}};
@@ -26,6 +26,10 @@ const FACT_SETS={
   div12:{name:"Division facts",sub:"up to 12 × 12",sym:"÷",col:"purple",lo:2,hi:12,facts:fGrid(2,12).map(mkDiv)},
 };
 FACT_SETS.mix20.facts=FACT_SETS.mix20.mix.flatMap(k=>FACT_SETS[k].facts);
+FACT_SETS.mul1x={name:"Times tables",sub:"1 to 12",sym:"×",col:"orange",lo:1,hi:12,facts:fGrid(1,12).map(mkMul)};
+FACT_SETS.div1x={name:"Division facts",sub:"1 to 12",sym:"÷",col:"purple",lo:1,hi:12,facts:fGrid(1,12).map(mkDiv)};
+FACT_SETS.mix12={name:"All four mixed",sub:"+ − within 20, × ÷ to 12 × 12",sym:"±",col:"pink",mix:["add","sub","mul1x","div1x"]};
+FACT_SETS.mix12.facts=FACT_SETS.mix12.mix.flatMap(k=>FACT_SETS[k].facts);
 const FACT_BY_ID={}; for(const s of Object.values(FACT_SETS))for(const f of s.facts)FACT_BY_ID[f.id]=f;
 
 function factRec(id){return MB().q[id]||null;}
@@ -126,7 +130,7 @@ function fxHub(){
       <p class="muted" style="margin:0">Type the answer as fast as you can; it checks itself. Within your speed goal gets a ⚡ (start with 5 or 8 seconds, then go faster). Three ⚡ in a row on the same fact and you know it. Facts you miss or answer slowly come back more often.</p>
       ${fxTimeBar()}</div></div>
     <div class="section-title"><h3 style="margin:0">Within 20</h3><span class="muted small">Start here</span></div>
-    <div class="fx-sets">${["add","sub","mul20","div20","mix20"].map(fxCard).join("")}</div>
+    <div class="fx-sets">${["add","sub","mul20","div20","mix20","mix12"].map(fxCard).join("")}</div>
     <div class="section-title"><h3 style="margin:0">Times tables</h3><span class="muted small">Next step</span></div>
     <div class="fx-sets">${["mul10","div10","mul12","div12"].map(fxCard).join("")}</div>
     <div class="fx-legend muted small"><span><i class="k"></i>Know it</span><span><i class="l"></i>Learning</span><span><i class="m"></i>Missed last time</span><span><i class="n"></i>Not tried</span></div>

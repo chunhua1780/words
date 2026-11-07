@@ -1018,3 +1018,7 @@ html:not(.zh-on) .zh{display:none}
 .zh-float{position:fixed;right:14px;top:14px;z-index:30;box-shadow:var(--shadow)}
 .nf-lv .zh-t{background:none;padding:0;color:inherit;opacity:.85}
 .chip .zh-t{display:none!important}
+.nf-tri.mul .nf-cell{flex:0 0 calc((100% - 36px)/12);font-size:clamp(10px,1.65vw,15px)}
+@media (max-width:620px){.nf-tri.mul .nf-cell{flex:0 0 56px}}
+.nf-tri.mul .nf-cell{font-size:clamp(11px,1.9vw,15px);padding:3px 0;line-height:1.15}
+.nf-tri.mul .nf-e,.nf-tri.mul .nf-v{display:block}

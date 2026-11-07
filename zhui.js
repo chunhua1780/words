@@ -11,7 +11,7 @@
   const sync=()=>{document.documentElement.classList.toggle("zh-on",on());const b=document.getElementById("zhAll");if(b){b.classList.toggle("on",on());b.setAttribute("aria-pressed",on());}};
   function split(node){
     const t=node.nodeValue; if(!t||!CJK.test(t))return;
-    const p=node.parentNode; if(!p||p.nodeType!==1||SKIP.has(p.nodeName)||p.closest(".zh-t,.zh,[contenteditable],.dv-text,.diary-x,.nf-cell,.no-zh"))return;
+    const p=node.parentNode; if(!p||p.nodeType!==1||SKIP.has(p.nodeName)||p.closest(".zh-t,.zh,.zh-btn,[contenteditable],.dv-text,.diary-x,.nf-cell,.no-zh"))return;
     // each Chinese run: from a Chinese character to the last one before any English letter (digits and signs inside stay with it)
     const RUN=/[　-〿㐀-鿿＀-￯](?:[^A-Za-z]*?[　-〿㐀-鿿＀-￯])*/g;
     const zh=(t.match(RUN)||[]).join(" ");

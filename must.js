@@ -33,7 +33,7 @@ function nextTestList(t=today()){
 const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","words","read","write","fix"]:["words","dict","phonics","read","write","maths","facts","calc"];
 const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];return c;}; // a coming spelling test is always first
 const mustCfg0=()=>{const m=(B().prefs||{}).must;
-  if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:typeof PAPER_TYPES==="undefined",auto:true}; // Year 5: locked until done
+  if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:false,auto:true}; // a reminder, not a lock: the rest of the app stays open
   return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 
@@ -48,7 +48,7 @@ function mustStatus(k,t=today()){
     const lg=b.log[t]||{};return {done:(lg.done||0)>=10,p:Math.min(1,(lg.done||0)/10),sub:`${lg.done||0} of 10 words practised`,acc:acc(lg.right||0,lg.done||0)};
   }
   if(k==="dict"){
-    const ws=Object.values(b.words).filter(w=>w.stage>0&&(w.due<=t||w.learnedOn===t||w.dict===t)&&listOpen(b.lists[w.list]||{date:t}));
+    const ws=typeof dictSet==="function"&&b===B()?dictSet(t):Object.values(b.words).filter(w=>w.stage>0&&(w.due<=t||w.learnedOn===t||w.dict===t)&&listOpen(b.lists[w.list]||{date:t})).slice(0,10);
     const left=ws.filter(w=>w.dict!==t).length;
     return {done:ws.length>0&&left===0,p:ws.length?(ws.length-left)/ws.length:0,sub:ws.length?(left?`${left} word${left>1?"s":""} to spell`:"All spelled"):"Learn new words first",acc:null};
   }
@@ -90,8 +90,8 @@ function mustLaunch(k){
     if(typeof dailyWordObjs==="function"&&B().eng&&B().eng.daily[t]){const ws=dailyWordObjs(t),f=ws.filter(w=>w.stage===0);
       if(f.length)return startSession("learn",f.map(w=>w.id),{listDate:t}); if(ws.length)return startSession("full",ws.map(w=>w.id),{listDate:t});}
     const d=typeof curDate==="function"&&curDate(); if(!d){toast("No word list yet: ask a parent to add words.");return mustGate(true);}
-    const p=listPlan(B(),d); if(p.fresh.length)return startSession("learn",p.fresh.map(w=>w.id),{listDate:d});
-    if(p.review.length)return startSession("review",p.review.map(w=>w.id),{listDate:d});
+    const p=listPlan(B(),d); if(p.fresh.length)return startSession("learn",p.fresh.slice(0,6).map(w=>w.id),{listDate:d});
+    if(p.review.length)return startSession("review",p.review.slice(0,10).map(w=>w.id),{listDate:d});
     return startSession("dict",p.all.map(w=>w.id),{listDate:d});
   }
   if(k==="dict"){const ws=dictLeft(t).length?dictLeft(t):dictSet(t);if(ws.length)return startSession("ddict",ws.map(w=>w.id),{listDate:t});toast("Learn today’s new words first.");return mustGate(true);}
@@ -105,8 +105,8 @@ function mustLaunch(k){
   if(k==="facts")return openDrill();
   if(k==="calc")return openCalc();
   if(k==="ftest"){const l=nextTestList();if(!l){toast("No spelling test coming up.");return mustGate(true);}
-    const p=listPlan(B(),l.date);if(p.fresh.length)return startSession("learn",p.fresh.map(w=>w.id),{listDate:l.date});
-    if(p.review.length)return startSession("review",p.review.map(w=>w.id),{listDate:l.date});return startSession("dict",p.all.map(w=>w.id),{listDate:l.date});}
+    const p=listPlan(B(),l.date);if(p.fresh.length)return startSession("learn",p.fresh.slice(0,6).map(w=>w.id),{listDate:l.date});
+    if(p.review.length)return startSession("review",p.review.slice(0,10).map(w=>w.id),{listDate:l.date});return startSession("dict",p.all.map(w=>w.id),{listDate:l.date});}
   if(k==="fix"){if(!mustFixLeft()){toast("No mistakes to fix. Brilliant!");return mustGate(true);}return openMistakes();}
 }
 function mustHide(){const e=document.getElementById("must");if(e)e.hidden=true;}

@@ -99,7 +99,7 @@ function diaryAddWords(list){
   for(const w of list){const o=have.get(norm(w));if(o){if(o.stage>0){o.due=t;o.u=Date.now();}again.push(w);}else fresh.push(w);}
   if(fresh.length){const r=addWordsToBook(b,fresh,{date:t});const l=b.lists[t];if(l&&!l.title){l.title="Diary words";l.u=Date.now();}
     r.added.forEach(w=>{w.diary=t;});
-    if(b.eng&&b.eng.daily&&b.eng.daily[t]){const d=b.eng.daily[t];d.words=[...new Set([...d.words,...fresh])];d.u=Date.now();}
+    if(b.eng&&b.eng.daily&&b.eng.daily[t]){const d=b.eng.daily[t];d.words=[...new Set([...d.words,...fresh])].slice(0,Math.max(10,d.words.length));d.u=Date.now();} // never more than 10 new words a day
     if(typeof enrich==="function")Promise.all(r.added.map(w=>enrich(w).catch(()=>{}))).then(()=>Store.save());}
   return {fresh,again};
 }

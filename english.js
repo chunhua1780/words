@@ -16,7 +16,7 @@ const DW_STAGES=[
   {k:"y34",name:"Year 3 and 4 word list",words:"accident actually address answer appear arrive believe bicycle breath breathe build business calendar caught centre century certain circle complete consider continue decide describe different difficult disappear early earth eight eighth enough exercise experience experiment extreme famous favourite February forward fruit grammar group guard guide heard heart height history imagine increase important interest island knowledge learn length library material medicine mention minute natural naughty notice occasion often opposite ordinary particular peculiar perhaps popular position possess possible potatoes pressure probably promise purpose quarter question recent regular reign remember sentence separate special straight strange strength suppose surprise therefore though although thought through various weight woman women".split(" ")},
   {k:"y56",name:"Year 5 and 6 word list",words:"accommodate accompany according achieve aggressive amateur ancient apparent appreciate attached available average awkward bargain bruise category cemetery committee communicate community competition conscience conscious controversy convenience correspond criticise curiosity definite desperate determined develop dictionary disastrous embarrass environment equipment especially exaggerate excellent existence explanation familiar foreign forty frequently government guarantee harass hindrance identity immediately individual interfere interrupt language leisure lightning marvellous mischievous muscle necessary neighbour nuisance occupy occur opportunity parliament persuade physical prejudice privilege profession programme pronunciation queue recognise recommend relevant restaurant rhyme rhythm sacrifice secretary shoulder signature sincerely soldier stomach sufficient suggest symbol system temperature thorough twelfth variety vegetable vehicle yacht".split(" ")},
 ];
-const dwCount=()=>Math.min(10,Math.max(5,+((B().prefs||{}).dwN)||8));
+const dwCount=()=>Math.min(10,Math.max(3,+((B().prefs||{}).dwN)||6)); // 6 new words a day unless a parent chooses
 function dwPool(){
   const have=new Set(words().map(w=>norm(w.w))), start=(B().prefs||{}).dwStart||"y2", out=[]; let on=false;
   for(const s of DW_STAGES){if(s.k===start)on=true;if(on)for(const w of s.words)if(!have.has(norm(w)))out.push({w,s:s.k});}
@@ -38,8 +38,12 @@ function ensureDailyWords(){
 function dailyWordObjs(t=today()){const d=B().eng.daily[t];if(!d)return [];const set=new Set(d.words.map(norm));return wordsIn(B(),t).filter(w=>set.has(norm(w.w)));}
 
 /* ---------- 2. Daily dictation: today's new words and everything due by the memory plan ---------- */
+/* at most 10 words a day: today's new words first, then the ones most overdue (the rest wait for another day) */
+const DICT_MAX=10;
 function dictSet(t=today()){
-  return words().filter(w=>w.stage>0&&(w.due<=t||w.learnedOn===t||w.dict===t)&&listOpen(B().lists[w.list]||{date:t}));
+  const all=words().filter(w=>w.stage>0&&(w.due<=t||w.learnedOn===t||w.dict===t)&&listOpen(B().lists[w.list]||{date:t}));
+  const done=all.filter(w=>w.dict===t), fresh=all.filter(w=>w.dict!==t&&w.learnedOn===t), old=all.filter(w=>w.dict!==t&&w.learnedOn!==t).sort((a,b)=>(a.due||"")<(b.due||"")?-1:1);
+  return [...done,...fresh,...old].slice(0,Math.max(DICT_MAX,done.length));
 }
 const dictLeft=(t=today())=>dictSet(t).filter(w=>w.dict!==t);
 

@@ -14,6 +14,7 @@
 const DW_STAGES=[
   {k:"y1",name:"Year 1 common exception words",words:"the a do to today of said says are were was is his has I you your they be he me she we no go so by my here there where love come some one once ask friend school put push pull full house our".split(" ")},
   {k:"hf",name:"First high-frequency words",words:"and in it at on up can had but not got get him big if off back dad mum help will with that this then them see look went little like what when out came down have from just now very look made make ball call time saw away good about day her him play many may way back each must how old new into could take first tell next much make call day than more over".split(" ").filter((w,i,a)=>a.indexOf(w)===i)},
+  {k:"hf2",name:"Next common words (Years 2–3)",words:"after again also another around asked because before began being below between both bought brought called change children different does done door eight enough even every eyes found friends great group head heard high important just keep knew large last learn light might money morning mother never night number often only other paper people place please pretty quite right round second should something sometimes sound still story suddenly sure thought together told tomorrow tonight turned until used walk water while whole woman world write young".split(" ")},
   {k:"y2",name:"Year 2 common exception words",words:"door floor poor because find kind mind behind child children wild climb most only both old cold gold hold told every everybody even great break steak pretty beautiful after fast last past father class grass pass plant path bath hour move prove improve sure sugar eye could should would who whole any many clothes busy people water again half money parents Christmas".split(" ")},
   {k:"y34",name:"Year 3 and 4 word list",words:"accident actually address answer appear arrive believe bicycle breath breathe build business calendar caught centre century certain circle complete consider continue decide describe different difficult disappear early earth eight eighth enough exercise experience experiment extreme famous favourite February forward fruit grammar group guard guide heard heart height history imagine increase important interest island knowledge learn length library material medicine mention minute natural naughty notice occasion often opposite ordinary particular peculiar perhaps popular position possess possible potatoes pressure probably promise purpose quarter question recent regular reign remember sentence separate special straight strange strength suppose surprise therefore though although thought through various weight woman women".split(" ")},
   {k:"y56",name:"Year 5 and 6 word list",words:"accommodate accompany according achieve aggressive amateur ancient apparent appreciate attached available average awkward bargain bruise category cemetery committee communicate community competition conscience conscious controversy convenience correspond criticise curiosity definite desperate determined develop dictionary disastrous embarrass environment equipment especially exaggerate excellent existence explanation familiar foreign forty frequently government guarantee harass hindrance identity immediately individual interfere interrupt language leisure lightning marvellous mischievous muscle necessary neighbour nuisance occupy occur opportunity parliament persuade physical prejudice privilege profession programme pronunciation queue recognise recommend relevant restaurant rhyme rhythm sacrifice secretary shoulder signature sincerely soldier stomach sufficient suggest symbol system temperature thorough twelfth variety vegetable vehicle yacht".split(" ")},
@@ -25,11 +26,24 @@ function dwPool(){
   return out;
 }
 const dwLeft=()=>dwPool().length;
+/* Each day: half the new words from the easiest common words (Year 1 and the first high-frequency words), half from
+   the next common words (Year 2 and Years 2–3), so every day has easy wins. The harder statutory lists only come
+   if a parent picks them as the start, or once the common words are all learned. */
+const DW_EASY=["y1","hf"], DW_MID=["hf2","y2"];
+const DW_COMMON=new Set(DW_STAGES.filter(s=>[...DW_EASY,...DW_MID].includes(s.k)).flatMap(s=>s.words.map(w=>norm(w))));
+function dwPick(n){
+  const start=(B().prefs||{}).dwStart||"y1"; if(start==="y34"||start==="y56")return dwPool().slice(0,n);
+  const have=new Set(words().map(w=>norm(w.w))), from=ks=>DW_STAGES.filter(s=>ks.includes(s.k)).flatMap(s=>s.words.map(w=>({w,s:s.k}))).filter((x,i,a)=>!have.has(norm(x.w))&&a.findIndex(y=>norm(y.w)===norm(x.w))===i);
+  const easy=from(DW_EASY), mid=from(DW_MID).filter(x=>!easy.some(e=>norm(e.w)===norm(x.w))), half=Math.ceil(n/2);
+  let out=[...easy.slice(0,half),...mid.slice(0,n-Math.min(half,easy.length))];
+  if(out.length<n)out=[...out,...dwPool().filter(x=>!out.some(o=>norm(o.w)===norm(x.w)))].slice(0,n);
+  return out.slice(0,n);
+}
 /* Make today's daily words once a day (the same picks on every device: the lists are in a fixed order) */
 function ensureDailyWords(){
   const b=B(); if(!b||(b.prefs||{}).dwOff)return null;
   const t=today(); if(b.eng.daily[t])return b.eng.daily[t];
-  const pick=dwPool().slice(0,dwCount()); if(!pick.length)return null;
+  const pick=dwPick(dwCount()); if(!pick.length)return null;
   const {added}=addWordsToBook(b,pick.map(x=>x.w),{date:t});
   const l=b.lists[t]; if(!l.title){l.title="Daily words";l.u=Date.now();}
   b.eng.daily[t]={words:pick.map(x=>x.w),stage:pick[0].s,u:Date.now()};
@@ -46,7 +60,8 @@ const DICT_NEW=10, DICT_REVIEW=10;
 function dictSet(t=today()){
   const open=w=>listOpen(B().lists[w.list]||{date:t});
   const fresh=words().filter(w=>w.stage>0&&w.learnedOn===t&&open(w)).slice(0,DICT_NEW);
-  const before=words().filter(w=>w.stage>0&&w.learnedOn!==t&&(w.dict||w.seen>0)&&open(w));
+  const easyW=w=>DW_COMMON.has(norm(w.w))||w.w.length<=5; // common words only, so it stays at her level
+  const before=words().filter(w=>w.stage>0&&w.learnedOn!==t&&(w.dict||w.seen>0)&&open(w)&&easyW(w));
   let h=2166136261; for(const c of (Store.user||"")+t){h^=c.charCodeAt(0);h=Math.imul(h,16777619);} // a fixed shuffle for the day
   const rnd=()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return (h>>>0)/4294967296;};
   const shuffled=before.map(w=>[w,rnd()]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);

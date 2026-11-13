@@ -69,7 +69,7 @@ function normBook(d,name){
   const rd=d.reading||{};
   return {name:d.name||name||"",words:d.words||{},tests:d.tests||{},lists:d.lists||{},listsV:d.listsV||0,deleted:d.deleted||{},log:d.log||{},best:d.best||0,prefs:d.prefs||{},
     reading:{log:rd.log||{},done:rd.done||{},looked:rd.looked||{}},maths:{q:(d.maths||{}).q||{},days:(d.maths||{}).days||{},log:(d.maths||{}).log||{},hist:(d.maths||{}).hist||{}},
-    eng:{diary:(d.eng||{}).diary||{},daily:(d.eng||{}).daily||{},phon:(d.eng||{}).phon||{},plog:(d.eng||{}).plog||{}},time:d.time||{},updated:d.updated||0};
+    eng:{diary:(d.eng||{}).diary||{},daily:(d.eng||{}).daily||{},phon:(d.eng||{}).phon||{},plog:(d.eng||{}).plog||{},ai:(d.eng||{}).ai||{}},time:d.time||{},updated:d.updated||0};
 }
 function mergeBooks(a,b){
   a=normBook(a);b=normBook(b);
@@ -100,7 +100,7 @@ function mergeBooks(a,b){
   for(const d in mhist)if(d<hcut)delete mhist[d];
   const maths={q:newer(a.maths.q,b.maths.q),days:mdays,log:mlog,hist:mhist};
   // English: diary entries, daily word picks, phonics patterns and phonics per day; keep the newer copy of each
-  const eng={diary:newer(a.eng.diary,b.eng.diary),daily:newer(a.eng.daily,b.eng.daily),phon:newer(a.eng.phon,b.eng.phon),plog:newer(a.eng.plog,b.eng.plog)};
+  const eng={diary:newer(a.eng.diary,b.eng.diary),daily:newer(a.eng.daily,b.eng.daily),phon:newer(a.eng.phon,b.eng.phon),plog:newer(a.eng.plog,b.eng.plog),ai:newer(a.eng.ai||{},b.eng.ai||{})}; // ai: saved AI reports by date
   // time spent: seconds per day per part of the app (must.js); keep the larger count of each
   const time={...b.time};
   for(const [d,v] of Object.entries(a.time)){const o=time[d]||{};const m={...o};for(const [k,x] of Object.entries(v))m[k]=Math.max(o[k]||0,x||0);time[d]=m;}

@@ -28,17 +28,20 @@ function dailySet(date,create=true){
   if(!create)return null;
   const rnd=seedRand((Store.user||"")+"|"+date), st=M.q;
   const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&!id.startsWith("w:")&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
-  const byT={}; for(const q of MATHS)if(!st[q.id]&&!SERVED[q.id]&&!retry.includes(q.id))(byT[q.t]=byT[q.t]||[]).push(q.id);
-  const need=MDAY-retry.length, picked=[], cnt={};
-  for(let g=0;picked.length<need&&g<400;g++){
+  // 4 questions from the weakest topics (under 70% right), so the gaps get extra practice every day
+  const weak=weakTopics(), focus=[]; for(const t of weak){const pool=MATHS.filter(q=>q.t===t&&!retry.includes(q.id)).map(q=>q.id).sort((a,b)=>lastSeen(a,st)-lastSeen(b,st)||rnd()-.5);
+    for(const id of pool){if(focus.length>=4||focus.filter(x=>MQ[x].t===t).length>=2)break;focus.push(id);}}
+  const byT={}; for(const q of MATHS)if(!st[q.id]&&!SERVED[q.id]&&!retry.includes(q.id)&&!focus.includes(q.id))(byT[q.t]=byT[q.t]||[]).push(q.id);
+  const need=MDAY-retry.length-focus.length, picked=[...focus], cnt={};
+  for(let g=0;picked.length<need+focus.length&&g<400;g++){
     const ts=Object.keys(byT).filter(t=>byT[t].length&&(cnt[t]||0)<3); if(!ts.length)break;
     let r=rnd()*ts.reduce((s,t)=>s+byT[t].length,0), t=ts[ts.length-1];
     for(const x of ts){r-=byT[x].length;if(r<0){t=x;break;}}
     picked.push(byT[t].splice(Math.floor(rnd()*byT[t].length),1)[0]); cnt[t]=(cnt[t]||0)+1;
   }
-  if(picked.length<need){ // the whole bank has been seen: bring back the oldest ones
+  if(picked.length<need+focus.length){ // the whole bank has been seen: bring back the oldest ones
     const old=Object.entries(st).filter(([id])=>MQ[id]&&!id.startsWith("w:")&&!retry.includes(id)).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1);
-    for(const [id] of old){if(picked.length>=need)break;picked.push(id);}
+    for(const [id] of old){if(picked.length>=need+focus.length)break;if(!picked.includes(id))picked.push(id);}
   }
   const ids=[...retry,...picked].sort((a,b)=>TI(MQ[a].t)-TI(MQ[b].t)||(a<b?-1:1));
   M.days[DAYP+date]={ids,ans:{},u:Date.now()}; Store.save(); markServed(ids);
@@ -99,6 +102,8 @@ function topicStats(){
   for(const [id,s] of Object.entries(st)){const q=MQ[id];if(!q||id.startsWith("w:")||!out[q.t])continue;const o=out[q.t];o.seen++;o.n+=s.n||0;o.r+=s.r||0;}
   return out;
 }
+/* the weakest topics: answered at least 4 times and under 70% right, weakest first (at most 3) */
+function weakTopics(){const ts=topicStats();return Object.entries(ts).filter(([t,s])=>s.n>=4&&s.r/s.n<.7).sort((a,b)=>a[1].r/a[1].n-b[1].r/b[1].n).slice(0,3).map(x=>x[0]);}
 const dayScore=d=>{const a=Object.values(d.ans||{});return {done:a.length,right:a.filter(x=>x.ok).length,n:(d.ids||[]).length};};
 
 /* ---------- answers ---------- */
@@ -136,7 +141,7 @@ function checkAns(q,v){
   }
   return false;
 }
-function sayMaths(text,btn){readAloud(text,btn);}
+function sayMaths(q,btn){readAloud(q.q,btn,mathsSpeech(q));} // the question and its answers to choose from
 
 /* ---------- figures (inline SVG, colours from the page) ---------- */
 const P=(cx,cy,r,a)=>[cx+r*Math.cos(a*Math.PI/180),cy-r*Math.sin(a*Math.PI/180)];
@@ -262,6 +267,7 @@ function keysFor(q){
 }
 function renderMQ(){
   const body=$("#mBody"), n=MS.ids.length;
+  if(MS.t0i!==MS.i){MS.t0i=MS.i;MS.t0=Date.now();}
   $("#mProg").style.width=(Math.min(MS.i,n)/n*100)+"%";
   if(MS.i>=n){renderMResults();return;}
   const q=MQ[MS.ids[MS.i]], st=MS.state, done=st==="right"||st==="shown";
@@ -274,10 +280,10 @@ function renderMQ(){
     ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${fracHtml(esc(c))}${zhLine(c,"opt")}</button>`).join("")}</div>`
     :`<div class="m-answer ${st}"><span class="pre">${pre}</span><span class="val">${(q.k==="f"?fracHtml:x=>x)(esc(q.k==="n"?MS.input.replace(/^(−?)(\d{4,})/,(m,s,d)=>s+(+d).toLocaleString("en-GB")):MS.input))}${done?"":`<i class="caret"></i>`}</span><span class="post">${esc(post)}</span></div>
       ${done?"":`<div class="keypad ${q.k}">${keysFor(q).map(k=>`<button data-key="${k}" class="${k==="⌫"?"del":k==="space"?"sp":""}">${k==="⌫"?ic("back"):k==="space"?"space":k}</button>`).join("")}</div>
-      <button class="btn primary big" id="mCheck" ${MS.input.trim()?"":"disabled"}>${MS.kind==="test"?(MS.i+1<n?"Next":"Finish"):"Check"}</button>`}`}
+      <button class="btn primary big" id="mCheck" ${MS.input.trim()&&!(MS.wait&&Date.now()<MS.wait)?"":"disabled"}>${MS.kind==="test"?(MS.i+1<n?"Next":"Finish"):"Check"}</button>`}`}
     <div class="m-feedback">${feedback(q)}</div>
   </div>`;
-  $("#mSay").onclick=()=>sayMaths(q.q,$("#mSay"));
+  $("#mSay").onclick=()=>sayMaths(q,$("#mSay"));
   $("#mZh").onclick=()=>{zhToggle();renderMQ();};
   bindExplain(body,renderMQ);
   zhFill(body);
@@ -305,8 +311,25 @@ function press(k){
   if(MS.state==="retry")MS.state="ask2";
   renderMQ();
 }
+/* A wild guess (keys tapped at random, e.g. 3333 or 55255, or a wrong number typed within 4 seconds) is not
+   accepted: the child is asked to work it out, the first steps are shown, and Check waits a few seconds.
+   Guesses are counted per day in book.maths.log["gs:<date>"] for the parent page. */
+function looksLikeGuess(q,v){
+  if(q.k==="c")return false; const d=String(v).replace(/[^\d]/g,""), a=String(q.a).replace(/[^\d]/g,"");
+  if(/^(\d)\1{2,}$/.test(d)&&!/^(\d)\1{2,}$/.test(a))return true;            // 222, 3333
+  if(/(\d\d)\1/.test(d)&&d.length>=4&&!a.includes(d.slice(0,2)))return true;   // 5252…
+  if(Date.now()-(MS.t0||0)<4000&&String(v).length>0)return true;                  // no time to think
+  if(q.k==="n"&&a.length>=3&&d.length&&(d.length<=a.length-3||d.length>=a.length+3))return true; // far too short or long
+  return false;
+}
 function answer(q,v){
   const ok=q.k==="c"?v===q.a:checkAns(q,v);
+  if(!ok&&looksLikeGuess(q,v)){
+    const M=MB(),t=today(),G=M.log["gs:"+t]=M.log["gs:"+t]||{n:0};G.n++;G.u=Date.now();Store.save();
+    if(typeof beep==="function")beep(false); MS.input=""; MS.exp=Math.max(MS.exp||0,1); MS.wait=Date.now()+6000;
+    if(typeof toast==="function")toast("That looks like a guess. Work it out first: use paper or tap “Stuck?”. 这像是乱猜的，请先算一算。");
+    renderMQ(); setTimeout(()=>{if(MS&&MS.wait&&Date.now()>=MS.wait){MS.wait=0;renderMQ();}},6100); return;
+  }
   if(MS.kind==="test"){MS.tries=1;record(q,ok,q.k==="c"?q.c[v]:v);nextQ();return;} // a test: one try, marks only at the end
   MS.tries++;
   if(ok){MS.state="right";MS.exp=0;beep(true,false);}

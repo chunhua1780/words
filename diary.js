@@ -141,6 +141,7 @@ function diaryView(){
       <div class="mfb ok">${ic("check")}<div><b>Today’s diary is handed in. 今天的日记已提交！</b><span>${wordsOfText(d.text).length} words · ${d.score||0} of 8 on the checklist</span></div></div>
       <div class="card"><div class="muted small" style="margin-bottom:6px">${fx.length?`${fx.length} word${fx.length>1?"s":""} spelt wrong: the right spelling is in red brackets. 红色括号里是正确的拼写。`:"No spelling mistakes found. Brilliant! 没有拼写错误，太棒了！"}</div>
         <p class="dv-text">${diaryMarked(d.text,fx)}</p></div>
+      ${d.ai?aiDiaryHtml(d.ai):(typeof aiReady==="function"&&aiReady()?`<div class="card row" style="gap:10px;align-items:center" id="dvAiBox"><span class="muted">${DV&&DV.aiBusy?"The AI teacher is reading your diary… AI 老师正在看你的日记…":"Get a score and tips from the AI teacher. 请 AI 老师打分点评。"}</span>${DV&&DV.aiBusy?"":`<button class="btn primary" id="dvAi">${ic("sparkle")}Mark my diary</button>`}</div>`:"")}
       ${good.length?`<div class="card stack tight"><b>Words to practise · 要练习的单词</b>
         <div class="row" style="gap:6px;flex-wrap:wrap">${good.map(([a,b])=>`<span class="dv-pair"><s>${esc(a)}</s> → <b>${esc(b)}</b> <button class="icon-btn sm" data-say-w="${esc(b)}" aria-label="Hear it">${ic("speaker")}</button></span>`).join("")}</div>
         <span class="muted small">These words are now in your spelling practice and dictation. 这些单词已经加进你的单词练习和听写里了。</span>
@@ -148,6 +149,9 @@ function diaryView(){
       ${pastHtml}
     </div>`;
     body.querySelectorAll("[data-say-w]").forEach(b=>b.onclick=()=>typeof say==="function"&&say(b.dataset.sayW));
+    const runAi=async()=>{if(!DV)return;DV.aiBusy=true;diaryView();try{await aiDiary(t);}catch(e){toast(aiErr(e));}if(DV){DV.aiBusy=false;diaryView();}};
+    const ab=$("#dvAi"); if(ab)ab.onclick=runAi;
+    if(DV&&DV.autoAi){DV.autoAi=false;runAi();}
     const pr=$("#dvPractise"); if(pr)pr.onclick=()=>{const ws=wordsOf(B()).filter(w=>good.some(g=>norm(g[1])===norm(w.w)));closeDiary();
       const f=ws.filter(w=>w.stage===0);if(typeof startSession==="function")startSession(f.length?"learn":"review",(f.length?f:ws).map(w=>w.id),{listDate:t});};
     return;
@@ -200,6 +204,7 @@ function diaryView(){
     const E2=DE(); E2.diary[t]={...E2.diary[t],text:ta.value,done:true,score:c.filter(x=>x.ok).length,fix,added:[...fresh,...again],u:Date.now()};
     Store.save(); if(typeof beep==="function")beep(true,true);
     toast(fix.length?`Handed in. ${fix.length} spelling${fix.length>1?"s":""} to learn.`:"Handed in. No spelling mistakes!");
+    if(typeof aiReady==="function"&&aiReady())DV.autoAi=true;
     diaryView(); $("#dvBody").scrollTop=0;
   };
 }
@@ -212,8 +217,9 @@ function diaryParent(){
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">日记 · Diary</h3>
       <label class="muted small">Length: <select id="diaryWordsSel">${[30,40,60,80,100,120,150].map(n=>`<option value="${n}" ${(+P.diaryWords||60)===n?"selected":""}>at least ${n} words</option>`).join("")}</select></label></div>
     <div class="muted small">Written on the app’s own keyboard (no word suggestions). When it is handed in, each wrong word gets the right spelling in red brackets, and those words go into spelling practice and dictation. 错误的单词后面用红色括号标出正确拼写，并自动加入单词听写。</div>
-    ${days.length?days.map(([d,v],i)=>`<details class="dpar" ${i===0?"open":""}><summary><b>${esc(niceDate(d))}</b> · ${wordsOfText(v.text).length} words${v.done?` · handed in · ${(v.fix||[]).length} spelling mistake${(v.fix||[]).length===1?"":"s"}`:" · not handed in yet"}</summary>
-      <p class="dv-text">${diaryMarked(v.text,v.fix)}</p>${(v.fix||[]).length?`<div class="muted small">${v.fix.map(([a,b])=>`${esc(a)} → <b>${esc(b||"?")}</b>`).join(" · ")}</div>`:""}</details>`).join("")
+    ${days.length?days.map(([d,v],i)=>`<details class="dpar" ${i===0?"open":""}><summary><b>${esc(niceDate(d))}</b> · ${wordsOfText(v.text).length} words${v.ai?` · AI ${v.ai.score}/10`:""}${v.done?` · handed in · ${(v.fix||[]).length} spelling mistake${(v.fix||[]).length===1?"":"s"}`:" · not handed in yet"}</summary>
+      <p class="dv-text">${diaryMarked(v.text,v.fix)}</p>${(v.fix||[]).length?`<div class="muted small">${v.fix.map(([a,b])=>`${esc(a)} → <b>${esc(b||"?")}</b>`).join(" · ")}</div>`:""}
+      ${v.ai&&typeof aiDiaryHtml==="function"?aiDiaryHtml(v.ai):(v.done&&typeof aiReady==="function"&&aiReady()?`<button class="btn" data-aidiary="${d}">${ic("sparkle")}AI 点评这篇日记</button>`:"")}</details>`).join("")
       :`<div class="muted small">No diary yet.</div>`}
   </div>`;
 }

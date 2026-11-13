@@ -13,6 +13,11 @@
 /* ---------- reading aloud ---------- */
 function speakPrep(t){
   return String(t)
+    .replace(/(^|[\s(])\?(?=\s*[+−×÷=-])/g,"$1what number ").replace(/(=\s*)\?/g,"$1what number") // "? + 5 = 9": the missing number
+    .replace(/\b(\d+) (\d+)\/(\d+)\b/g,"$1 and $2 over $3")                 // mixed numbers: 2 2/5
+    .replace(/\b([a-z])\/(\d+)/g,"$1 over $2")                                  // x/3
+    .replace(/°C\b/g," degrees Celsius")
+    .replace(/\b(?=[MDCLXVI]{2,}\b)([MDCLXVI]+)\b/g,m=>m.split("").join(" "))   // Roman numerals letter by letter
     .replace(/(\d)\s*–\s*(\d)/g,"$1 to $2")
     .replace(/≤/g," less than or equal to ").replace(/≥/g," greater than or equal to ")
     .replace(/</g," less than ").replace(/>/g," greater than ")
@@ -20,6 +25,12 @@ function speakPrep(t){
     .replace(/²/g," squared").replace(/³/g," cubed").replace(/°/g," degrees")
     .replace(/(\d)\/(\d+)/g,"$1 over $2").replace(/…/g,".").replace(/⧸/g,"")
     .replace(/\s+/g," ").trim();
+}
+/* what the speaker button reads for a maths question: the question, then each answer to choose from (A, B, C, D) */
+function mathsSpeech(q){
+  const out=raChunks(speakPrep(q.q||""));
+  if(q.k==="c"&&Array.isArray(q.c))q.c.forEach((c,i)=>out.push(speakPrep(`${"ABCD"[i]}: ${c}.`)));
+  return out;
 }
 function raChunks(t){
   const out=[];
@@ -60,10 +71,10 @@ function playChunks(chunks,{id=++speakId,onend}={}){
 }
 let raBtn=null;
 function raDone(){if(raBtn)raBtn.classList.remove("playing");raBtn=null;}
-function readAloud(text,btn){
+function readAloud(text,btn,chunks){
   if(btn&&btn.classList.contains("playing")){stopAudio();raDone();return;} // second tap stops it
   stopAudio(); raDone();
-  const chunks=raChunks(speakPrep(text)); if(!chunks.length)return;
+  chunks=chunks||raChunks(speakPrep(text)); if(!chunks.length)return;
   const id=++speakId;
   raBtn=btn||null; if(btn)btn.classList.add("playing");
   playChunks(chunks,{id,onend:()=>{if(id===speakId)raDone();}});

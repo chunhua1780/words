@@ -67,6 +67,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="explain.js"></script>
 <script src="maths.js"></script>
 <script src="checkup.js"></script>
+<script src="ai.js"></script>
 <script src="diary.js"></script>
 <script src="must.js"></script>
 <script src="facts.js"></script>
@@ -235,6 +236,7 @@ function viewDash(){
   return `<div class="stack">
     <div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${esc(b.name)}</h1></div>
     ${mustParent()}
+    ${aiParent()}
     ${histBlock()}
     ${diaryParent()}
     <div class="kpis">
@@ -311,7 +313,7 @@ async function readDocFile(f){
 }
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
-  histBind(); diaryParentBind();
+  histBind(); diaryParentBind(); aiParentBind();
   const nfs=$("#nfLevelSel"); if(nfs)nfs.onchange=()=>{setPref("nfLevel",+nfs.value);render();};
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});

@@ -33,7 +33,7 @@ function nextTestList(t=today()){
 const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","words","read","write","fix"]:["words","dict","phonics","read","write","maths","facts","calc"];
 const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];return c;}; // a coming spelling test is always first
 const mustCfg0=()=>{const m=(B().prefs||{}).must;
-  if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:false,auto:true};
+  if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:typeof PAPER_TYPES==="undefined",auto:true}; // Year 5: locked until done
   return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 

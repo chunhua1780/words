@@ -12,13 +12,15 @@
 
 /* ---------- 1. Word lists (statutory spelling lists, National Curriculum English Appendix 1) ---------- */
 const DW_STAGES=[
+  {k:"y1",name:"Year 1 common exception words",words:"the a do to today of said says are were was is his has I you your they be he me she we no go so by my here there where love come some one once ask friend school put push pull full house our".split(" ")},
+  {k:"hf",name:"First high-frequency words",words:"and in it at on up can had but not got get him big if off back dad mum help will with that this then them see look went little like what when out came down have from just now very look made make ball call time saw away good about day her him play many may way back each must how old new into could take first tell next much make call day than more over".split(" ").filter((w,i,a)=>a.indexOf(w)===i)},
   {k:"y2",name:"Year 2 common exception words",words:"door floor poor because find kind mind behind child children wild climb most only both old cold gold hold told every everybody even great break steak pretty beautiful after fast last past father class grass pass plant path bath hour move prove improve sure sugar eye could should would who whole any many clothes busy people water again half money parents Christmas".split(" ")},
   {k:"y34",name:"Year 3 and 4 word list",words:"accident actually address answer appear arrive believe bicycle breath breathe build business calendar caught centre century certain circle complete consider continue decide describe different difficult disappear early earth eight eighth enough exercise experience experiment extreme famous favourite February forward fruit grammar group guard guide heard heart height history imagine increase important interest island knowledge learn length library material medicine mention minute natural naughty notice occasion often opposite ordinary particular peculiar perhaps popular position possess possible potatoes pressure probably promise purpose quarter question recent regular reign remember sentence separate special straight strange strength suppose surprise therefore though although thought through various weight woman women".split(" ")},
   {k:"y56",name:"Year 5 and 6 word list",words:"accommodate accompany according achieve aggressive amateur ancient apparent appreciate attached available average awkward bargain bruise category cemetery committee communicate community competition conscience conscious controversy convenience correspond criticise curiosity definite desperate determined develop dictionary disastrous embarrass environment equipment especially exaggerate excellent existence explanation familiar foreign forty frequently government guarantee harass hindrance identity immediately individual interfere interrupt language leisure lightning marvellous mischievous muscle necessary neighbour nuisance occupy occur opportunity parliament persuade physical prejudice privilege profession programme pronunciation queue recognise recommend relevant restaurant rhyme rhythm sacrifice secretary shoulder signature sincerely soldier stomach sufficient suggest symbol system temperature thorough twelfth variety vegetable vehicle yacht".split(" ")},
 ];
-const dwCount=()=>Math.min(10,Math.max(3,+((B().prefs||{}).dwN)||6)); // 6 new words a day unless a parent chooses
+const dwCount=()=>Math.min(10,Math.max(3,+((B().prefs||{}).dwN)||10)); // 10 new words a day unless a parent chooses fewer
 function dwPool(){
-  const have=new Set(words().map(w=>norm(w.w))), start=(B().prefs||{}).dwStart||"y2", out=[]; let on=false;
+  const have=new Set(words().map(w=>norm(w.w))), start=(B().prefs||{}).dwStart||"y1", out=[]; let on=false;
   for(const s of DW_STAGES){if(s.k===start)on=true;if(on)for(const w of s.words)if(!have.has(norm(w)))out.push({w,s:s.k});}
   return out;
 }
@@ -38,12 +40,19 @@ function ensureDailyWords(){
 function dailyWordObjs(t=today()){const d=B().eng.daily[t];if(!d)return [];const set=new Set(d.words.map(norm));return wordsIn(B(),t).filter(w=>set.has(norm(w.w)));}
 
 /* ---------- 2. Daily dictation: today's new words and everything due by the memory plan ---------- */
-/* at most 10 words a day: today's new words first, then the ones most overdue (the rest wait for another day) */
-const DICT_MAX=10;
+/* Dictation: today's new words (up to 10), then review: up to 10 words dictated before, picked at random for the
+   day (the same picks all day, words due by the memory plan first). Nothing more, so a day never gets too long. */
+const DICT_NEW=10, DICT_REVIEW=10;
 function dictSet(t=today()){
-  const all=words().filter(w=>w.stage>0&&(w.due<=t||w.learnedOn===t||w.dict===t)&&listOpen(B().lists[w.list]||{date:t}));
-  const done=all.filter(w=>w.dict===t), fresh=all.filter(w=>w.dict!==t&&w.learnedOn===t), old=all.filter(w=>w.dict!==t&&w.learnedOn!==t).sort((a,b)=>(a.due||"")<(b.due||"")?-1:1);
-  return [...done,...fresh,...old].slice(0,Math.max(DICT_MAX,done.length));
+  const open=w=>listOpen(B().lists[w.list]||{date:t});
+  const fresh=words().filter(w=>w.stage>0&&w.learnedOn===t&&open(w)).slice(0,DICT_NEW);
+  const before=words().filter(w=>w.stage>0&&w.learnedOn!==t&&(w.dict||w.seen>0)&&open(w));
+  let h=2166136261; for(const c of (Store.user||"")+t){h^=c.charCodeAt(0);h=Math.imul(h,16777619);} // a fixed shuffle for the day
+  const rnd=()=>{h^=h<<13;h^=h>>>17;h^=h<<5;return (h>>>0)/4294967296;};
+  const shuffled=before.map(w=>[w,rnd()]).sort((a,b)=>a[1]-b[1]).map(x=>x[0]);
+  const review=[...shuffled.filter(w=>w.dict===t),...shuffled.filter(w=>w.dict!==t&&w.due<=t),...shuffled.filter(w=>w.dict!==t&&w.due>t)]
+    .filter((w,i,a)=>a.indexOf(w)===i).slice(0,DICT_REVIEW);
+  return [...fresh,...review];
 }
 const dictLeft=(t=today())=>dictSet(t).filter(w=>w.dict!==t);
 

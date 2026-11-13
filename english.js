@@ -119,22 +119,23 @@ function openEnglish(view,arg){if(view==="diary"){openDiary();return;}window.__b
 function closeEnglish(){stopAudio();window.__busy=false;$("#eng").hidden=true;document.body.style.overflow="";EV=null;render();}
 function engShow(view,arg){
   EV={view,arg,...(EV&&EV.view===view?EV:{})}; EV.view=view; EV.arg=arg; $("#engBody").scrollTop=0;
-  $("#engLabel").textContent={phonics:"Phonics: sounds and spellings",lesson:"Phonics lesson",pq:"Phonics practice",ps:"Hear it, spell it",diary:"My diary"}[view]||"English";
-  ({phonics:phHub,lesson:phLesson,pq:phRun,ps:phSpell})[view](arg);
+  $("#engLabel").textContent={phonics:"Phonics: sounds and spellings",lesson:"Phonics lesson",pq:"Phonics practice",ps:"Hear it, spell it",chart:"Sound chart 拼读表",sq:"Sound practice",sb:"Build the word",diary:"My diary"}[view]||"English";
+  ({phonics:phHub,lesson:phLesson,pq:phRun,ps:phSpell,chart:soundChart,sq:sqRun,sb:sbRun})[view](arg);
 }
 
 function phHub(){
   const d=phDay();
   $("#engBody").innerHTML=`<div class="m-q eng-page">
-    <p class="muted" style="margin:0">Phonics means knowing which letters make each sound. Each day: ${PH_N} questions (listen, choose the missing letters), then ${PH_SPELL} words to spell from their sound. 每天：${PH_N} 道选字母组合 + ${PH_SPELL} 个听音写单词。</p>
-    <div class="card row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><div><b>Today: ${Math.min(d.n,PH_N)} of ${PH_N} questions · ${Math.min(d.sn||0,PH_SPELL)} of ${PH_SPELL} words spelt</b><div class="muted small">${d.n?`${d.r} right`:""}${d.sn?` · ${d.sr||0} spelt right`:""}</div></div>
-      <div class="row" style="gap:8px"><button class="btn primary big" data-ph="go">${ic("headphones")}${d.n<PH_N||(d.sn||0)<PH_SPELL?"Continue today’s phonics":"More practice"}</button><button class="btn" data-ph="spell">${ic("pencil")}Hear it, spell it</button></div></div>
+    <button class="card snd-open" data-ph="chart"><span class="snd-big">ai ee igh oa</span><span><b>Sound chart · 拼读表</b><span class="muted small">All 44 sounds and their spellings: tap to hear each one 44个发音和写法，点一下就能听</span></span><span class="chev">${ic("chevron")}</span></button>
+    <p class="muted" style="margin:0">Each day 每天: ${SQ_N} sound questions 发音练习 · ${SB_N} words to build 拼单词 · ${PH_N} letter questions 选字母组合 · ${PH_SPELL} words to spell 听音写单词.</p>
+    <div class="card row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><div><b>Today: sounds ${Math.min(d.cn||0,SQ_N)}/${SQ_N} · build ${Math.min(d.bn||0,SB_N)}/${SB_N} · letters ${Math.min(d.n,PH_N)}/${PH_N} · spell ${Math.min(d.sn||0,PH_SPELL)}/${PH_SPELL}</b><div class="muted small">${d.n?`${d.r} right`:""}${d.sn?` · ${d.sr||0} spelt right`:""}</div></div>
+      <div class="row" style="gap:8px"><button class="btn primary big" data-ph="go">${ic("headphones")}${phLeft()?"Continue today’s phonics":"More practice"}</button><button class="btn" data-ph="spell">${ic("pencil")}Hear it, spell it</button></div></div>
     <div class="section-title"><h3 style="margin:0">Spelling patterns</h3><span class="muted small">Tap one to learn it</span></div>
     <div class="ph-grid">${PH.map(p=>{const s=phStat(p.k),a=s.n?Math.round(s.r/s.n*100):null;return `<button class="ph-tile" data-ph-l="${p.k}"><b>${esc(p.o.length?p.o.join(" · "):p.name.split(":")[0])}</b><span class="muted small">${esc(p.name)}</span>
       <span class="ph-bar"><i style="width:${a??0}%;background:${a==null?"transparent":a>=80?"var(--green-fill)":a>=50?"var(--orange-fill)":"var(--red)"}"></i></span><span class="tiny muted">${a==null?"not practised":a+"% right"}</span></button>`;}).join("")}</div>
   </div>`;
   const B_=$("#engBody");
-  B_.querySelector('[data-ph="go"]').onclick=phToday; B_.querySelector('[data-ph="spell"]').onclick=()=>engShow("ps",phSpellStart());
+  B_.querySelector('[data-ph="go"]').onclick=phToday; B_.querySelector('[data-ph="chart"]').onclick=()=>engShow("chart"); B_.querySelector('[data-ph="spell"]').onclick=()=>engShow("ps",phSpellStart());
   B_.querySelectorAll("[data-ph-l]").forEach(b=>b.onclick=()=>engShow("lesson",b.dataset.phL));
 }
 function phLesson(k){
@@ -230,7 +231,8 @@ function phSpell(st){
   zhFill(body);
 }
 /* today's phonics: the 20 questions first, then the 10 words to spell */
-function phToday(){const d=phDay();if(d.n<PH_N)return engShow("pq",{set:phQuiz(Math.max(10,PH_N-d.n)),i:0,r:0,pick:null});if((d.sn||0)<PH_SPELL)return engShow("ps",phSpellStart());return engShow("pq",{set:phQuiz(),i:0,r:0,pick:null});}
+const phLeft=(d=phDay())=>(d.cn||0)<SQ_N||(d.bn||0)<SB_N||d.n<PH_N||(d.sn||0)<PH_SPELL;
+function phToday(){const d=phDay();if((d.cn||0)<SQ_N)return engShow("sq",sqStart(Math.max(5,SQ_N-(d.cn||0))));if((d.bn||0)<SB_N)return engShow("sb",sbStart(Math.max(4,SB_N-(d.bn||0))));if(d.n<PH_N)return engShow("pq",{set:phQuiz(Math.max(10,PH_N-d.n)),i:0,r:0,pick:null});if((d.sn||0)<PH_SPELL)return engShow("ps",phSpellStart());return engShow("pq",{set:phQuiz(),i:0,r:0,pick:null});}
 
 /* ---------- 5. Today's plan: about an hour ---------- */
 function planItems(){
@@ -241,7 +243,7 @@ function planItems(){
   return [
     {k:"words",min:10,icon:"sparkle",title:dw.length?`Learn today’s ${dw.length} new words`:"Learn today’s new words",sub:dw.length?(newLeft?`${newLeft} still to learn: ${dw.slice(0,5).map(w=>w.w).join(", ")}${dw.length>5?"…":""}`:`Learned: ${dw.map(w=>w.w).join(", ")}`):"Ask a parent to switch on daily words",done:dw.length>0&&newLeft===0},
     {k:"dict",min:10,icon:"headphones",title:"Dictation",sub:dset.length?(dl.length?`${dl.length} word${dl.length>1?"s":""} to spell from memory`:"All done for today"):"Learn today’s words first",done:dset.length>0&&dl.length===0},
-    {k:"phonics",min:15,icon:"wave",title:`Phonics: ${PH_N} questions + ${PH_SPELL} words to spell`,sub:`${Math.min(ph.n,PH_N)} of ${PH_N} questions · ${Math.min(ph.sn||0,PH_SPELL)} of ${PH_SPELL} spelt`,done:ph.n>=PH_N&&(ph.sn||0)>=PH_SPELL},
+    {k:"phonics",min:25,icon:"wave",title:"Phonics: sounds, build words, letters, spell",sub:`sounds ${Math.min(ph.cn||0,SQ_N)}/${SQ_N} · build ${Math.min(ph.bn||0,SB_N)}/${SB_N} · letters ${Math.min(ph.n,PH_N)}/${PH_N} · spell ${Math.min(ph.sn||0,PH_SPELL)}/${PH_SPELL}`,done:!phLeft(ph)},
     {k:"read",min:15,icon:"book",title:"Reading: today’s story and questions",sub:`${Math.floor(rd/60)} of 10 minutes read`,done:rd>=READ_GOAL},
     {k:"write",min:10,icon:"pencil",title:"Write today’s diary",sub:di.text?`${wordsOfText(di.text).length} of ${DIARY_TARGET()} words${di.done?" · finished":""}`:`About ${DIARY_TARGET()} words: what did you do today?`,done:!!di.done},
     {k:"maths",min:15,icon:"maths",title:"Maths: today’s 20 or the check-up",sub:mathsDone?"Done":"On the Maths page",done:!!mathsDone},

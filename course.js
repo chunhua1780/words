@@ -55,15 +55,18 @@ function cPlace(st){
   const picked=st.pick!=null, ok=picked&&opts[st.pick]===c.g;
   body.innerHTML=`<div class="m-q eng-page">
     <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:var(--c-pink)">Placement check · 摸底测试</span><span class="muted small">${st.i+1} of ${st.set.length}</span></div>
-    <p class="muted" style="margin:0">Listen to the word. Which letters are missing? If you do not know, choose “I don’t know”. 不会就选"I don't know"，不要猜。</p>
+    <p class="muted" style="margin:0">Listen to the word. Which letters are missing? If you do not know, choose “I don’t know”. 不会就选最后一个按钮，不要猜。</p>
     <div class="ph-q"><button class="icon-btn" id="cSay">${ic("speaker")}</button><span class="ph-mask">${picked?cWord(it):esc(it.parts.map(p=>p.on?"_".repeat(p.t.length):p.t).join(""))}</span></div>
     <div class="m-opts">${opts.map((o,i)=>`<button class="opt-btn m-opt ${picked&&o===c.g?"right":""} ${picked&&i===st.pick&&!ok?"wrong":""}" data-o="${i}" ${picked?"disabled":""}>${esc(o)}</button>`).join("")}
-      <button class="opt-btn m-opt" data-o="-1" ${picked?"disabled":""}>I don’t know 不会</button></div>
+      <button class="opt-btn m-opt ${picked&&st.pick===-1?"wrong":""}" data-o="-1" ${picked?"disabled":""}>I don’t know 不会</button></div>
+    ${picked?`<div class="mfb ${ok?"ok":"bad"}">${ic(ok?"check":"x")}<div><b>${ok?"Correct! 对了！":st.pick===-1?"That’s fine. 没关系。":"Not quite. 不对。"} “${esc(it.word)}” is spelt with <span class="cw-p on">${esc(c.g)}</span>.</b><span>${ok?"":"You will learn this in the lessons. 课程里会教这个。"}</span></div></div>
+      <button class="btn primary big" id="cPNext">${st.i+1<st.set.length?"Next 下一题":"See results 看结果"}</button>`:""}
   </div>`;
   const sayIt=()=>say(it.word); $("#cSay").onclick=sayIt; if(!picked)setTimeout(sayIt,250);
   body.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{st.pick=+b.dataset.o;const good=st.pick>=0&&opts[st.pick]===c.g;
     if(good)cSet(c.id,{st:"known"});else if(!cRec(c.id))cSet(c.id,{st:"learning"});
-    st.i++;st.pick=null;st.opts=null;cPlace(st);});
+    if(typeof beep==="function")beep(good); cPlace(st); setTimeout(sayIt,200);});
+  const pn=$("#cPNext"); if(pn)pn.onclick=()=>{st.i++;st.pick=null;st.opts=null;cPlace(st);};
 }
 
 /* ---------- the lesson ---------- */

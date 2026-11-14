@@ -52,14 +52,27 @@ function ensureDailyWords(){
   return b.eng.daily[t];
 }
 function dailyWordObjs(t=today()){const d=B().eng.daily[t];if(!d)return [];const set=new Set(d.words.map(norm));return wordsIn(B(),t).filter(w=>set.has(norm(w.w)));}
+/* Afternoon words (Friday afternoon and the weekend, see must.js): another 10 new words (5 easy + 5 a bit harder),
+   saved with the day as daily[t].pm, and a third 10 if she asks for more (daily[t].pm2). */
+function ensurePmWords(which="pm"){
+  const b=B(), t=today(), d=ensureDailyWords(); if(!d)return null;
+  if(d[which]&&d[which].length)return d[which];
+  const pick=dwPick(dwCount()); if(!pick.length)return null;
+  const {added}=addWordsToBook(b,pick.map(x=>x.w),{date:t});
+  b.eng.daily[t]={...b.eng.daily[t],[which]:pick.map(x=>x.w),u:Date.now()}; Store.save();
+  if(typeof enrich==="function")Promise.all(added.map(w=>enrich(w).catch(()=>{}))).then(()=>Store.save());
+  return b.eng.daily[t][which];
+}
+function pmWordObjs(which="pm",t=today()){const d=B().eng.daily[t];if(!d||!d[which])return [];const set=new Set(d[which].map(norm));return wordsIn(B(),t).filter(w=>set.has(norm(w.w)));}
 
 /* ---------- 2. Daily dictation: today's new words and everything due by the memory plan ---------- */
 /* Dictation: today's new words (up to 10), then review: up to 10 words dictated before, picked at random for the
    day (the same picks all day, words due by the memory plan first). Nothing more, so a day never gets too long. */
-const DICT_NEW=10, DICT_REVIEW=10;
+const DICT_NEW=10, DICT_REVIEW=10; // DICT_NEW per batch of new words (a weekend afternoon adds a batch)
 function dictSet(t=today()){
   const open=w=>listOpen(B().lists[w.list]||{date:t});
-  const fresh=words().filter(w=>w.stage>0&&w.learnedOn===t&&open(w)).slice(0,DICT_NEW);
+  const d=(B().eng.daily||{})[t]||{}, batches=1+(d.pm?1:0)+(d.pm2?1:0);
+  const fresh=words().filter(w=>w.stage>0&&w.learnedOn===t&&open(w)).slice(0,DICT_NEW*batches);
   const easyW=w=>DW_COMMON.has(norm(w.w))||w.w.length<=5; // common words only, so it stays at her level
   const before=words().filter(w=>w.stage>0&&w.learnedOn!==t&&(w.dict||w.seen>0)&&open(w)&&easyW(w));
   let h=2166136261; for(const c of (Store.user||"")+t){h^=c.charCodeAt(0);h=Math.imul(h,16777619);} // a fixed shuffle for the day

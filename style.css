@@ -1082,3 +1082,6 @@ html:not(.zh-on) .zh{display:none}
   background:var(--c-blue,#2a6fdb);color:#fff;font:800 34px/1 var(--word,var(--round));text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.25);pointer-events:none;z-index:5;animation:kpop .26s ease-out}
 .kb.kb-fn.pop::after,.kb.kb-space.pop::after,.keypad button.del.pop::after{display:none}
 @keyframes kpop{from{transform:translate(-50%,4px) scale(.7);opacity:.4}to{transform:translate(-50%,-6px) scale(1);opacity:1}}
+.must-today.pm{border-color:var(--c-purple,#7a5af8);background:linear-gradient(160deg,color-mix(in srgb,var(--c-purple,#7a5af8) 12%,var(--paper)),var(--paper) 60%)}
+.must-today.pm .mt-star{background:var(--c-purple,#7a5af8)}
+.must-today.pm .mt-row.next{outline-color:var(--c-purple,#7a5af8)} .must-today.pm .mt-row.next .mt-n,.must-today.pm .mt-row.next .mt-go{background:var(--c-purple,#7a5af8)}

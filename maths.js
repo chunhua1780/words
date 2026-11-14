@@ -343,6 +343,7 @@ function record(q,ok,given){
   M.q[key]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{})};
   if(q.gen&&!ok){const {id,gen,...keep}=q;M.q["w:"+String(q.id).replace(/^g[a-z]*:/,"")]={n:1,r:0,ok:false,last:t,u:Date.now(),q:keep};} // wrong: keep it for 错题本
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
+  if(MS.xk&&!q.gen){const X=M.log[MS.xk+":"+t]=M.log[MS.xk+":"+t]||{n:0,r:0};X.n++;if(ok)X.r++;X.u=Date.now();} // afternoon sets (must.js)
   if(q.gen){const g=q.gen.split("-")[0],G=M.log[g+":"+t]=M.log[g+":"+t]||{n:0,r:0};G.n++;if(ok)G.r++;G.u=Date.now();
     const i=String(q.id).split(":").pop();if(g==="cc"){G.done=[...new Set([...(G.done||[]),i])];}} // per-day counts (must.js)
   if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}

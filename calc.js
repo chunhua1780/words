@@ -52,6 +52,11 @@ function ccSet(date=today()){
   }
   return ids;
 }
+/* 10 fraction calculations for the afternoon list: every kind in turn (+, −, related denominators, × whole, × fraction, ÷ whole) */
+let frSeq=0;
+function frSet(n=10){const kinds=["add","sub","rel","mulw","mulf","divw"],ids=[];
+  for(let i=0;i<n;i++){const k=kinds[i%kinds.length],q=ccFr(Math.random,k),id=`g:fr:${Date.now().toString(36)}:${++frSeq}`;MQ[id]={...q,id,gen:"fr-"+k};ids.push(id);}
+  return ids;}
 function openCalc(){const ids=ccSet(),g=(MB().log||{})["cc:"+today()]||{},done=new Set(g.done||[]),left=ids.filter(id=>!done.has(id.split(":").pop()));
   openMaths({kind:"topic",topic:"笔算 · Division and fractions",ids:left.length?left:ids});}
 function calcCard(){

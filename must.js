@@ -21,6 +21,9 @@ const MUST_ALL={
   fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
   facts:  {icon:"star",     min:10,  t:"Number facts (table)",tz:"口诀表口算"},
   calc:   {icon:"maths",    min:10, t:"Division & fractions",tz:"笔算：除法和分数"},
+  words2: {icon:"sparkle",  min:15, t:"Afternoon new words",tz:"下午的新单词"},
+  round:  {icon:"maths",    min:10, t:"Rounding practice",  tz:"四舍五入练习"},
+  fracs:  {icon:"layers",   min:10, t:"Fractions + − × ÷",  tz:"分数加减乘除"},
   ftest:  {icon:"doc",      min:10, t:"Spelling test words",tz:"听写测验单词"},
 };
 const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","write","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","facts","calc","test","fix"];
@@ -67,6 +70,10 @@ function mustStatus(k,t=today()){
   if(k==="paper"&&typeof ppKey==="function"){const d=typeof dayOf==="function"?dayOf(ppKey(t)):null,a=d?Object.values(d.ans||{}):[],n=d?d.ids.length:16;
     return {done:!!d&&a.length>=n,p:Math.min(1,a.length/n),sub:`${a.length} of ${n} questions${a.length?` · ${a.filter(x=>x.ok).length} right`:""}`,acc:acc(a.filter(x=>x.ok).length,a.length)};}
   if(k==="formula"||k==="paper"){const g=mLog((k==="formula"?"fm:":"pp:")+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
+  if(k==="words2"){const d=((b.eng||{}).daily||{})[t]||{}, set=new Set([...(d.pm||[]),...(d.pm2||[])].map(norm)), ws=Object.values(b.words).filter(w=>w.list===t&&set.has(norm(w.w))), l=ws.filter(w=>w.stage>0).length;
+    return {done:ws.length>0&&l===ws.length,p:ws.length?l/ws.length:0,sub:ws.length?`${l} of ${ws.length} learned`:"10 more new words: 5 easy, 5 a bit harder",acc:null};}
+  if(k==="round"){const g=mLog("rd:"+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
+  if(k==="fracs"){const g=mLog("fr:"+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
   if(k==="facts"){const g=mLog("nf:"+t)||{n:0,r:0};return {done:g.n>=60,p:Math.min(1,g.n/60),sub:`${Math.min(60,g.n)} of 60 facts · level ${g.lv||(typeof nfLevel==="function"?nfLevel():1)}`,acc:acc(g.r,g.n)};}
   if(k==="calc"){const g=mLog("cc:"+t)||{n:0,r:0},d=(g.done||[]).length;return {done:d>=12,p:Math.min(1,d/12),sub:`${d} of 12 · 6 divisions, 6 fractions`,acc:acc(g.r,g.n)};}
   if(k==="ftest"){const l=nextTestList(t);if(!l)return {done:true,p:1,sub:"No spelling test coming up",acc:null};
@@ -104,6 +111,10 @@ function mustLaunch(k){
   if(k==="formula")return openMaths({kind:"topic",topic:"Formula quiz",ids:fmSet()});
   if(k==="paper")return typeof openPaperDaily==="function"?openPaperDaily():openMaths({kind:"topic",topic:"Test paper: mixed",ids:paperSet("mix")});
   if(k==="facts")return openDrill();
+  if(k==="words2"){ensurePmWords("pm");const ws=[...pmWordObjs("pm"),...pmWordObjs("pm2")],f=ws.filter(w=>w.stage===0);
+    if(f.length)return startSession("learn",f.map(w=>w.id),{listDate:t});if(ws.length)return startSession("full",ws.map(w=>w.id),{listDate:t});return;}
+  if(k==="round")return openMaths({kind:"topic",topic:"Rounding · 四舍五入",ids:topicSet("Rounding"),xk:"rd"});
+  if(k==="fracs")return openMaths({kind:"topic",topic:"Fractions + − × ÷ · 分数",ids:frSet(),xk:"fr"});
   if(k==="calc")return openCalc();
   if(k==="ftest"){const l=nextTestList();if(!l){toast("No spelling test coming up.");return mustGate(true);}
     const p=listPlan(B(),l.date);if(p.fresh.length)return startSession("learn",p.fresh.slice(0,6).map(w=>w.id),{listDate:l.date});
@@ -138,6 +149,7 @@ function mustGate(force){
 /* after every render of the page: banner button, then the pop-up if it is needed */
 function mustAfterRender(){document.querySelectorAll("#view [data-mustopen]").forEach(b=>b.onclick=()=>mustGate(true));
   document.querySelectorAll("#view [data-testmock]").forEach(b=>b.onclick=()=>{const ws=wordsIn(B(),b.dataset.testmock);if(ws.length)startSession("mock",ws.map(w=>w.id),{listDate:b.dataset.testmock});});
+  document.querySelectorAll("#view [data-pmmore]").forEach(b=>b.onclick=()=>{ensurePmWords("pm2");const f=pmWordObjs("pm2").filter(w=>w.stage===0);if(f.length)startSession("learn",f.map(w=>w.id),{listDate:today()});});
   document.querySelectorAll("#view [data-mustgo]").forEach(b=>b.onclick=()=>{const s=mustStatus(b.dataset.mustgo);mustLaunch(b.dataset.mustgo);if(s.done&&typeof toast==="function")toast("Already done. Extra practice is great!");});
   mustGate();}
 /* the Today page: a big 今日必做 card at the top, one row per task with a Start button */
@@ -156,9 +168,28 @@ function testBanner(){
       <button class="btn" data-testmock="${l.date}">Practice test 模拟听写</button></div>
   </section>`;
 }
+/* 下午必做: Friday from 12:00 and Saturday and Sunday from 12:00, a short second list on the Year 5 site
+   (a parent can turn it off: prefs.pmOff). */
+const MUST_PM=["words2","round","fracs"];
+function pmTime(d=new Date()){const day=d.getDay();return typeof PAPER_TYPES==="undefined"&&!((B()||{}).prefs||{}).pmOff&&(day===5||day===6||day===0)&&d.getHours()>=12;}
+function mustPmBanner(){
+  if(!Store.book||!pmTime())return "";
+  const st=MUST_PM.map(k=>({k,...mustStatus(k)})), done=st.filter(x=>x.done).length, all=done===st.length, nextK=(st.find(x=>!x.done)||{}).k;
+  const d=((B().eng||{}).daily||{})[today()]||{};
+  return `<section class="card must-today pm ${all?"all":""}">
+    <div class="mt-head"><div class="mt-title"><span class="mt-star">${ic("star")}</span><div><h2>下午必做 · This afternoon</h2>
+      <div class="muted">${all?"All done. Brilliant afternoon! 下午的也完成了，太棒了！":`${st.length-done} left · about ${st.filter(x=>!x.done).reduce((s,x)=>s+MUST_ALL[x.k].min,0)} minutes · 还剩 ${st.length-done} 项`}</div></div></div>
+      <div class="ring lg" style="--p:${done/st.length*100}"><span>${done}/${st.length}</span></div></div>
+    <div class="mt-list">${st.map((x,i)=>`<button class="mt-row ${x.done?"done":""} ${x.k===nextK?"next":""}" data-mustgo="${x.k}">
+      <span class="mt-n">${x.done?ic("check"):i+1}</span><span class="must-ic">${ic(MUST_ALL[x.k].icon)}</span>
+      <span class="mt-txt"><b>${esc(mustTitle(x.k))} <span class="tz">${mustTz(x.k)}</span></b><span class="muted small">${esc(x.sub)}</span><span class="must-bar"><i style="width:${Math.round(x.p*100)}%"></i></span></span>
+      <span class="mt-go">${x.done?"Done ✓":x.k===nextK?"Start 开始":"Go"}</span></button>`).join("")}</div>
+    ${all&&!d.pm2?`<button class="btn" data-pmmore>${ic("plus")}10 more words? 再学10个单词？</button>`:""}
+  </section>`;
+}
 function mustBanner(){
-  if(!Store.book||!mustActive())return testBanner();
-  return testBanner()+mustBanner0();
+  if(!Store.book||!mustActive())return testBanner()+mustPmBanner();
+  return testBanner()+mustBanner0()+mustPmBanner();
 }
 function mustBanner0(){
   const m=mustCfg(), st=m.items.map(k=>({k,...mustStatus(k)})), done=st.filter(x=>x.done).length, all=done===st.length;
@@ -213,6 +244,7 @@ function mustParent(){
       <label class="row" style="gap:6px"><input type="radio" name="mustMode" value="every" ${m.mode==="every"?"checked":""}> Every day</label>
       <label class="row" style="gap:6px"><input type="radio" name="mustMode" value="today" ${m.mode==="today"?"checked":""}> Today only (e.g. when I’m out)</label>
       <label class="row" style="gap:6px"><input type="checkbox" id="mustLock" ${m.lock?"checked":""}> Lock the rest of the app until done</label>
+      ${typeof PAPER_TYPES==="undefined"?`<label class="row" style="gap:6px"><input type="checkbox" id="mustPm" ${((B().prefs||{}).pmOff)?"":"checked"}> 周五下午和周末下午：加一组下午必做（10个新单词、四舍五入、分数）</label>`:""}
     </div>
     <div class="must-picks">${items.map(k=>`<label class="must-pick ${m.items.includes(k)?"on":""}"><input type="checkbox" data-mustitem="${k}" ${m.items.includes(k)?"checked":""}><b>${esc(mustTitle(k))}</b><span class="muted tiny">${mustTz(k)} · ~${MUST_ALL[k].min} min</span></label>`).join("")}</div>
     ${m.auto?`<div class="notice">Using the default list until you change it here. 目前使用默认的必做项目，可以在这里修改。</div>`:""}
@@ -225,6 +257,7 @@ function mustParentBind(){
   const save=ch=>{const b=B(),m={...mustCfg(),...ch};if(m.mode==="today")m.date=today();b.prefs={...b.prefs,must:m,u:Date.now()};Store.save();render();};
   const on=$("#mustOn"); if(on)on.onchange=()=>save({on:on.checked,items:mustCfg().items.length?mustCfg().items:mustSite().slice(0,4)});
   const lk=$("#mustLock"); if(lk)lk.onchange=()=>save({lock:lk.checked});
+  const pm=$("#mustPm"); if(pm)pm.onchange=()=>{const b=B();b.prefs={...b.prefs,pmOff:!pm.checked,u:Date.now()};Store.save();render();};
   document.querySelectorAll('input[name="mustMode"]').forEach(r=>r.onchange=()=>save({mode:r.value}));
   document.querySelectorAll("[data-mustitem]").forEach(c=>c.onchange=()=>{const set=new Set(mustCfg().items);c.checked?set.add(c.dataset.mustitem):set.delete(c.dataset.mustitem);save({items:mustSite().filter(k=>set.has(k))});});
 }

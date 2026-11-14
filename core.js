@@ -290,3 +290,15 @@ const ic=(name,cls="")=>`<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden=
    double-tap zoom is turned off in style.css (touch-action), which keeps fast taps on the keypads working. */
 ["gesturestart","gesturechange","gestureend"].forEach(t=>document.addEventListener(t,e=>e.preventDefault(),{passive:false}));
 document.addEventListener("touchmove",e=>{if(e.touches&&e.touches.length>1)e.preventDefault();},{passive:false});
+
+/* Key press feedback on the app's own keyboards (diary, spelling, maths keypad): the key that was tapped turns blue
+   and shows its letter bigger above it for a moment, so the child can see the tap landed. The keyboards redraw on
+   every tap, so the effect is put on the new key with the same value. */
+document.addEventListener("pointerdown",e=>{
+  const k=e.target.closest&&e.target.closest(".kb[data-k],.keypad [data-key]"); if(!k)return;
+  const attr=k.hasAttribute("data-k")?"data-k":"data-key", v=k.getAttribute(attr), box=k.closest(".kbd,.ps-kbd,.keypad,#dvKbd")||document;
+  const show=()=>{const el=[...document.querySelectorAll(`[${attr}]`)].find(x=>x.getAttribute(attr)===v&&x.offsetParent);if(!el)return;
+    el.classList.remove("pop");void el.offsetWidth;el.classList.add("pop");el.dataset.pop=v===" "?"␣":v==="space"?"␣":v;
+    clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove("pop"),260);};
+  setTimeout(show,0);
+},{capture:true,passive:true});

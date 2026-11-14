@@ -1075,3 +1075,10 @@ html:not(.zh-on) .zh{display:none}
 .cl-sw{border:0;background:none;font:inherit;color:var(--fg);cursor:pointer;padding:0 2px;border-radius:6px} .cl-sw.on{color:var(--c-pink,#e0559b);text-decoration:underline}
 .cl-dict{font-size:clamp(20px,4.5vw,28px)!important;letter-spacing:.02em;flex-wrap:wrap;gap:6px}
 .ok-w{color:var(--green-fill,#2e9d5b)} .bad-w{color:#d63333}
+/* key press feedback (core.js) */
+.kb,.keypad button{position:relative;transition:background .08s,transform .08s}
+.kb.pop,.keypad button.pop{background:var(--c-blue,#2a6fdb)!important;color:#fff!important;transform:scale(1.08)}
+.kb.pop::after,.keypad button.pop::after{content:attr(data-pop);position:absolute;left:50%;bottom:100%;transform:translate(-50%,-6px);min-width:52px;padding:6px 10px;border-radius:12px;
+  background:var(--c-blue,#2a6fdb);color:#fff;font:800 34px/1 var(--word,var(--round));text-align:center;box-shadow:0 6px 16px rgba(0,0,0,.25);pointer-events:none;z-index:5;animation:kpop .26s ease-out}
+.kb.kb-fn.pop::after,.kb.kb-space.pop::after,.keypad button.del.pop::after{display:none}
+@keyframes kpop{from{transform:translate(-50%,4px) scale(.7);opacity:.4}to{transform:translate(-50%,-6px) scale(1);opacity:1}}

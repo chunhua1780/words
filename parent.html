@@ -67,6 +67,9 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="explain.js"></script>
 <script src="maths.js"></script>
 <script src="checkup.js"></script>
+<script src="sounds.js"></script>
+<script src="phonics-course.js"></script>
+<script src="course.js"></script>
 <script src="ai.js"></script>
 <script src="diary.js"></script>
 <script src="must.js"></script>
@@ -239,6 +242,16 @@ function viewDash(){
     ${aiParent()}
     ${histBlock()}
     ${diaryParent()}
+    ${(()=>{const ph=(B().eng||{}).phon||{},st=c=>((ph["c:"+c.id]||{}).st)||"new",sec=COURSE.filter(c=>["known","secure"].includes(st(c))),lr=COURSE.filter(c=>st(c)==="learning"),td=ph["c:today"],cur=td&&COURSE.find(c=>c.id===td.id);
+      return `<div class="card stack no-zh"><h3 style="margin:0">系统拼读课 · Phonics course</h3>
+        <div class="muted small">每天学一个字母组合：复习 → 学新音 → 读词（音按钮拼读）→ 写词（音格 + 整词默写）→ 读写一句话。连续两天正确率 80% 以上才算掌握。</div>
+        <div>${ph["c:placed"]?`已掌握 <b>${sec.length}</b> / ${COURSE.length} · 正在学：${cur?`<b>${esc(cur.g)}</b> (${esc(cur.items.slice(0,3).map(i=>i.word).join(", "))})`:"—"}${td&&td.date===today()&&td.step>=5?" · 今天已完成 ✓":""}`:"还没做摸底测试（孩子第一次打开拼读课时会先做）。"}</div>
+        ${lr.length?`<div class="muted small">还没掌握：${lr.slice(0,20).map(c=>esc(c.g)).join("、")}</div>`:""}
+        <details><summary><b>家长可用的免费拼读资源</b></summary><ul class="ai-list">
+          <li>Little Wandle 家长区（纯正发音示范视频）：<a href="https://www.littlewandlelettersandsounds.org.uk/resources/for-parents/" target="_blank" rel="noopener">littlewandlelettersandsounds.org.uk</a></li>
+          <li>Teach Your Monster to Read（电脑上免费的拼读游戏）：<a href="https://www.teachyourmonster.org/teachyourmonstertoread" target="_blank" rel="noopener">teachyourmonster.org</a></li>
+          <li>Oxford Owl 家长拼读说明：<a href="https://home.oxfordowl.co.uk/reading/reading-schools-phonics/" target="_blank" rel="noopener">home.oxfordowl.co.uk</a></li>
+          <li>英国教育部《阅读框架》（含大孩子补拼读的建议）：<a href="https://www.gov.uk/government/publications/the-reading-framework-teaching-the-foundations-of-literacy" target="_blank" rel="noopener">gov.uk</a></li></ul></details></div>`;})()}
     <div class="kpis">
       <div class="kpi"><b>${streakOf(b.log)}</b><span>day streak</span></div>
       <div class="kpi"><b>${(b.log[t]||{}).done||0}</b><span>words practised today</span></div>

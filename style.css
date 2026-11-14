@@ -1053,3 +1053,25 @@ html:not(.zh-on) .zh{display:none}
 .sb-tile{min-width:72px;height:64px;border:0;border-radius:14px;background:var(--paper);box-shadow:var(--shadow);font:800 28px var(--word,var(--round));color:var(--fg);cursor:pointer;padding:0 12px}
 .sb-tile:disabled{opacity:.25}
 .sb-parts{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+/* the phonics lesson (course.js) */
+.cl-steps{display:flex;gap:6px;flex-wrap:wrap}
+.cl-steps span{font-size:13px;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--fg) 7%,transparent);color:var(--muted)}
+.cl-steps span.on{background:var(--c-pink,#e0559b);color:#fff;font-weight:700} .cl-steps span.past{background:var(--green-fill,#2e9d5b);color:#fff}
+.cl-g{font:800 34px var(--word,var(--round));color:var(--c-pink,#e0559b)} .cl-g small{font-size:18px;color:var(--muted)}
+.cl-teach{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.cl-big{font:800 clamp(64px,16vw,110px)/1 var(--word,var(--round));color:var(--c-pink,#e0559b);padding:0 10px}
+.cl-words{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.cl-w{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-radius:14px;background:var(--paper);box-shadow:var(--shadow)}
+.cw{display:inline-flex;gap:3px;align-items:flex-end}
+.cw-b{display:flex;flex-direction:column;align-items:center;border:0;background:none;font:700 clamp(28px,6vw,40px) var(--word,var(--round));color:var(--fg);cursor:pointer;padding:0 2px;border-radius:8px}
+.cw-b i{width:10px;height:10px;border-radius:50%;background:color-mix(in srgb,var(--fg) 30%,transparent);margin-top:2px}
+.cw-b.on{color:var(--c-pink,#e0559b)} .cw-b.on i{background:var(--c-pink,#e0559b);width:20px;border-radius:5px}
+.cw-b.tail i{background:none;border-top:2px solid var(--c-pink,#e0559b);border-radius:0}
+.cw-b.hl{background:color-mix(in srgb,var(--c-orange,#f08a24) 25%,transparent)}
+.cw-p.on{color:var(--c-pink,#e0559b);font-weight:800}
+.cl-read{display:flex;justify-content:center;padding:18px;border-radius:18px;background:var(--paper);box-shadow:var(--shadow)}
+.cl-read .cw-b{font-size:clamp(44px,11vw,70px)}
+.cl-sent{font:600 clamp(22px,5vw,30px)/1.8 var(--round);text-align:center;padding:14px;border-radius:16px;background:var(--paper);box-shadow:var(--shadow)}
+.cl-sw{border:0;background:none;font:inherit;color:var(--fg);cursor:pointer;padding:0 2px;border-radius:6px} .cl-sw.on{color:var(--c-pink,#e0559b);text-decoration:underline}
+.cl-dict{font-size:clamp(20px,4.5vw,28px)!important;letter-spacing:.02em;flex-wrap:wrap;gap:6px}
+.ok-w{color:var(--green-fill,#2e9d5b)} .bad-w{color:#d63333}

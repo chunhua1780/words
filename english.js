@@ -143,13 +143,14 @@ function openEnglish(view,arg){if(view==="diary"){openDiary();return;}window.__b
 function closeEnglish(){stopAudio();window.__busy=false;$("#eng").hidden=true;document.body.style.overflow="";EV=null;render();}
 function engShow(view,arg){
   EV={view,arg,...(EV&&EV.view===view?EV:{})}; EV.view=view; EV.arg=arg; $("#engBody").scrollTop=0;
-  $("#engLabel").textContent={phonics:"Phonics: sounds and spellings",lesson:"Phonics lesson",pq:"Phonics practice",ps:"Hear it, spell it",chart:"Sound chart 拼读表",sq:"Sound practice",sb:"Build the word",diary:"My diary"}[view]||"English";
-  ({phonics:phHub,lesson:phLesson,pq:phRun,ps:phSpell,chart:soundChart,sq:sqRun,sb:sbRun})[view](arg);
+  $("#engLabel").textContent={phonics:"Phonics: sounds and spellings",lesson:"Phonics lesson",pq:"Phonics practice",ps:"Hear it, spell it",chart:"Sound chart 拼读表",lesson2:"Phonics lesson 拼读课",cplace:"Placement check 摸底测试",sq:"Sound practice",sb:"Build the word",diary:"My diary"}[view]||"English";
+  ({phonics:phHub,lesson:phLesson,pq:phRun,ps:phSpell,chart:soundChart,sq:sqRun,sb:sbRun,lesson2:cLesson,cplace:cPlace})[view](arg);
 }
 
 function phHub(){
   const d=phDay();
   $("#engBody").innerHTML=`<div class="m-q eng-page">
+    ${courseCard()}
     <button class="card snd-open" data-ph="chart"><span class="snd-big">ai ee igh oa</span><span><b>Sound chart · 拼读表</b><span class="muted small">All 44 sounds and their spellings: tap to hear each one 44个发音和写法，点一下就能听</span></span><span class="chev">${ic("chevron")}</span></button>
     <p class="muted" style="margin:0">Each day 每天: ${SQ_N} sound questions 发音练习 · ${SB_N} words to build 拼单词 · ${PH_N} letter questions 选字母组合 · ${PH_SPELL} words to spell 听音写单词.</p>
     <div class="card row" style="justify-content:space-between;gap:12px;flex-wrap:wrap"><div><b>Today: sounds ${Math.min(d.cn||0,SQ_N)}/${SQ_N} · build ${Math.min(d.bn||0,SB_N)}/${SB_N} · letters ${Math.min(d.n,PH_N)}/${PH_N} · spell ${Math.min(d.sn||0,PH_SPELL)}/${PH_SPELL}</b><div class="muted small">${d.n?`${d.r} right`:""}${d.sn?` · ${d.sr||0} spelt right`:""}</div></div>
@@ -159,7 +160,7 @@ function phHub(){
       <span class="ph-bar"><i style="width:${a??0}%;background:${a==null?"transparent":a>=80?"var(--green-fill)":a>=50?"var(--orange-fill)":"var(--red)"}"></i></span><span class="tiny muted">${a==null?"not practised":a+"% right"}</span></button>`;}).join("")}</div>
   </div>`;
   const B_=$("#engBody");
-  B_.querySelector('[data-ph="go"]').onclick=phToday; B_.querySelector('[data-ph="chart"]').onclick=()=>engShow("chart"); B_.querySelector('[data-ph="spell"]').onclick=()=>engShow("ps",phSpellStart());
+  B_.querySelector('[data-ph="go"]').onclick=phToday; B_.querySelector('[data-ph="chart"]').onclick=()=>engShow("chart"); B_.querySelector('[data-ph="course"]').onclick=()=>engShow("lesson2"); B_.querySelector('[data-ph="spell"]').onclick=()=>engShow("ps",phSpellStart());
   B_.querySelectorAll("[data-ph-l]").forEach(b=>b.onclick=()=>engShow("lesson",b.dataset.phL));
 }
 function phLesson(k){
@@ -256,7 +257,7 @@ function phSpell(st){
 }
 /* today's phonics: the 20 questions first, then the 10 words to spell */
 const phLeft=(d=phDay())=>(d.cn||0)<SQ_N||(d.bn||0)<SB_N||d.n<PH_N||(d.sn||0)<PH_SPELL;
-function phToday(){const d=phDay();if((d.cn||0)<SQ_N)return engShow("sq",sqStart(Math.max(5,SQ_N-(d.cn||0))));if((d.bn||0)<SB_N)return engShow("sb",sbStart(Math.max(4,SB_N-(d.bn||0))));if(d.n<PH_N)return engShow("pq",{set:phQuiz(Math.max(10,PH_N-d.n)),i:0,r:0,pick:null});if((d.sn||0)<PH_SPELL)return engShow("ps",phSpellStart());return engShow("pq",{set:phQuiz(),i:0,r:0,pick:null});}
+function phToday(){if(!cDone())return engShow("lesson2");const d=phDay();if((d.cn||0)<SQ_N)return engShow("sq",sqStart(Math.max(5,SQ_N-(d.cn||0))));if((d.bn||0)<SB_N)return engShow("sb",sbStart(Math.max(4,SB_N-(d.bn||0))));if(d.n<PH_N)return engShow("pq",{set:phQuiz(Math.max(10,PH_N-d.n)),i:0,r:0,pick:null});if((d.sn||0)<PH_SPELL)return engShow("ps",phSpellStart());return engShow("pq",{set:phQuiz(),i:0,r:0,pick:null});}
 
 /* ---------- 5. Today's plan: about an hour ---------- */
 function planItems(){
@@ -267,7 +268,7 @@ function planItems(){
   return [
     {k:"words",min:10,icon:"sparkle",title:dw.length?`Learn today’s ${dw.length} new words`:"Learn today’s new words",sub:dw.length?(newLeft?`${newLeft} still to learn: ${dw.slice(0,5).map(w=>w.w).join(", ")}${dw.length>5?"…":""}`:`Learned: ${dw.map(w=>w.w).join(", ")}`):"Ask a parent to switch on daily words",done:dw.length>0&&newLeft===0},
     {k:"dict",min:10,icon:"headphones",title:"Dictation",sub:dset.length?(dl.length?`${dl.length} word${dl.length>1?"s":""} to spell from memory`:"All done for today"):"Learn today’s words first",done:dset.length>0&&dl.length===0},
-    {k:"phonics",min:25,icon:"wave",title:"Phonics: sounds, build words, letters, spell",sub:`sounds ${Math.min(ph.cn||0,SQ_N)}/${SQ_N} · build ${Math.min(ph.bn||0,SB_N)}/${SB_N} · letters ${Math.min(ph.n,PH_N)}/${PH_N} · spell ${Math.min(ph.sn||0,PH_SPELL)}/${PH_SPELL}`,done:!phLeft(ph)},
+    {k:"phonics",min:15,icon:"wave",title:"Phonics: today’s lesson",sub:cDone()?"Lesson done":"5 steps: review, learn, read, spell, sentence",done:cDone()},
     {k:"read",min:15,icon:"book",title:"Reading: today’s story and questions",sub:`${Math.floor(rd/60)} of 10 minutes read`,done:rd>=READ_GOAL},
     {k:"write",min:10,icon:"pencil",title:"Write today’s diary",sub:di.text?`${wordsOfText(di.text).length} of ${DIARY_TARGET()} words${di.done?" · finished":""}`:`About ${DIARY_TARGET()} words: what did you do today?`,done:!!di.done},
     {k:"maths",min:15,icon:"maths",title:"Maths: today’s 20 or the check-up",sub:mathsDone?"Done":"On the Maths page",done:!!mathsDone},

@@ -11,7 +11,7 @@
 const MUST_ALL={
   words:  {icon:"sparkle",  min:10, t:"New words",          tz:"新单词"},
   dict:   {icon:"headphones",min:10,t:"Dictation",          tz:"听写"},
-  phonics:{icon:"wave",     min:25, t:"Phonics",            tz:"自然拼读"},
+  phonics:{icon:"wave",     min:15, t:"Phonics lesson",            tz:"自然拼读"},
   read:   {icon:"book",     min:15, t:"Reading",            tz:"阅读"},
   write:  {icon:"pencil",   min:10, t:"Writing: my diary",  tz:"写作"},
   maths:  {icon:"maths",    min:15, t:"Maths: today’s 20",  tz:"每日20题"},
@@ -52,8 +52,8 @@ function mustStatus(k,t=today()){
     const left=ws.filter(w=>w.dict!==t).length;
     return {done:ws.length>0&&left===0,p:ws.length?(ws.length-left)/ws.length:0,sub:ws.length?(left?`${left} word${left>1?"s":""} to spell`:"All spelled"):"Learn new words first",acc:null};
   }
-  if(k==="phonics"){const d=((b.eng||{}).plog||{})[t]||{n:0,r:0},sn=d.sn||0,cn=d.cn||0,bn=d.bn||0,got=Math.min(15,cn)+Math.min(10,bn)+Math.min(20,d.n)+Math.min(10,sn);
-    return {done:got>=55,p:got/55,sub:`sounds ${Math.min(15,cn)}/15 · build ${Math.min(10,bn)}/10 · letters ${Math.min(20,d.n)}/20 · spell ${Math.min(10,sn)}/10`,acc:acc(d.r+(d.sr||0)+(d.cr||0)+(d.br||0),d.n+sn+cn+bn)};}
+  if(k==="phonics"){const r=((b.eng||{}).phon||{})["c:today"], step=r&&r.date===t?r.step:0, placed=!!((b.eng||{}).phon||{})["c:placed"];
+    return {done:step>=5,p:Math.min(1,step/5),sub:!placed?"Start with the placement check":step>=5?"Today’s lesson done":`Lesson step ${step+1} of 5`,acc:null};}
   if(k==="read"){
     const secs=((b.reading.log[t]||{}).secs)||0, fin=Object.values(b.reading.done).filter(x=>x.date===t);
     return {done:secs>=600,p:Math.min(1,secs/600),sub:`${Math.floor(secs/60)} of 10 minutes${fin.length?` · ${fin.length} story finished`:""}`,acc:acc(fin.reduce((s,x)=>s+x.score,0),fin.reduce((s,x)=>s+x.n,0))};

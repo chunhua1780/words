@@ -1085,3 +1085,14 @@ html:not(.zh-on) .zh{display:none}
 .must-today.pm{border-color:var(--c-purple,#7a5af8);background:linear-gradient(160deg,color-mix(in srgb,var(--c-purple,#7a5af8) 12%,var(--paper)),var(--paper) 60%)}
 .must-today.pm .mt-star{background:var(--c-purple,#7a5af8)}
 .must-today.pm .mt-row.next{outline-color:var(--c-purple,#7a5af8)} .must-today.pm .mt-row.next .mt-n,.must-today.pm .mt-row.next .mt-go{background:var(--c-purple,#7a5af8)}
+/* writing help in the diary */
+.dv-help-card{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:16px;background:color-mix(in srgb,var(--c-purple,#7a5af8) 7%,var(--paper));border:2px dashed color-mix(in srgb,var(--c-purple,#7a5af8) 35%,transparent)}
+.dv-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
+.dv-chip{background:var(--paper)!important;border:1px solid color-mix(in srgb,var(--c-purple,#7a5af8) 40%,transparent);font-weight:600;font-size:16px}
+.dv-weak{font-size:15px;display:flex;flex-direction:column;gap:4px}
+.dv-ai{padding:8px 10px;border-radius:12px;background:var(--paper)}
+
+.hist-topics{display:flex;flex-wrap:wrap;gap:6px}.hist-topics span{padding:3px 10px;border-radius:999px;font-size:14px;background:color-mix(in srgb,var(--green-fill,#2e9d5b) 12%,var(--paper))}.hist-topics span.bad{background:color-mix(in srgb,#d63333 14%,var(--paper))}
+.hist-eng{display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--c-pink,#e0559b) 7%,var(--paper))}
+.hist-mk2{display:inline-block;margin:2px 8px 2px 0}.hist-t{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;font-size:12px;background:color-mix(in srgb,var(--c-blue,#2a6fdb) 12%,transparent)}
+.hist-why summary{cursor:pointer;color:var(--c-blue,#2a6fdb);font-size:13px}

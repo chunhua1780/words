@@ -350,7 +350,7 @@ function record(q,ok,given){
   if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
   if(MS.fix){const F=M.log["fx:"+t]=M.log["fx:"+t]||{n:0,r:0};F.n++;if(ok)F.r++;F.left=mistakeIds().length;F.start=Math.max(F.start||0,F.left+(ok?1:0));F.u=Date.now();} // 错题重做 progress (must.js)
   // every answer of the day, for the parent page: the question, the child's answer, the right answer
-  try{const H=M.hist[t]=M.hist[t]||[],n=new Date();if(H.length<400)H.push({q:String(q.q||"").slice(0,240),a:String(showAns(q)).slice(0,40),v:String(given==null?"":given).slice(0,40),ok,
+  try{const H=M.hist[t]=M.hist[t]||[],n=new Date();if(H.length<400)H.push({q:String(q.q||"").slice(0,240),a:String(showAns(q)).slice(0,40),v:String(given==null?"":given).slice(0,40),ok,t:String(q.t||"").slice(0,40),...(ok?{}:{w:String(q.w||(q.steps||[]).join(" ")||"").slice(0,320)}),
     s:MS.kind==="day"?"Daily 20":MS.kind==="test"?"Test":MS.fix?"Fix mistakes":String(MS.topic||"Practice").slice(0,40),tr:MS.tries||1,f:q.fig?1:0,tm:String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")});}catch(e){}
   MS.res[q.id]=ok; Store.save();
 }
@@ -395,18 +395,28 @@ function histOf(date){
 let HIST_DAY=null, HIST_BAD=false;
 function histBlock(){
   const t=today(), d=HIST_DAY||t, days=[...Array(10)].map((_,k)=>addDays(t,-k));
-  const all=histOf(d), list=HIST_BAD?all.filter(x=>!x.ok):all, right=all.filter(x=>x.ok).length;
+  const byQ=histOf.byQ||(histOf.byQ=Object.fromEntries(Object.values(MQ).map(q=>[String(q.q||"").slice(0,240),q])));
+  const all=histOf(d).map(x=>{const q=byQ[x.q];return {...x,t:x.t||(q&&q.t)||"",w:x.w||(!x.ok&&q?String(q.w||(q.steps||[]).join(" ")).slice(0,320):"")};}),
+    list=HIST_BAD?all.filter(x=>!x.ok):all, right=all.filter(x=>x.ok).length;
+  const tp={}; all.forEach(x=>{const k=x.t||x.s;const o=tp[k]=tp[k]||{n:0,r:0};o.n++;if(x.ok)o.r++;});
+  const E=(B().eng||{}), pl=(E.plog||{})[d]||{}, mk=pl.mk||[], di=(E.diary||{})[d];
   const by={}; list.forEach(x=>(by[x.s]=by[x.s]||[]).push(x));
   const nm=x=>x===t?"今天 Today":x===addDays(t,-1)?"昨天 Yesterday":x===addDays(t,-2)?"前天":shortDate(x);
   return `<div class="card stack" id="hist">
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">每天做题记录 · Every question, every day</h3>
       <span class="muted small">${all.length?`${right} / ${all.length} right (${Math.round(right/all.length*100)}%)`:"Nothing answered"}</span></div>
     <div class="quick">${days.map(x=>{const h=histOf(x);return `<button class="${x===d?"on":""}" data-hday="${x}">${esc(nm(x))}${h.length?` <small>${h.filter(y=>y.ok).length}/${h.length}</small>`:""}</button>`;}).join("")}</div>
+    ${all.length?`<div><div class="muted small" style="margin-bottom:4px"><b>By topic 按题型</b> (weakest first 最弱的在前)</div><div class="hist-topics">${Object.entries(tp).sort((a,b)=>a[1].r/a[1].n-b[1].r/b[1].n).map(([k,o])=>`<span class="${o.r/o.n<.7?"bad":"ok"}">${esc(k)} <b>${o.r}/${o.n}</b></span>`).join("")}</div></div>`:""}
+    ${mk.length||pl.n||pl.cn||di?`<div class="hist-eng"><b>English this day 英语</b>
+      ${pl.n||pl.sn||pl.cn||pl.bn?`<div class="muted small">Phonics 拼读: ${[pl.cn?`sounds ${pl.cr||0}/${pl.cn}`:"",pl.bn?`build ${pl.br||0}/${pl.bn}`:"",pl.n?`letters ${pl.r||0}/${pl.n}`:"",pl.sn?`spell ${pl.sr||0}/${pl.sn}`:""].filter(Boolean).join(" · ")}</div>`:""}
+      ${mk.length?`<div class="small">Spelling mistakes 拼写错误 (${mk.length}): ${mk.map(m=>`<span class="hist-mk2" title="${esc(m.k)}"><s>${esc(m.v||"—")}</s> → <b>${esc(m.w)}</b> <span class="muted tiny">${esc(m.k)}</span></span>`).join(" ")}</div>`:""}
+      ${di&&di.text?`<div class="small">Diary 日记: ${wordsOfText(di.text).length} words${di.done?` · ${(di.fix||[]).length} spelling mistakes`:" · not handed in"}${di.ai?` · <b>AI score ${di.ai.score}/10</b>`:""} <span class="muted">(full text in the Diary section below 日记全文在下面)</span></div>`:""}</div>`:""}
     <label class="row" style="gap:6px"><input type="checkbox" id="histBad" ${HIST_BAD?"checked":""}> 只看做错的 · Only the wrong ones</label>
     ${list.length?Object.entries(by).map(([s,xs])=>`<div><div class="muted small" style="margin:6px 0 4px"><b>${esc(s)}</b> · ${xs.filter(x=>x.ok).length}/${xs.length} right</div>
       <div class="hist-list">${xs.map(x=>`<div class="hist-row ${x.ok?"ok":"bad"}"><span class="hist-mk">${x.ok?"✓":"✗"}</span>
         <div class="grow"><div>${mt(x.q)}${x.f?` <span class="muted tiny">(with a picture)</span>`:""}</div>
-        <div class="small">Answer given · 孩子的答案: <b class="${x.ok?"":"hist-wrong"}">${x.v?fracHtml(esc(x.v)):"(blank)"}</b>${x.ok?(x.tr>1?` <span class="muted">· right on the 2nd try</span>`:""):` · Correct · 正确答案: <b class="hist-right">${fracHtml(esc(x.a))}</b>`}</div></div>
+        <div class="small">Answer given · 孩子的答案: <b class="${x.ok?"":"hist-wrong"}">${x.v?fracHtml(esc(x.v)):"(blank)"}</b>${x.ok?(x.tr>1?` <span class="muted">· right on the 2nd try</span>`:""):` · Correct · 正确答案: <b class="hist-right">${fracHtml(esc(x.a))}</b>`}${x.t?` <span class="hist-t">${esc(x.t)}</span>`:""}</div>
+        ${!x.ok&&x.w?`<details class="hist-why"><summary>Why / how to do it 为什么错、怎么做</summary><div class="small">${mt(x.w)}</div></details>`:""}</div>
         <span class="muted tiny">${esc(x.tm||"")}</span></div>`).join("")}</div></div>`).join("")
       :`<div class="muted small">${all.length?"No wrong answers on this day. 这天没有做错的题。":"No questions answered on this day. 这天没有做题。"}</div>`}
   </div>`;

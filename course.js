@@ -162,7 +162,7 @@ function cLesson(){
     body.querySelectorAll(".ps-kbd [data-k]").forEach(b=>b.onpointerdown=e=>{e.preventDefault();const k=b.dataset.k;CL.input=k==="⌫"?CL.input.slice(0,-1):(CL.input+k).slice(0,24);cLesson();});
     const ck=$("#cCheck"); if(ck)ck.onclick=()=>{const good=CL.input.trim().toLowerCase()===it.word.toLowerCase()&&CL.boxOk;const wordOk=CL.input.trim().toLowerCase()===it.word.toLowerCase();
       CL.state=wordOk?"right":"shown";beep(wordOk);if(good)CL.sr=(CL.sr||0)+1;score(good);
-      if(!wordOk&&typeof diaryAddWords==="function")diaryAddWords([it.word]);cLesson();};
+      if(!wordOk){logEngMiss("Phonics lesson",it.word,CL.input);if(typeof diaryAddWords==="function")diaryAddWords([it.word]);}cLesson();};
     const nw=$("#cNextW"); if(nw)nw.onclick=()=>{CL.i++;CL.tiles=null;CL.used=[];cLesson();};
     return;
   }
@@ -187,7 +187,7 @@ function cLesson(){
     $("#cSay").onclick=()=>say(sent); const sl=$("#cSlow"); if(sl)sl.onclick=()=>say(sent,{slow:true});
     body.querySelectorAll(".ps-kbd [data-k]").forEach(b=>b.onpointerdown=e=>{e.preventDefault();const k=b.dataset.k;CL.input=k==="⌫"?CL.input.slice(0,-1):(CL.input+k).slice(0,120);cLesson();});
     const ck=$("#cCheck"); if(ck)ck.onclick=()=>{const right=want.filter((w,i)=>got[i]===w).length;CL.sentRight=right;CL.sentOk=right===want.length;CL.state="marked";beep(CL.sentOk);
-      for(let i=0;i<want.length;i++)if(c.items.some(it=>it.word.toLowerCase()===want[i]))score(got[i]===want[i]);cLesson();};
+      for(let i=0;i<want.length;i++){if(c.items.some(it=>it.word.toLowerCase()===want[i]))score(got[i]===want[i]);if(got[i]!==want[i])logEngMiss("Phonics sentence",want[i],got[i]||"");}cLesson();};
     const fin=$("#cFinish"); if(fin)fin.onclick=()=>{
       // secure after two days at 80% or more
       const r=cRec(c.id)||{}, good=Object.values(r.days||{}).filter(([n,k])=>n>=5&&k/n>=.8).length;

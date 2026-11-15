@@ -260,7 +260,7 @@ function phSpell(st){
   const ck=$("#psCheck"); if(ck)ck.onclick=()=>{
     const good=st.input.trim().toLowerCase().replace(/’/g,"'")===it.word.toLowerCase(); st.tries++;
     if(!good&&st.tries<2){st.state="retry";beep(false);phSpell(st);setTimeout(sayIt,300);return;}
-    st.state=good?"right":"shown"; beep(good); if(good)st.r++; else st.wrong.push({p,it});
+    st.state=good?"right":"shown"; beep(good); if(good)st.r++; else {st.wrong.push({p,it});logEngMiss("Phonics: hear and spell",it.word,st.input);}
     const E=B().eng,t=today(),s=E.phon[p.k]||{n:0,r:0},d=E.plog[t]||{n:0,r:0};
     E.phon[p.k]={n:s.n+1,r:s.r+(good?1:0),u:Date.now()}; E.plog[t]={...d,sn:(d.sn||0)+1,sr:(d.sr||0)+(good?1:0),u:Date.now()}; Store.save();
     phSpell(st); if(good)setTimeout(()=>{if(EV&&EV.view==="ps"&&st.set[st.i]&&st.set[st.i].it===it&&st.state==="right"){st.i++;st.input="";st.tries=0;st.state="ask";phSpell(st);}},1100);

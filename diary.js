@@ -6,7 +6,7 @@
    - The corrected words go into the child's spelling practice (today's word list), so they are learnt
      and then come back in dictation by the memory plan.
    Saved in book.eng.diary[date] = {text, words, done, score, fix:[[wrong, right], ...], added:[...], u}. */
-const DIARY_TARGET=()=>Math.max(30,+((B().prefs||{}).diaryWords)||60);
+const DIARY_TARGET=()=>Math.max(30,+((B().prefs||{}).diaryWords)||(typeof PAPER_TYPES!=="undefined"?100:80)); // Year 7: 100 words, Year 5: 80
 const DIARY_PROMPTS=[
   "What did you do today? Write about the best part of your day.",
   "Write about something you did at school today. What did you learn?",
@@ -161,6 +161,7 @@ function diaryView(){
     <div class="card"><b>Today’s idea:</b> ${esc(prompt)}${typeof zhLine==="function"?zhLine(prompt):""}
       <div class="muted small" style="margin-top:6px">Think: Who? Where? What happened first, next and last? How did you feel? Spell every word yourself: the spelling is checked when you hand it in.</div></div>
     <textarea id="dText" rows="8" placeholder="Today I…" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" writingsuggestions="false" data-gramm="false" data-enable-grammarly="false">${esc(d.text||"")}</textarea>
+    <div id="dHelp" class="dv-help"></div>
     <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn" id="dRead">${ic("speaker")}Read it to me</button><button class="btn primary" id="dDone">${ic("check")}提交 · Hand it in</button><span class="muted small" id="dCount"></span></div>
     <div class="card stack tight" id="dChecks"></div>
     ${pastHtml}
@@ -171,8 +172,11 @@ function diaryView(){
   DV.save=save;
   const checks=()=>{const c=diaryCheck(ta.value);$("#dChecks").innerHTML=`<b>Checklist</b>${c.map(x=>`<div class="dchk ${x.ok?"ok":""}">${ic(x.ok?"check":"x")}<span>${esc(x.t)}</span></div>`).join("")}`;
     $("#dCount").textContent=`${wordsOfText(ta.value).length} / ${DIARY_TARGET()} words`;};
-  let tm=null; const changed=()=>{checks();clearTimeout(tm);tm=setTimeout(save,700);};
-  ta.oninput=changed; checks();
+  // after each finished sentence: words to make the writing clearer and richer (tap one to put it in)
+  let lastEnd=-1; const help=()=>{const v=ta.value, ends=(v.match(/[.!?](\s|$)|\n/g)||[]).length; if(ends===lastEnd)return; lastEnd=ends; diaryHelp(v,$("#dHelp"),ins,ends);};
+  let tm=null; const changed=()=>{checks();clearTimeout(tm);tm=setTimeout(save,700);if(/[.!?\n]\s?$/.test(ta.value))help();};
+  ta.oninput=changed; checks(); setTimeout(help,0);
+  setTimeout(()=>{if(DV&&!document.getElementById("diaryOv").hidden&&typeof readAloud==="function")readAloud(prompt+" Write at least "+DIARY_TARGET()+" words.");},500); // read today's idea aloud
   // block the system's word suggestions and auto-correct: only plain typed letters get in
   ta.addEventListener("beforeinput",e=>{if(e.inputType==="insertReplacementText"||e.inputType==="insertFromPaste"||e.inputType==="insertFromDrop")e.preventDefault();});
   // the app's own keyboard
@@ -209,13 +213,50 @@ function diaryView(){
   };
 }
 
+/* ---------- writing help: joining words, contrast words and stronger words after each sentence ---------- */
+const DV_JOIN=[["Time","First, | Next, | Then | After that, | Later, | Finally, | Meanwhile, | The next morning,"],
+  ["Because / so","because | so | as | That is why"],["But / however","but | However, | Although | Even though | Instead,"],
+  ["Adding","Also, | As well as | In addition, | Besides,"],["Describing","Suddenly, | Luckily, | Unfortunately, | Surprisingly,"]];
+const DV_ADJ=["excited","proud","nervous","delighted","disappointed","exhausted","curious","enormous","tiny","colourful","delicious","freezing","noisy","peaceful","crowded","brilliant"];
+const DV_WEAK={good:["great","wonderful","brilliant"],nice:["lovely","pleasant","kind"],big:["huge","enormous","giant"],small:["tiny","little"],said:["shouted","whispered","explained","replied"],
+  went:["walked","rushed","travelled","hurried"],got:["received","bought","found"],fun:["exciting","enjoyable"],bad:["awful","terrible"],happy:["delighted","cheerful","thrilled"],sad:["upset","miserable"],very:["really","extremely"],like:["enjoy","love"],saw:["noticed","spotted","watched"],ate:["munched","tasted","enjoyed"],cold:["freezing","chilly"],hot:["boiling","scorching"]};
+let DV_AI={key:"",tips:null,busy:false,at:0};
+function diaryHelp(text,el,ins,ends){
+  if(!el)return; const low=" "+String(text).toLowerCase().replace(/[^a-z' ]/g," ")+" ";
+  const has=w=>low.includes(" "+w.toLowerCase().replace(/[,.]/g,"").trim()+" ");
+  const groups=DV_JOIN.map(([h,ws])=>[h,ws.split(" | ").filter(w=>!has(w)).slice(0,4)]).filter(([,ws])=>ws.length);
+  const weak=Object.keys(DV_WEAK).filter(w=>low.includes(" "+w+" ")).slice(0,3);
+  const adj=DV_ADJ.filter(w=>!has(w)).sort(()=>Math.random()-.5).slice(0,6);
+  const chip=w=>`<button class="chip dv-chip" data-dvins="${esc(w)}">${esc(w)}</button>`;
+  const ai=DV_AI.tips;
+  el.innerHTML=!String(text).trim()?`<div class="muted small">${ic("sparkle")} Start with when and where: “On Saturday morning, I…” 先写时间和地点。</div>`:`<div class="dv-help-card">
+    <div class="row" style="justify-content:space-between;gap:6px;flex-wrap:wrap"><b>${ic("sparkle")} Make your writing better · 让文章更好</b><span class="muted tiny">Tap a word to add it 点词就能加进去</span></div>
+    ${ai&&ai.tip_en?`<div class="dv-ai"><b>AI tip:</b> ${esc(ai.tip_en)} ${esc(ai.tip_zh||"")}${(ai.words||[]).length?`<div class="dv-chips">${ai.words.slice(0,8).map(chip).join("")}</div>`:""}</div>`:""}
+    ${weak.length?`<div class="dv-weak">${weak.map(w=>`<div>Instead of “<b>${esc(w)}</b>” try 试试换成: ${DV_WEAK[w].map(x=>`<button class="chip dv-chip" data-dvrep="${esc(w)}" data-to="${esc(x)}">${esc(x)}</button>`).join(" ")}</div>`).join("")}</div>`:""}
+    ${groups.slice(0,4).map(([h,ws])=>`<div class="dv-group"><span class="muted tiny">${esc(h)}</span><div class="dv-chips">${ws.map(chip).join("")}</div></div>`).join("")}
+    <div class="dv-group"><span class="muted tiny">Describing words 形容词</span><div class="dv-chips">${adj.map(chip).join("")}</div></div>
+  </div>`;
+  el.querySelectorAll("[data-dvrep]").forEach(b=>b.onclick=()=>{const ta=document.getElementById("dText"),from=b.dataset.dvrep,to=b.dataset.to,re=new RegExp("\\b"+from+"\\b","gi");
+    let m,last=null;while((m=re.exec(ta.value)))last=m; if(!last)return;
+    const rep=/^[A-Z]/.test(last[0])?to[0].toUpperCase()+to.slice(1):to; ta.value=ta.value.slice(0,last.index)+rep+ta.value.slice(last.index+last[0].length); ta.oninput(); if(typeof say==="function")say(to);});
+  el.querySelectorAll("[data-dvins]").forEach(b=>b.onclick=()=>{const w=b.dataset.dvins,ta=document.getElementById("dText"),pos=ta.selectionStart==null?ta.value.length:ta.selectionStart,before=ta.value.slice(0,pos);
+    ins((before&&!/\s$/.test(before)?" ":"")+w+" ");if(typeof say==="function")say(w.replace(/,$/,""));});
+  // Google AI: tips for this text, at most once every 40 seconds
+  if(typeof aiReady==="function"&&aiReady()&&ends>0&&!DV_AI.busy&&Date.now()-DV_AI.at>40000&&wordsOfText(text).length>=8){
+    DV_AI.busy=true; DV_AI.at=Date.now();
+    aiCall(`You help a Year ${typeof aiYear==="function"?aiYear():5} pupil (age ${typeof PAPER_TYPES!=="undefined"?"11–12":"9–10"}) improve the diary they are writing. Do NOT correct spelling. Give one short, kind tip about the next sentence (a joining word, a contrast, a feeling, a detail), and 6 to 8 single words or short phrases they could use next (joining words, adjectives, stronger verbs) that fit what they wrote. Reply only JSON: {"tip_en":"…","tip_zh":"(Chinese translation)","words":["…"]}`,
+      `The diary so far:\n"""${text}"""`,true).then(r=>{DV_AI.tips=r;DV_AI.busy=false;if(DV&&document.getElementById("dText"))diaryHelp(document.getElementById("dText").value,document.getElementById("dHelp"),ins,-1);})
+      .catch(()=>{DV_AI.busy=false;});
+  }
+}
+
 /* ---------- the parent page: each day's diary with the corrections ---------- */
 function diaryParent(){
   const E=(B().eng||{}).diary||{}, P=B().prefs||{};
   const days=Object.entries(E).filter(([,v])=>v.text).sort((a,c)=>a[0]<c[0]?1:-1).slice(0,10);
   return `<div class="card stack" id="diaryPar">
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">日记 · Diary</h3>
-      <label class="muted small">Length: <select id="diaryWordsSel">${[30,40,60,80,100,120,150].map(n=>`<option value="${n}" ${(+P.diaryWords||60)===n?"selected":""}>at least ${n} words</option>`).join("")}</select></label></div>
+      <label class="muted small">Length: <select id="diaryWordsSel">${[30,40,60,80,100,120,150].map(n=>`<option value="${n}" ${(+P.diaryWords||(typeof PAPER_TYPES!=="undefined"?100:80))===n?"selected":""}>at least ${n} words</option>`).join("")}</select></label></div>
     <div class="muted small">Written on the app’s own keyboard (no word suggestions). When it is handed in, each wrong word gets the right spelling in red brackets, and those words go into spelling practice and dictation. 错误的单词后面用红色括号标出正确拼写，并自动加入单词听写。</div>
     ${days.length?days.map(([d,v],i)=>`<details class="dpar" ${i===0?"open":""}><summary><b>${esc(niceDate(d))}</b> · ${wordsOfText(v.text).length} words${v.ai?` · AI ${v.ai.score}/10`:""}${v.done?` · handed in · ${(v.fix||[]).length} spelling mistake${(v.fix||[]).length===1?"":"s"}`:" · not handed in yet"}</summary>
       <p class="dv-text">${diaryMarked(v.text,v.fix)}</p>${(v.fix||[]).length?`<div class="muted small">${v.fix.map(([a,b])=>`${esc(a)} → <b>${esc(b||"?")}</b>`).join(" · ")}</div>`:""}

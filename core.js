@@ -302,3 +302,10 @@ document.addEventListener("pointerdown",e=>{
     clearTimeout(el._pt);el._pt=setTimeout(()=>el.classList.remove("pop"),260);};
   setTimeout(show,0);
 },{capture:true,passive:true});
+
+/* English spelling mistakes of the day, for the parent page: {k: kind, w: the word, v: what was written} */
+function logEngMiss(kind,word,given){
+  const b=typeof Store!=="undefined"&&Store.book; if(!b||!b.eng)return;
+  const t=today(), E=b.eng; E.plog=E.plog||{}; const d=E.plog[t]||{n:0,r:0}, mk=(d.mk||[]).slice(-79);
+  mk.push({k:kind,w:String(word).slice(0,40),v:String(given==null?"":given).slice(0,40)}); E.plog[t]={...d,mk,u:Date.now()};
+}

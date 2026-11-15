@@ -1420,7 +1420,7 @@ function tDict(st,task,w){
   const A=answerArea($("#ansBox"),w,{label:mock?"Next":"Check",placeholder:"Write what you hear",submit:ans=>{
     if(mock){ // no feedback during a test
       if(ans===null){selfCheck($("#fb"),w,ok=>{r.first=ok;r.ans=null;next();});return;}
-      r.ans=ans; r.first=norm(ans)===norm(w.w); next(); return;
+      r.ans=ans; r.first=norm(ans)===norm(w.w); if(!r.first)logEngMiss("Practice test",w.w,ans); next(); return;
     }
     if(copying){
       const ok=ans===null||norm(ans)===norm(w.w);
@@ -1430,7 +1430,7 @@ function tDict(st,task,w){
     const finish=ok=>{
       r.tries++; if(r.first===null)r.first=ok;
       if(ok){beep(true);A.mark(true);$("#fb").innerHTML=`<div class="fb ok">Correct! <b style="font:28px var(--word)">${esc(w.w)}</b></div>`;say(w.w);autoNext(1100);return;}
-      beep(false);say(w.w,{slow:true});
+      beep(false);say(w.w,{slow:true}); if(r.tries===1)logEngMiss(S.mode==="ddict"?"Dictation":"Spelling",w.w,ans);
       const canRetry=r.tries<3;
       $("#fb").innerHTML=(ans!==null?`<div class="fb no">${diffHtml(ans,w.w)}</div>`:`<div class="fb no">The correct spelling: ${grid(w.w,{id:"cg"})}</div>`)+
         (canRetry?`<p class="muted">${method()==="write"?"Trace over the word once.":"Copy the correct spelling."} This word will come back later.</p>`:`<div style="margin-top:12px"><button class="btn primary big" id="go">Next</button></div>`);

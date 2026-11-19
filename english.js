@@ -29,12 +29,26 @@ const dwLeft=()=>dwPool().length;
 /* Each day: half the new words from the easiest common words (Year 1 and the first high-frequency words), half from
    the next common words (Year 2 and Years 2–3), so every day has easy wins. The harder statutory lists only come
    if a parent picks them as the start, or once the common words are all learned. */
+const DW_RICH="abundant accurate adventurous ancient anxious astonished brilliant cautious ceremony civilisation community confident consequence courageous creature curious decision delicate determined discover disguise enormous environment estimate evidence exhausted explore familiar fascinating fragile frequently generous genuine glimpse gradually habitat hesitate horizon identify immense impatient investigate journey knowledge landscape magnificent marvellous mysterious narrow nervous observe obstacle opportunity ordinary peculiar persuade precious predict protect reluctant remarkable rescue scarce separate silhouette solution suspicious temperature tremendous unexpected valuable various vibrant wander wisdom".split(" ");
+DW_STAGES.push({k:"rich",name:"Rich vocabulary (Years 5–6)",words:DW_RICH});
+/* Vocabulary level (1–4): the mix of new words. It goes up after a week with 85%+ right in word practice and
+   dictation (at least 40 answers), and down below 60%. A parent can fix it (prefs.vocabLv). Saved in eng.phon["v:level"].
+   1: 5 easiest common + 5 next common · 2: 5 next common + 5 Year 3–4 · 3: 5 Year 3–4 + 5 Year 5–6 · 4: 5 Year 5–6 + 5 rich words */
+const DW_LEVELS={1:[["y1","hf"],["hf2","y2"]],2:[["hf2","y2"],["y34"]],3:[["y34"],["y56"]],4:[["y56"],["rich"]]};
+function vocabLevel(){
+  const fixed=+((B().prefs||{}).vocabLv)||0; if(fixed)return fixed;
+  const E=B().eng, rec=(E.phon||{})["v:level"]||{lv:1}, t=today(); if(rec.date===t)return rec.lv||1;
+  let n=0,r=0; for(let k=1;k<=7;k++){const l=B().log[addDays(t,-k)]||{};n+=l.done||0;r+=l.right||0;}
+  let lv=rec.lv||1; if(n>=40&&r/n>=.85)lv=Math.min(4,lv+1); else if(n>=40&&r/n<.6)lv=Math.max(1,lv-1);
+  E.phon=E.phon||{}; E.phon["v:level"]={lv,date:t,acc:n?Math.round(r/n*100):null,u:Date.now()}; return lv;
+}
 const DW_EASY=["y1","hf"], DW_MID=["hf2","y2"];
 const DW_COMMON=new Set(DW_STAGES.filter(s=>[...DW_EASY,...DW_MID].includes(s.k)).flatMap(s=>s.words.map(w=>norm(w))));
 function dwPick(n){
   const start=(B().prefs||{}).dwStart||"y1"; if(start==="y34"||start==="y56")return dwPool().slice(0,n);
   const have=new Set(words().map(w=>norm(w.w))), from=ks=>DW_STAGES.filter(s=>ks.includes(s.k)).flatMap(s=>s.words.map(w=>({w,s:s.k}))).filter((x,i,a)=>!have.has(norm(x.w))&&a.findIndex(y=>norm(y.w)===norm(x.w))===i);
-  const easy=from(DW_EASY), mid=from(DW_MID).filter(x=>!easy.some(e=>norm(e.w)===norm(x.w))), half=Math.ceil(n/2);
+  const L=DW_LEVELS[vocabLevel()]||DW_LEVELS[1];
+  const easy=from(L[0]), mid=from(L[1]).filter(x=>!easy.some(e=>norm(e.w)===norm(x.w))), half=Math.ceil(n/2);
   let out=[...easy.slice(0,half),...mid.slice(0,n-Math.min(half,easy.length))];
   if(out.length<n)out=[...out,...dwPool().filter(x=>!out.some(o=>norm(o.w)===norm(x.w)))].slice(0,n);
   return out.slice(0,n);
@@ -51,7 +65,7 @@ function ensureDailyWords(){
   if(typeof enrich==="function")Promise.all(added.map(w=>enrich(w).catch(()=>{}))).then(()=>Store.save());
   return b.eng.daily[t];
 }
-function dailyWordObjs(t=today()){const d=B().eng.daily[t];if(!d)return [];const set=new Set(d.words.map(norm));return wordsIn(B(),t).filter(w=>set.has(norm(w.w)));}
+function dailyWordObjs(t=today()){const d=B().eng.daily[t];if(!d)return [];const set=new Set(d.words.map(norm));return wordsIn(B(),t).filter(w=>set.has(norm(w.w))||w.custom);} // a parent's words for the day are learned with them
 /* Afternoon words (Friday afternoon and the weekend, see must.js): another 10 new words (5 easy + 5 a bit harder),
    saved with the day as daily[t].pm, and a third 10 if she asks for more (daily[t].pm2). */
 function ensurePmWords(which="pm"){
@@ -129,6 +143,9 @@ const PH=[
 ];
 // a word "c[a]k[e]" -> {word:"cake", g:"a-e", mask:"c_k_"}
 const PH_BY=Object.fromEntries(PH.map(p=>[p.k,p]));
+/* the type of a phonics mistake, for the parent report */
+const PH_TYPE=k=>["tion","ture","ous","ible","ant","cial","cious","le"].includes(k)?"Word endings":["plural","double","yrule","inim","ie"].includes(k)?"Spelling rules":
+  ["k","f","s","j","sh","ch","g","wh","silent"].includes(k)?"Consonant spellings":"Vowel spellings";
 function phWord(s){
   if(s.includes("|")){ // [right|wrong|…]: this word has its own choices (rules such as doubling and plurals)
     const m=s.match(/^(.*)\[([^\]]+)\](.*)$/), ch=m[2].split("|"), word=m[1]+ch[0]+m[3];
@@ -145,7 +162,9 @@ const PH_N=20, PH_SPELL=10; // each day: 20 choose-the-letters questions and 10 
 const phAcc=k=>{const s=phStat(k);return s.n?s.r/s.n:0;};
 function phQuiz(n=PH_N,only){
   // weakest and least-practised patterns first; 2 to 3 patterns a day, a few words each
-  const ps=(only?[PH_BY[only]]:PH.slice().sort((a,b)=>(phStat(a.k).n?phAcc(a.k)+phStat(a.k).n/40:-1)-(phStat(b.k).n?phAcc(b.k)+phStat(b.k).n/40:-1)).slice(0,3));
+  const t7=[...Array(7)].map((_,k)=>(B().eng.plog||{})[addDays(today(),-k-1)]||{}), pn=t7.reduce((a,x)=>a+(x.n||0),0), pr=t7.reduce((a,x)=>a+(x.r||0),0), hard=pn>=40&&pr/pn>=.8;
+  const rank=p=>(phStat(p.k).n?phAcc(p.k)+phStat(p.k).n/40:-1)+(hard&&PH_TYPE(p.k)==="Vowel spellings"?.5:0); // accurate: harder endings and rules first
+  const ps=(only?[PH_BY[only]]:PH.slice().sort((a,b)=>rank(a)-rank(b)).slice(0,3));
   const out=[]; for(let i=0;out.length<n&&i<60;i++){const p=ps[i%ps.length];const it=shuffle(p.items)[0];if(!out.some(x=>x.it.word===it.word))out.push({p,it});}
   return shuffle(out);
 }
@@ -211,6 +230,7 @@ function phRun(st){
     st.pick=+b.dataset.g; const good=st.opts[st.pick].toLowerCase()===it.g; beep(good); if(good)st.r++;
     const E=B().eng, t=today(), s=E.phon[p.k]||{n:0,r:0}, d=E.plog[t]||{n:0,r:0};
     E.phon[p.k]={n:s.n+1,r:s.r+(good?1:0),u:Date.now()}; E.plog[t]={...d,n:d.n+1,r:d.r+(good?1:0),u:Date.now()}; Store.save();
+    if(!good)logEngMiss("Phonics: choose the letters",it.word,st.opts[st.pick],PH_TYPE(p.k),`${p.name}: chose “${st.opts[st.pick]}” instead of “${it.g}”. ${p.rule}`);
     if(!good)(st.missed=st.missed||[]).push({p,it});
     phRun(st); setTimeout(()=>say(it.word),200);});
   const nx=$("#phNext"); if(nx)nx.onclick=()=>{st.i++;st.pick=null;st.opts=null;phRun(st);};
@@ -260,7 +280,7 @@ function phSpell(st){
   const ck=$("#psCheck"); if(ck)ck.onclick=()=>{
     const good=st.input.trim().toLowerCase().replace(/’/g,"'")===it.word.toLowerCase(); st.tries++;
     if(!good&&st.tries<2){st.state="retry";beep(false);phSpell(st);setTimeout(sayIt,300);return;}
-    st.state=good?"right":"shown"; beep(good); if(good)st.r++; else {st.wrong.push({p,it});logEngMiss("Phonics: hear and spell",it.word,st.input);}
+    st.state=good?"right":"shown"; beep(good); if(good)st.r++; else {st.wrong.push({p,it});logEngMiss("Phonics: hear and spell",it.word,st.input,PH_TYPE(p.k),p.name);}
     const E=B().eng,t=today(),s=E.phon[p.k]||{n:0,r:0},d=E.plog[t]||{n:0,r:0};
     E.phon[p.k]={n:s.n+1,r:s.r+(good?1:0),u:Date.now()}; E.plog[t]={...d,sn:(d.sn||0)+1,sr:(d.sr||0)+(good?1:0),u:Date.now()}; Store.save();
     phSpell(st); if(good)setTimeout(()=>{if(EV&&EV.view==="ps"&&st.set[st.i]&&st.set[st.i].it===it&&st.state==="right"){st.i++;st.input="";st.tries=0;st.state="ask";phSpell(st);}},1100);

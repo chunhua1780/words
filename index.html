@@ -100,6 +100,7 @@
 <script src="readings.js"></script>
 <script src="illustrations.js"></script>
 <script src="readings-easy.js"></script>
+<script src="readings-science.js"></script>
 <script src="maths-bank.js"></script>
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
@@ -118,6 +119,7 @@
 <script src="english.js"></script>
 <script src="ai.js"></script>
 <script src="diary.js"></script>
+<script src="vocab.js"></script>
 <script src="must.js"></script>
 <script>
 "use strict";
@@ -333,9 +335,10 @@ async function fetchJSON(url,ms=6000){
 }
 async function enrich(word){
   const j=await fetchJSON("https://api.dictionaryapi.dev/api/v2/entries/en/"+encodeURIComponent(word.w.toLowerCase()));
-  word.enr=1;
+  word.enr=2;
   if(!Array.isArray(j))return;
   const e=j[0]; const phs=e.phonetics||[];
+  if(!word.def){const ds=(e.meanings||[]).flatMap(m=>(m.definitions||[]).map(d=>d.definition||"")).filter(d=>d.length>8&&d.length<=110); if(ds[0])word.def=ds[0];} // the meaning, for the Word meanings quiz
   const ph=e.phonetic||phs.map(p=>p.text).find(Boolean);
   if(ph&&!word.ipa)word.ipa=ph.startsWith("/")?ph:"/"+ph+"/";
   const au=phs.find(p=>p.audio&&/-uk\./.test(p.audio));
@@ -349,7 +352,7 @@ let enriching=false;
 async function enrichAll(){ // words added on the parent page are looked up here, a few at a time
   if(enriching||!Store.book)return; enriching=true;
   ensureDict();
-  const todo=words().filter(w=>!w.enr).slice(0,30);
+  const todo=words().filter(w=>!w.enr||(w.enr<2&&!w.def)).slice(0,30); // also fetch meanings for words looked up before
   for(let i=0;i<todo.length;i+=5)await Promise.all(todo.slice(i,i+5).map(enrich));
   if(todo.length){todo.forEach(w=>w.u=Date.now());Store.save();}
   enriching=false;
@@ -654,8 +657,12 @@ function viewWords(){
 const READ_GOAL=600;
 const readSecs=d=>((B().reading.log[d]||{}).secs)||0;
 const readMinutes=r=>Math.max(2,Math.round(r.text.join(" ").split(/\s+/).length/130));
+/* reading level: a parent's choice, otherwise Year 5 once the last 4 stories average 75% or more */
+function readLevel(){const p=(B().prefs||{}).readLv;if(p&&p!=="auto")return p;
+  const last=Object.values(B().reading.done).sort((a,b)=>(b.u||0)-(a.u||0)).slice(0,4);
+  return last.length>=2&&last.reduce((s,x)=>s+x.score/(x.n||5),0)/last.length>=.75?"Y5":"Y3-4";}
 function todaysReading(){
-  const R=B().reading, t=today(), ids=(R.log[t]||{}).ids||[], lv=(B().prefs||{}).readLv||"Y3-4";
+  const R=B().reading, t=today(), ids=(R.log[t]||{}).ids||[], lv=readLevel();
   if(ids.length){const last=READINGS.find(r=>r.id===ids[ids.length-1]);if(last&&!R.done[last.id])return last;}
   // the level a parent chose first (Year 3–4 by default), then the other level, then read again
   return READINGS.find(r=>r.lv===lv&&!R.done[r.id])||READINGS.find(r=>!R.done[r.id])||READINGS[Math.floor(Date.now()/864e5)%READINGS.length];
@@ -874,7 +881,8 @@ function renderQuestion(){
 }
 function finishReading(){
   const r=RD.r, t=today();
-  B().reading.done[r.id]={score:RD.score,n:r.questions.length,date:t,u:Date.now(),answers:RD.answers};
+  const sk={}; r.questions.forEach((q,i)=>{const k=q.skill||"Other",o=sk[k]=sk[k]||[0,0];o[1]++;if(RD.answers[i])o[0]++;}); // per reading skill, for the parent report
+  B().reading.done[r.id]={score:RD.score,n:r.questions.length,date:t,u:Date.now(),answers:RD.answers,kind:r.kind||"",title:r.title||"",lv:r.lv||"",sk};
   RD.phase="result"; Store.save(); renderReader();
 }
 function renderReadResult(){

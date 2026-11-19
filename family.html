@@ -55,6 +55,7 @@ function cuGet(t){return dayOf("test-"+t);}
 </script>
 <script src="ai.js"></script>
 <script src="diary.js"></script>
+<script src="report.js"></script>
 <script src="must.js"></script>
 <script>
 const SITES={y5:{label:"Year 5 site (Wendy)",parent:"https://chunhua1780.github.io/words/parent.html",kid:"https://chunhua1780.github.io/words/",kc:"var(--c-pink)",
@@ -109,6 +110,7 @@ function kidCard0(a,i){
       return `<details ${k===0&&H.some(x=>!x.ok)?"":""}><summary><b>${["今天 Today","昨天 Yesterday","前天"][k]} · ${H.length} questions</b> <span class="muted small">· ${r}/${H.length} right · ${H.length-r} wrong</span></summary>
         <div class="hist-list">${H.map(x=>`<div class="hist-row ${x.ok?"ok":"bad"}"><span class="hist-mk">${x.ok?"✓":"✗"}</span><div class="grow"><div>${esc(x.q)}</div><div class="small">孩子的答案: <b class="${x.ok?"":"hist-wrong"}">${esc(x.v||"(blank)")}</b>${x.ok?"":` · 正确答案: <b class="hist-right">${esc(x.a)}</b>`} <span class="muted tiny">· ${esc(x.s)} ${esc(x.tm||"")}</span></div></div></div>`).join("")}</div></details>`;}).join("")}
     ${(()=>{const r=Object.entries(((b.eng||{}).ai)||{}).filter(([k])=>k.startsWith("report-")).sort((x,y)=>x[0]<y[0]?1:-1)[0];return r?`<details class="no-zh"><summary><b>AI 学习报告 · ${esc(shortDate(r[0].slice(7)))}</b></summary><div class="ai-md">${aiMd(r[1].text)}</div></details>`:"";})()}
+    <details class="fam-rp"><summary><b>学习报告 · Learning report</b> <span class="muted small">scores, trends, what to do next</span></summary>${reportHtml(b,{short:true})}<div class="muted small">完整报告（错题、阅读、日记全文）在 <a href="${S.parent}">家长页</a>。</div></details>
     <div><b>Last 7 days</b> <span class="muted small">minutes a day · maths % right</span>
       <div class="bar7">${days.map(d=>`<div title="${d}: ${mins(tot(d))} min"><span>${mins(tot(d))}</span><i style="height:${tot(d)/mx*100}%"></i><span>${(ml[d]||{}).n?pct(ml[d].r,ml[d].n):"–"}</span><span>${d===t?"Today":WEEK[pdate(d).getDay()]}</span></div>`).join("")}</div></div>
     <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${S.parent}">Full parent page · 设置今日必做</a><a class="btn ghost" href="${S.kid}">Child’s page</a></div>
@@ -125,7 +127,7 @@ function render(){
         <input data-f="user" data-i="${i}" value="${esc(a.user)}" placeholder="Username" autocapitalize="none" autocorrect="off"><input data-f="pass" data-i="${i}" value="${esc(a.pass)}" placeholder="Password" type="text" autocapitalize="none" autocorrect="off"></div>`).join("")}</div>
       <div class="row" style="gap:8px"><button class="btn primary" id="fSave">Save and load</button><button class="btn" id="fDev">用这台设备上已登录的账号</button></div><div class="muted small">用户名不分大小写；密码要和孩子登录时完全一样。</div></div>`:""}
     ${ok?`<div class="fam-grid">${ACC.map(kidCard).join("")}</div>`:`<div class="card muted">Tap “Accounts” and enter both children’s logins.</div>`}`;
-  document.getElementById("fRefresh").onclick=loadAll;
+  document.getElementById("fRefresh").onclick=loadAll; reportBind(document.getElementById("app"));
   document.getElementById("fEdit").onclick=()=>{editing=!editing;render();};
   const sv=document.getElementById("fSave");
   if(sv)sv.onclick=()=>{document.querySelectorAll("[data-f]").forEach(e=>{ACC[+e.dataset.i][e.dataset.f]=e.value.trim();});

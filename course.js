@@ -162,7 +162,7 @@ function cLesson(){
     body.querySelectorAll(".ps-kbd [data-k]").forEach(b=>b.onpointerdown=e=>{e.preventDefault();const k=b.dataset.k;CL.input=k==="⌫"?CL.input.slice(0,-1):(CL.input+k).slice(0,24);cLesson();});
     const ck=$("#cCheck"); if(ck)ck.onclick=()=>{const good=CL.input.trim().toLowerCase()===it.word.toLowerCase()&&CL.boxOk;const wordOk=CL.input.trim().toLowerCase()===it.word.toLowerCase();
       CL.state=wordOk?"right":"shown";beep(wordOk);if(good)CL.sr=(CL.sr||0)+1;score(good);
-      if(!wordOk){logEngMiss("Phonics lesson",it.word,CL.input);if(typeof diaryAddWords==="function")diaryAddWords([it.word]);}cLesson();};
+      if(!wordOk){logEngMiss("Phonics lesson",it.word,CL.input,c.g.includes("-")?"Split vowels":(SOUND_BY[c.k]||{}).g||"",`Today’s letters “${c.g}” make /${(SOUND_BY[c.k]||{}).l||c.k}/.`);if(typeof diaryAddWords==="function")diaryAddWords([it.word]);}cLesson();};
     const nw=$("#cNextW"); if(nw)nw.onclick=()=>{CL.i++;CL.tiles=null;CL.used=[];cLesson();};
     return;
   }

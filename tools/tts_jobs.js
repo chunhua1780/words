@@ -9,7 +9,7 @@ const hash=t=>{t=key(t);let h=0x811c9dc5;for(let i=0;i<t.length;i++){h^=t.charCo
 const slug=w=>String(w).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 global.window={};global.document={addEventListener(){},createElement(){return {}},head:{appendChild(){}}};
 const load=f=>{if(fs.existsSync(path.join(repo,f)))return fs.readFileSync(path.join(repo,f),'utf8').replace(/"use strict";/g,'');return '';};
-let READ=[]; eval(load('readings.js')+load('readings-easy.js')+';READ=READINGS;');
+let READ=[]; eval(load('readings.js')+load('readings-easy.js')+load('readings-science.js')+';READ=READINGS;');
 const words=new Set(), sents=new Set();
 const addW=w=>{w=String(w||"").trim().replace(/’/g,"'");if(/^[A-Za-z][A-Za-z' -]{0,30}$/.test(w))words.add(w);};
 const addS=s=>{s=key(s);if(s&&s.length>3)sents.add(s);};

@@ -60,6 +60,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="core.js"></script>
 <script src="readings.js"></script>
 <script src="readings-easy.js"></script>
+<script src="readings-science.js"></script>
 <script src="maths-bank.js"></script>
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
@@ -70,8 +71,10 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="sounds.js"></script>
 <script src="phonics-course.js"></script>
 <script src="course.js"></script>
+<script src="vocab.js"></script>
 <script src="ai.js"></script>
 <script src="diary.js"></script>
+<script src="report.js"></script>
 <script src="must.js"></script>
 <script src="facts.js"></script>
 <script>
@@ -157,8 +160,8 @@ function englishBlock(){
       <div class="row" style="gap:14px;flex-wrap:wrap">
         <label class="muted small">How many: ${sel("dwN",P.dwN||10,[5,6,8,10].map(n=>[n,n+" words"]))}</label>
         <label class="muted small">Start from: ${sel("dwStart",P.dwStart||"y1",[["y1","Common words: 5 easy + 5 a bit harder (recommended)"],["y34","Year 3–4 statutory list"],["y56","Year 5–6 statutory list"]])}</label>
-        <label class="muted small">Reading level: ${sel("readLv",P.readLv||"Y3-4",[["Y3-4","Year 3–4 (easier)"],["Y5","Year 5"]])}</label>
-        <label class="muted small">Diary length: ${sel("diaryWords",P.diaryWords||60,[40,60,80,100,120].map(n=>[n,"at least "+n+" words"]))}</label>
+        <label class="muted small">Reading level: ${sel("readLv",P.readLv||"auto",[["auto","Automatic (harder once she scores 75%+)"],["Y3-4","Year 3–4 (easier)"],["Y5","Year 5 and science"]])}</label>
+        <label class="muted small">Diary length: ${sel("diaryWords",P.diaryWords||80,[40,60,80,100,120].map(n=>[n,"at least "+n+" words"]))}</label>
       </div>
       <div class="muted small">New words come from the National Curriculum spelling lists, in order, skipping words she already has. Every word comes back for dictation after 1, 2, 4, 7, 15, 30 and 60 days; a mistake brings it back the next day.</div>
     </div>
@@ -238,7 +241,9 @@ function viewDash(){
   if(planOpen>planDate)planOpen=planDate;
   return `<div class="stack">
     <div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${esc(b.name)}</h1></div>
+    <div class="card stack">${reportHtml(B())}</div>
     ${mustParent()}
+    ${customWordsBlock()}
     ${aiParent()}
     ${histBlock()}
     ${diaryParent()}
@@ -326,7 +331,7 @@ async function readDocFile(f){
 }
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
-  histBind(); diaryParentBind(); aiParentBind();
+  histBind(); diaryParentBind(); aiParentBind(); customWordsBind(); reportBind();
   const nfs=$("#nfLevelSel"); if(nfs)nfs.onchange=()=>{setPref("nfLevel",+nfs.value);render();};
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});

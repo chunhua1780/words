@@ -304,8 +304,8 @@ document.addEventListener("pointerdown",e=>{
 },{capture:true,passive:true});
 
 /* English spelling mistakes of the day, for the parent page: {k: kind, w: the word, v: what was written} */
-function logEngMiss(kind,word,given){
+function logEngMiss(kind,word,given,etype,why){
   const b=typeof Store!=="undefined"&&Store.book; if(!b||!b.eng)return;
   const t=today(), E=b.eng; E.plog=E.plog||{}; const d=E.plog[t]||{n:0,r:0}, mk=(d.mk||[]).slice(-79);
-  mk.push({k:kind,w:String(word).slice(0,40),v:String(given==null?"":given).slice(0,40)}); E.plog[t]={...d,mk,u:Date.now()};
+  mk.push({k:kind,w:String(word).slice(0,40),v:String(given==null?"":given).slice(0,60),...(etype?{e:String(etype).slice(0,40)}:{}),...(why?{y:String(why).slice(0,160)}:{})}); E.plog[t]={...d,mk,u:Date.now()};
 }

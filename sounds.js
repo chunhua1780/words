@@ -129,6 +129,7 @@ function sqRun(st){
   body.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>{st.pick=+b.dataset.o;const good=q.opts[st.pick]===q.ans;beep(good);if(good)st.r++;
     const E=B().eng,t=today(),s=E.phon["s:"+q.s.k]||{n:0,r:0},d=E.plog[t]||{n:0,r:0};
     E.phon["s:"+q.s.k]={n:s.n+1,r:s.r+(good?1:0),u:Date.now()};E.plog[t]={...d,cn:(d.cn||0)+1,cr:(d.cr||0)+(good?1:0),u:Date.now()};Store.save();
+    if(!good)logEngMiss("Phonics: sounds",q.w,q.opts[st.pick],q.s.g,`/${q.s.l}/ is written ${q.gr} in “${q.w}”; chose “${q.opts[st.pick]}”.`);
     sqRun(st);setTimeout(play,200);});
   const nx=$("#sqNext"); if(nx)nx.onclick=()=>{st.i++;st.pick=null;sqRun(st);};
 }

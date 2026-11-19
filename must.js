@@ -21,20 +21,25 @@ const MUST_ALL={
   fix:    {icon:"check",    min:10, t:"Fix my mistakes",    tz:"错题重做"},
   facts:  {icon:"star",     min:10,  t:"Number facts (table)",tz:"口诀表口算"},
   calc:   {icon:"maths",    min:10, t:"Division & fractions",tz:"笔算：除法和分数"},
+  vocab:  {icon:"book",     min:5,  t:"Word meanings",      tz:"词义练习"},
+  science:{icon:"sparkle",  min:15, t:"Science reading",    tz:"科学阅读"},
   words2: {icon:"sparkle",  min:15, t:"Afternoon new words",tz:"下午的新单词"},
   round:  {icon:"maths",    min:10, t:"Rounding practice",  tz:"四舍五入练习"},
   fracs:  {icon:"layers",   min:10, t:"Fractions + − × ÷",  tz:"分数加减乘除"},
   ftest:  {icon:"doc",      min:10, t:"Spelling test words",tz:"听写测验单词"},
 };
-const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","write","maths","test","formula","paper","fix"]:["words","dict","phonics","read","write","maths","facts","calc","test","fix"];
+const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","vocab","read","science","write","maths","test","formula","paper","fix"]:["words","dict","vocab","phonics","read","science","write","maths","facts","calc","test","fix"];
 /* the next spelling test (a word list marked as a test, e.g. every Friday), if one is open to practise */
 function nextTestList(t=today()){
   const b=B(); if(!b||!b.lists)return null;
   return Object.values(b.lists).filter(l=>l.test&&l.date>=t&&listOpen(l)&&wordsIn(b,l.date).length).sort((a,c)=>a.date<c.date?-1:1)[0]||null;
 }
 /* Until a parent saves their own choice, a default must-do list is on (no lock) so the child always sees today's tasks */
-const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","words","read","write","fix"]:["words","dict","phonics","read","write","maths","facts","calc"];
-const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];return c;}; // a coming spelling test is always first
+const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","words","vocab","read","write","fix"]:["words","dict","vocab","phonics","read","write","maths","facts","calc"];
+const scienceDay=(d=new Date())=>[1,3,5].includes(d.getDay());
+const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];
+  if(c.on&&scienceDay()&&!c.items.includes("science")){const i=c.items.indexOf("read");c.items=i<0?[...c.items,"science"]:[...c.items.slice(0,i+1),"science",...c.items.slice(i+1)];}
+  return c;}; // a coming spelling test is always first
 const mustCfg0=()=>{const m=(B().prefs||{}).must;
   if(!m||typeof m!=="object"||!("on" in m))return {on:true,mode:"every",date:"",items:MUST_DEFAULT(),lock:false,auto:true}; // a reminder, not a lock: the rest of the app stays open
   return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items:(m.items||[]).filter(k=>mustSite().includes(k)),lock:m.lock!==false};};
@@ -46,7 +51,7 @@ function mustStatus(k,t=today()){
   const b=B(), acc=(r,n)=>n?{r,n}:null;
   if(k==="words"){
     const d=(b.eng||{}).daily&&b.eng.daily[t];
-    if(d){const set=new Set(d.words.map(norm)),ws=Object.values(b.words).filter(w=>w.list===t&&set.has(norm(w.w))),l=ws.filter(w=>w.stage>0).length;
+    if(d){const set=new Set(d.words.map(norm)),ws=Object.values(b.words).filter(w=>w.list===t&&(set.has(norm(w.w))||w.custom)),l=ws.filter(w=>w.stage>0).length;
       return {done:ws.length>0&&l===ws.length,p:ws.length?l/ws.length:0,sub:`${l} of ${ws.length} learned`,acc:acc((b.log[t]||{}).right||0,(b.log[t]||{}).done||0)};}
     const lg=b.log[t]||{};return {done:(lg.done||0)>=10,p:Math.min(1,(lg.done||0)/10),sub:`${lg.done||0} of 10 words practised`,acc:acc(lg.right||0,lg.done||0)};
   }
@@ -70,6 +75,8 @@ function mustStatus(k,t=today()){
   if(k==="paper"&&typeof ppKey==="function"){const d=typeof dayOf==="function"?dayOf(ppKey(t)):null,a=d?Object.values(d.ans||{}):[],n=d?d.ids.length:16;
     return {done:!!d&&a.length>=n,p:Math.min(1,a.length/n),sub:`${a.length} of ${n} questions${a.length?` · ${a.filter(x=>x.ok).length} right`:""}`,acc:acc(a.filter(x=>x.ok).length,a.length)};}
   if(k==="formula"||k==="paper"){const g=mLog((k==="formula"?"fm:":"pp:")+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
+  if(k==="vocab"){const d=((b.eng||{}).plog||{})[t]||{};return {done:(d.vn||0)>=10,p:Math.min(1,(d.vn||0)/10),sub:`${Math.min(10,d.vn||0)} of 10 · what words mean`,acc:acc(d.vr||0,d.vn||0)};}
+  if(k==="science"){const s=Object.values((b.reading||{}).done||{}).filter(x=>x.date===t&&x.kind==="Science");return {done:s.length>0,p:s.length?1:0,sub:s.length?`${s[0].title||"Article"} · ${s[0].score}/${s[0].n}`:"One science article and its questions",acc:s.length?acc(s[0].score,s[0].n):null};}
   if(k==="words2"){const d=((b.eng||{}).daily||{})[t]||{}, set=new Set([...(d.pm||[]),...(d.pm2||[])].map(norm)), ws=Object.values(b.words).filter(w=>w.list===t&&set.has(norm(w.w))), l=ws.filter(w=>w.stage>0).length;
     return {done:ws.length>0&&l===ws.length,p:ws.length?l/ws.length:0,sub:ws.length?`${l} of ${ws.length} learned`:"10 more new words: 5 easy, 5 a bit harder",acc:null};}
   if(k==="round"){const g=mLog("rd:"+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
@@ -111,6 +118,8 @@ function mustLaunch(k){
   if(k==="formula")return openMaths({kind:"topic",topic:"Formula quiz",ids:fmSet()});
   if(k==="paper")return typeof openPaperDaily==="function"?openPaperDaily():openMaths({kind:"topic",topic:"Test paper: mixed",ids:paperSet("mix")});
   if(k==="facts")return openDrill();
+  if(k==="vocab")return openVocab();
+  if(k==="science"){const R=B().reading.done,sc=READINGS.filter(r=>r.kind==="Science"),next=sc.find(r=>!R[r.id])||sc.slice().sort((a,b)=>((R[a.id]||{}).u||0)-((R[b.id]||{}).u||0))[0];if(next)return openReader(next.id);return;}
   if(k==="words2"){ensurePmWords("pm");const ws=[...pmWordObjs("pm"),...pmWordObjs("pm2")],f=ws.filter(w=>w.stage===0);
     if(f.length)return startSession("learn",f.map(w=>w.id),{listDate:t});if(ws.length)return startSession("full",ws.map(w=>w.id),{listDate:t});return;}
   if(k==="round")return openMaths({kind:"topic",topic:"Rounding · 四舍五入",ids:topicSet("Rounding"),xk:"rd"});
@@ -217,6 +226,7 @@ function mustSection(){
     return MS.kind==="test"?"test":MS.kind==="day"?"maths":String(id).startsWith("g:fm:")?"formula":/^g:(?!rv)/.test(id)?"paper":"practice";}
   if(vis("diaryOv"))return "write";
   if(vis("drillOv"))return "facts";
+  if(vis("vocabOv"))return "vocab";
   if(vis("reader"))return "read";
   if(vis("eng"))return typeof EV!=="undefined"&&EV&&EV.view==="diary"?"write":"phonics";
   if(vis("shapes"))return "formula";

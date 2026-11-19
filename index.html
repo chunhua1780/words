@@ -468,7 +468,7 @@ $("#kid").onclick=()=>{
   b.classList.remove("warn");Store.logout(); selDate=null; authErr=""; render();
 };
 Store.onStatus=s=>{const c=$("#sync");c.innerHTML=s&&SYNC_TEXT[s]?`<i class="dot"></i>${SYNC_TEXT[s]}`:"";c.hidden=!Store.user||!SYNC_TEXT[s];c.className="chip "+(s==="saved"?"ok":/error|auth/.test(s)?"warn":"");};
-Store.onRemote=()=>{if(!S&&!RD&&!MS)render();enrichAll();};
+Store.onRemote=()=>{if(!S&&!RD&&!MS)render();enrichAll();if(typeof aiCatchUp==="function")setTimeout(aiCatchUp,8000);};
 
 function render(){
   const logged=!!Store.book;
@@ -507,7 +507,7 @@ function bindLogin(){
     const u=$("#aUser").value.trim(), p=$("#aPass").value;
     if(authMode==="create"&&p!==$("#aPass2").value){$("#aErr").textContent="The two passwords are different.";return;}
     const btn=$("#aGo"); btn.disabled=true; btn.textContent="Please wait…";
-    try{await Store.open(u,p,authMode==="create");selDate=null;authErr="";tab="today";render();enrichAll();}
+    try{await Store.open(u,p,authMode==="create");selDate=null;authErr="";tab="today";render();enrichAll();setTimeout(()=>{if(typeof aiCatchUp==="function")aiCatchUp();},8000);}
     catch(err){authErr=authMsg(err);render();$("#aUser").value=u;}
   };
 }
@@ -1509,7 +1509,7 @@ render();
 (async()=>{
   const s=loadSession();
   if(!s)return;
-  try{await Store.open(s.user,s.pass,false);if(tab==="login")tab="today";render();enrichAll();}
+  try{await Store.open(s.user,s.pass,false);if(tab==="login")tab="today";render();enrichAll();setTimeout(()=>{if(typeof aiCatchUp==="function")aiCatchUp();},8000);}
   catch(e){authErr=e.message==="bad_login"?"Please log in again.":authMsg(e);if(e.message==="bad_login")clearSession();render();}
 })();
 </script>

@@ -8,7 +8,7 @@
      and Gemini writes a report in Chinese for the parent: weak question types with examples, signs of guessing or
      skipping, and what to practise next. Saved in book.eng.ai["report-<date>"].
    Everything sent is study data only (no names other than the account's first name, no passwords). */
-const AI_MODELS=["gemini-3.5-flash","gemini-3.8-flash","gemini-flash-latest","gemini-3.1-flash-lite"]; // newest first; a busy or missing model falls through to the next
+const AI_MODELS=["gemini-3.5-flash","gemini-3.1-flash-lite","gemini-3.8-flash","gemini-flash-latest"]; // newest first; a busy or missing model falls through to the next
 const aiCfg=()=>((B()||{}).prefs||{}).ai||{};
 const aiReady=()=>!!aiCfg().key;
 async function aiCall(system,prompt,json){
@@ -16,7 +16,7 @@ async function aiCall(system,prompt,json){
   let last=null; const tried=[...new Set([c.model,(()=>{try{return localStorage.getItem("ai-model");}catch(e){return null;}})(),...AI_MODELS].filter(Boolean))];
   for(const m of tried){
     let r; try{
-      const ac=new AbortController(); setTimeout(()=>ac.abort(),60000);
+      const ac=new AbortController(); setTimeout(()=>ac.abort(),30000); // a model that hangs (Google busy) is skipped after 30 s
       r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{method:"POST",signal:ac.signal,
         headers:{"Content-Type":"application/json","x-goog-api-key":c.key},
         body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:prompt}]}],
@@ -121,4 +121,15 @@ function aiParentBind(){
   const off=$("#aiOff"); if(off)off.onclick=()=>{if(!confirm("移除 Google AI Key？"))return;const b=B();const p={...b.prefs};delete p.ai;b.prefs={...p,u:Date.now()};Store.save();AI_MSG="";render();};
   const rp=$("#aiRep"); if(rp)rp.onclick=async()=>{AI_BUSY="rep";AI_MSG="";render();try{await aiReport();AI_MSG="";}catch(e){AI_MSG=aiErr(e);}AI_BUSY="";render();};
   document.querySelectorAll("[data-aidiary]").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="AI 正在看…";try{await aiDiary(b.dataset.aidiary);}catch(e){AI_MSG=aiErr(e);}render();});
+}
+
+/* Diaries handed in while Google AI was busy or offline get their mark later: one at a time, a little after the app opens. */
+let AI_CATCHING=false;
+async function aiCatchUp(){
+  if(AI_CATCHING||!aiReady()||window.__busy)return; AI_CATCHING=true;
+  try{
+    const E=B().eng, since=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
+    const todo=Object.entries(E.diary||{}).filter(([k,v])=>k>=since&&v&&v.done&&v.text&&!v.ai&&(!v.aiTry||Date.now()-v.aiTry>3600e3)).map(([k])=>k).sort().slice(0,2);
+    for(const k of todo){E.diary[k]={...E.diary[k],aiTry:Date.now()}; try{await aiDiary(k);}catch(e){break;}}
+  }finally{AI_CATCHING=false;}
 }

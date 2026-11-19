@@ -8,7 +8,7 @@
      and Gemini writes a report in Chinese for the parent: weak question types with examples, signs of guessing or
      skipping, and what to practise next. Saved in book.eng.ai["report-<date>"].
    Everything sent is study data only (no names other than the account's first name, no passwords). */
-const AI_MODELS=["gemini-2.5-flash","gemini-flash-latest","gemini-2.0-flash"];
+const AI_MODELS=["gemini-3.5-flash","gemini-3.8-flash","gemini-flash-latest","gemini-3.1-flash-lite"]; // newest first; a busy or missing model falls through to the next
 const aiCfg=()=>((B()||{}).prefs||{}).ai||{};
 const aiReady=()=>!!aiCfg().key;
 async function aiCall(system,prompt,json){
@@ -24,6 +24,7 @@ async function aiCall(system,prompt,json){
     }catch(e){last=new Error("offline");continue;}
     const j=await r.json().catch(()=>null);
     if(r.status===404||r.status===400&&/not found|not supported/i.test(JSON.stringify(j||""))){last=new Error("model "+m+" not available");continue;}
+    if(r.status===503||r.status===429||r.status===500){last=new Error("Google AI is busy, try again in a minute.");continue;}
     if(!r.ok){const msg=(j&&j.error&&j.error.message)||("HTTP "+r.status);throw new Error(r.status===400&&/API key/i.test(msg)?"bad_key":msg);}
     const text=(((j||{}).candidates||[])[0]||{}).content?.parts?.map(p=>p.text||"").join("")||"";
     try{localStorage.setItem("ai-model",m);}catch(e){}
@@ -106,13 +107,13 @@ function aiParent(){
     ${c.key?`<div class="muted small">每天的日记交上去后会自动打分点评。点下面的按钮，AI 会根据最近14天的数据写一份学习报告：哪些题型经常错、有没有乱按、日记有没有进步、下周练什么。</div>
       <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="aiRep" ${AI_BUSY?"disabled":""}>${AI_BUSY==="rep"?"正在生成报告…（约半分钟）":"生成学习报告（最近14天）"}</button></div>`
      :`<div class="muted small">粘贴一个 Google Gemini API Key 就能开通：日记自动打分点评、AI 学习报告。获取方法：用谷歌账号打开 <b>aistudio.google.com</b> → 左下角 <b>Get API key</b> → <b>Create API key</b> → 复制。两个孩子的家长页各粘贴一次。Key 保存在孩子的账号设置里，孩子的设备也能用它给日记打分。</div>
-      <div class="row" style="gap:8px;flex-wrap:wrap"><input id="aiKey" class="plain" placeholder="AIza…" autocomplete="off" autocapitalize="none" spellcheck="false" style="flex:1;min-width:220px"><button class="btn primary" id="aiSave">保存并测试</button></div>`}
+      <div class="row" style="gap:8px;flex-wrap:wrap"><input id="aiKey" class="plain" placeholder="AIza… 或 AQ.…" autocomplete="off" autocapitalize="none" spellcheck="false" style="flex:1;min-width:220px"><button class="btn primary" id="aiSave">保存并测试</button></div>`}
     ${AI_MSG?`<div class="notice">${esc(AI_MSG)}</div>`:""}
     ${reps.length?reps.slice(0,4).map(([k,v],i)=>`<details class="ai-rep" ${i===0?"open":""}><summary><b>${esc(niceDate(k.slice(7)))}</b> 的学习报告</summary><div class="ai-md">${aiMd(v.text)}</div></details>`).join(""):""}
   </div>`;
 }
 function aiParentBind(){
-  const sv=$("#aiSave"); if(sv)sv.onclick=async()=>{const k=$("#aiKey").value.trim(); if(!/^[A-Za-z0-9_\-]{20,}$/.test(k)){AI_MSG="这看起来不像 API Key，请重新复制。";render();return;}
+  const sv=$("#aiSave"); if(sv)sv.onclick=async()=>{const k=$("#aiKey").value.trim(); if(!/^[A-Za-z0-9_.\-]{20,}$/.test(k)){AI_MSG="这看起来不像 API Key，请重新复制。";render();return;}
     const b=B(); b.prefs={...b.prefs,ai:{key:k},u:Date.now()}; AI_MSG="正在测试…"; render();
     try{await aiCall("Reply with the single word OK.","Say OK.",false);AI_MSG="接入成功！之后交的日记会自动打分点评。";Store.save();}
     catch(e){AI_MSG="测试没有通过："+aiErr(e)+"（Key 没有保存）";const b2=B();const p={...b2.prefs};delete p.ai;b2.prefs={...p,u:Date.now()};Store.save();}

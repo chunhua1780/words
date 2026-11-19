@@ -75,6 +75,8 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="ai.js"></script>
 <script src="diary.js"></script>
 <script src="report.js"></script>
+<script src="plan.js"></script>
+<script src="weekly.js"></script>
 <script src="must.js"></script>
 <script src="facts.js"></script>
 <script>
@@ -242,6 +244,8 @@ function viewDash(){
   return `<div class="stack">
     <div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${esc(b.name)}</h1></div>
     <div class="card stack">${reportHtml(B())}</div>
+    ${planParent()}
+    ${schoolWordsBlock()}
     ${mustParent()}
     ${customWordsBlock()}
     ${aiParent()}
@@ -331,7 +335,7 @@ async function readDocFile(f){
 }
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
-  histBind(); diaryParentBind(); aiParentBind(); customWordsBind(); reportBind();
+  histBind(); diaryParentBind(); aiParentBind(); customWordsBind(); reportBind(); planParentBind(); schoolWordsBind();
   const nfs=$("#nfLevelSel"); if(nfs)nfs.onchange=()=>{setPref("nfLevel",+nfs.value);render();};
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});
@@ -372,7 +376,7 @@ function bind(){
   document.querySelectorAll("[data-dellist]").forEach(b=>b.onclick=()=>{
     if(!b.classList.contains("danger")){b.classList.add("danger");b.textContent="Tap again to delete this list";setTimeout(()=>{if(document.body.contains(b)){b.classList.remove("danger");b.textContent="Delete list";}},3500);return;}
     deleteList(B(),b.dataset.dellist);Store.save();render();});
-  const fm=$("#fixMust"); if(fm)fm.onclick=()=>{const b=B(),m=mustCfg(),items=mustSite().filter(k=>k==="fix"||m.items.includes(k));b.prefs={...b.prefs,must:{...m,on:true,mode:m.on?m.mode:"every",items:m.on?items:items.length>1?items:["maths","fix"]},u:Date.now()};if(b.prefs.must.mode==="today")b.prefs.must.date=today();Store.save();render();};
+  const fm=$("#fixMust"); if(fm)fm.onclick=()=>{const b=B(),m=mustCfg0(),items=mustSite().filter(k=>k==="fix"||m.items.includes(k));b.prefs={...b.prefs,must:{...m,on:true,mode:m.on?m.mode:"every",items:m.on?items:items.length>1?items:["maths","fix"]},u:Date.now()};if(b.prefs.must.mode==="today")b.prefs.must.date=today();Store.save();render();};
   const pf=$("#pwForm");
   if(pf)pf.onsubmit=async e=>{
     e.preventDefault();const a=$("#pw1").value.trim(),c=$("#pw2").value.trim();

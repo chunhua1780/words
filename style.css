@@ -1112,3 +1112,24 @@ html:not(.zh-on) .zh{display:none}
 .rp-diary{padding:10px 0;border-bottom:1px solid color-mix(in srgb,var(--fg) 8%,transparent)}
 .rp details summary,.fam-rp summary{cursor:pointer;padding:6px 0}
 @media (max-width:620px){.rp-table th,.rp-table td{padding:6px 3px;font-size:13px}.rp-score b{font-size:20px}}
+
+/* 本周学习计划 · weekly plan, and 每周必备单词 · school words of the week */
+.plan-goals{background:var(--orange-soft,#fff4e5);border-radius:14px;padding:10px 14px;font-size:.95rem;text-align:left}
+.plan-goals ul{margin:6px 0 0;padding-left:20px}.plan-goals li{margin:3px 0}
+.plan-goals .tz{display:block;color:var(--muted);font-size:.85em}
+.plan-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.plan-table th,.plan-table td{border-bottom:1px solid var(--line,#e5e5ea);padding:7px 6px;text-align:left;vertical-align:top}
+.plan-table td small{display:block;color:var(--muted)}
+.plan-card .ai-out h4{margin:10px 0 4px}.plan-card .ai-out ul{margin:0;padding-left:20px}
+.sw-list{display:flex;flex-direction:column;gap:8px}
+.sw-row{display:grid;grid-template-columns:minmax(125px,1.3fr) minmax(70px,.8fr) minmax(120px,2fr) minmax(140px,3fr) auto;gap:6px;align-items:center}
+.sw-row input{min-width:0}.sw-row .sw-w{font-weight:700}
+.sw-note{grid-column:1/-1;font-size:.8rem;color:var(--orange,#c25e00)}
+.sw-hist{display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.sw-week{border:1px solid var(--line,#e5e5ea);border-radius:12px;padding:8px 10px}
+.sw-words{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.sw-chip{background:var(--soft,#f2f2f7);border-radius:10px;padding:4px 8px;font-weight:600}
+.sw-chip small{display:block;font-weight:400;color:var(--muted);font-size:.72rem}
+.sw-chip.ok{background:var(--green-soft,#e3f6e8)}.sw-chip.bad{background:var(--red-soft,#fde8e8)}
+@media (max-width:640px){.sw-row{grid-template-columns:1fr 1fr auto}.sw-row .sw-ex,.sw-row [data-f="def"]{grid-column:1/-1}}
+@media (max-width:640px){.sw-row [data-swdel]{grid-row:1;grid-column:3}}

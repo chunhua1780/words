@@ -131,5 +131,6 @@ async function aiCatchUp(){
     const E=B().eng, since=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
     const todo=Object.entries(E.diary||{}).filter(([k,v])=>k>=since&&v&&v.done&&v.text&&!v.ai&&(!v.aiTry||Date.now()-v.aiTry>3600e3)).map(([k])=>k).sort().slice(0,2);
     for(const k of todo){E.diary[k]={...E.diary[k],aiTry:Date.now()}; try{await aiDiary(k);}catch(e){break;}}
+    if(typeof aiPlanAuto==="function")await aiPlanAuto();
   }finally{AI_CATCHING=false;}
 }

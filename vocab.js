@@ -9,13 +9,13 @@ function vmWords(){
   const ws=Object.values(B().words).filter(w=>w.def&&String(w.def).length>8&&w.w.length>=4&&/^[a-z' -]+$/i.test(w.w));
   return ws.sort((a,b)=>(b.stage>0)-(a.stage>0)||(a.last||"")<(b.last||"")?-1:1);
 }
-function vmSet(){
-  const ws=vmWords(); if(ws.length<4)return [];
-  const pick=shuffle(ws.slice(0,40)).slice(0,VM_N), out=[];
+function vmSet(ids){
+  const all=vmWords(), only=ids?all.filter(w=>ids.includes(w.id)):null, ws=only&&only.length>=1?[...only,...all.filter(w=>!ids.includes(w.id))]:all; if(ws.length<4)return [];
+  const pick=only&&only.length?shuffle(only).slice(0,VM_N):shuffle(ws.slice(0,40)).slice(0,VM_N), out=[];
   pick.forEach((w,i)=>{
     const others=shuffle(ws.filter(x=>x!==w)).slice(0,3);
     const re=new RegExp("\\b"+w.w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","i");
-    if(i%2&&w.ex&&re.test(w.ex))out.push({type:"gap",w,q:w.ex.replace(re,"_____"),opts:shuffle([w.w,...others.map(x=>x.w)]),ans:w.w});
+    if((i%2||w.school)&&w.ex&&re.test(w.ex)&&!(w.school&&i%2))out.push({type:"gap",w,q:w.ex.replace(re,"_____"),opts:shuffle([w.w,...others.map(x=>x.w)]),ans:w.w});
     else out.push({type:"mean",w,q:`What does “${w.w}” mean?`,opts:shuffle([w.def,...others.map(x=>x.def)]),ans:w.def});
   });
   return out;
@@ -26,8 +26,8 @@ function vmEl(){
   el.innerHTML=`<div class="s-top"><button class="icon-btn" id="vmClose" aria-label="Close">${ic("x")}</button><span class="s-label">Word meanings · 词义</span><span class="muted small" id="vmProg" style="margin-left:auto"></span></div><div class="s-body" id="vmBody"></div>`;
   document.body.appendChild(el); el.querySelector("#vmClose").onclick=closeVocab; return el;
 }
-function openVocab(){
-  const set=vmSet(); window.__busy=true; vmEl().hidden=false; document.body.style.overflow="hidden";
+function openVocab(ids){
+  const set=vmSet(Array.isArray(ids)?ids:null); window.__busy=true; vmEl().hidden=false; document.body.style.overflow="hidden";
   VM={set,i:0,r:0,pick:null};
   if(!set.length){$("#vmBody").innerHTML=`<div class="m-q m-results"><h2>Not enough words with meanings yet</h2><p class="muted">Learn some new words first (their meanings come with them). 先学一些新单词。</p><button class="btn primary" id="vmDone">OK</button></div>`;$("#vmDone").onclick=closeVocab;return;}
   vmShow();

@@ -160,6 +160,7 @@ function diaryView(){
     <div class="eyebrow">${esc(niceDate(t))}</div>
     <div class="card"><b>Today’s idea:</b> ${esc(prompt)}${typeof zhLine==="function"?zhLine(prompt):""}
       <div class="muted small" style="margin-top:6px">Think: Who? Where? What happened first, next and last? How did you feel? Spell every word yourself: the spelling is checked when you hand it in.</div></div>
+    ${(()=>{const tp=typeof planDiaryTip==="function"&&planDiaryTip();return tp?`<div class="plan-goals"><b>${ic("star")} This week’s diary goal · 本周日记目标</b><div>${esc(tp[0])}<span class="tz">${esc(tp[1])}</span></div></div>`:"";})()}
     <textarea id="dText" rows="8" placeholder="Today I…" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" writingsuggestions="false" data-gramm="false" data-enable-grammarly="false">${esc(d.text||"")}</textarea>
     <div id="dHelp" class="dv-help"></div>
     <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn" id="dRead">${ic("speaker")}Read it to me</button><button class="btn primary" id="dDone">${ic("check")}提交 · Hand it in</button><span class="muted small" id="dCount"></span></div>

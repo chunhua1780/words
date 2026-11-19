@@ -38,6 +38,7 @@ function nextTestList(t=today()){
 const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","words","vocab","read","write","fix"]:["words","dict","vocab","phonics","read","write","maths","facts","calc"];
 const scienceDay=(d=new Date())=>[1,3,5].includes(d.getDay());
 const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];
+  if(c.on&&typeof planExtra==="function")for(const k of planExtra())if(!c.items.includes(k)&&MUST_ALL[k])c.items=[...c.items,k]; // this week's plan (plan.js)
   if(c.on&&scienceDay()&&!c.items.includes("science")){const i=c.items.indexOf("read");c.items=i<0?[...c.items,"science"]:[...c.items.slice(0,i+1),"science",...c.items.slice(i+1)];}
   return c;}; // a coming spelling test is always first
 const mustCfg0=()=>{const m=(B().prefs||{}).must;
@@ -92,8 +93,9 @@ function mustStatus(k,t=today()){
 }
 /* mistakes still waiting: the latest answer was wrong (generated types p:/f: are only summaries) */
 function mustFixLeft(){if(typeof mistakeIds==="function")return mistakeIds().length;const q=((B().maths||{}).q)||{};return Object.entries(q).filter(([id,s])=>s&&s.ok===false&&!/^(p:|f:)/.test(id)&&(typeof MQ==="undefined"||MQ[id]||(id.startsWith("w:")&&s.q))).length;}
-const mustTz=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"单词练习":MUST_ALL[k].tz;
-const mustTitle=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"Spelling practice":MUST_ALL[k].t;
+const swNext=()=>{try{const l=nextTestList();return !!(l&&l.school);}catch(e){return false;}};
+const mustTz=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"单词练习":k==="ftest"&&swNext()?"每周必备单词":MUST_ALL[k].tz;
+const mustTitle=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"Spelling practice":k==="ftest"&&swNext()?"School words of the week":MUST_ALL[k].t;
 /* time: seconds per part of the app on a day */
 const mustSecs=(t,k)=>((B().time||{})[t]||{})[k]||0;
 const fmtMin=s=>s<60?(s?"<1 min":"0 min"):Math.round(s/60)+" min";
@@ -143,6 +145,7 @@ function mustGate(force){
     <div class="must-head"><div><div class="eyebrow">${esc(niceDate(t))}</div><h2>今日必做 · Today’s must-do</h2>
       <div class="muted">${all?"Everything is done. Well done! 全部完成，太棒了！":`Set by Mum or Dad. ${m.lock?"Finish these to unlock everything else.":"Please do these today."} About ${mins} minutes left.`}</div></div>
       <div class="ring lg" style="--p:${done/st.length*100}"><span>${done}/${st.length}</span></div></div>
+    ${typeof planGoalsHtml==="function"?planGoalsHtml():""}
     <div class="must-grid">${st.map((x,i)=>`<button class="must-tile ${x.done?"done":""}" data-must="${x.k}">
       <span class="must-n">${x.done?ic("check"):i+1}</span><span class="must-ic">${ic(MUST_ALL[x.k].icon)}</span>
       <b>${esc(mustTitle(x.k))}</b><span class="tz">${mustTz(x.k)}</span><span class="muted small">${esc(x.sub)}</span>
@@ -158,6 +161,7 @@ function mustGate(force){
 /* after every render of the page: banner button, then the pop-up if it is needed */
 function mustAfterRender(){document.querySelectorAll("#view [data-mustopen]").forEach(b=>b.onclick=()=>mustGate(true));
   document.querySelectorAll("#view [data-testmock]").forEach(b=>b.onclick=()=>{const ws=wordsIn(B(),b.dataset.testmock);if(ws.length)startSession("mock",ws.map(w=>w.id),{listDate:b.dataset.testmock});});
+  document.querySelectorAll("#view [data-testmean]").forEach(b=>b.onclick=()=>openVocab(wordsIn(B(),b.dataset.testmean).map(w=>w.id)));
   document.querySelectorAll("#view [data-pmmore]").forEach(b=>b.onclick=()=>{ensurePmWords("pm2");const f=pmWordObjs("pm2").filter(w=>w.stage===0);if(f.length)startSession("learn",f.map(w=>w.id),{listDate:today()});});
   document.querySelectorAll("#view [data-mustgo]").forEach(b=>b.onclick=()=>{const s=mustStatus(b.dataset.mustgo);mustLaunch(b.dataset.mustgo);if(s.done&&typeof toast==="function")toast("Already done. Extra practice is great!");});
   mustGate();}
@@ -169,12 +173,12 @@ function testBanner(){
   const when=days===0?"TODAY 今天":days===1?"TOMORROW 明天":`in ${days} days · 还有 ${days} 天`;
   return `<section class="card test-top">
     <div class="tt-date"><span>${esc(WEEK[pdate(l.date).getDay()].toUpperCase())}</span><b>${pdate(l.date).getDate()}</b><span>${esc(pdate(l.date).toLocaleDateString("en-GB",{month:"short"}))}</span></div>
-    <div class="tt-main"><div class="eyebrow">听写测验 · Spelling test ${esc(when)}</div>
-      <h2>${esc(l.title||"Spelling test")} · ${n} words</h2>
+    <div class="tt-main"><div class="eyebrow">${l.school?"每周必备单词 · School words":"听写测验 · Spelling test"} ${esc(when)}</div>
+      <h2>${esc(l.school?"School words of the week":(l.title||"Spelling test"))} · ${n} words</h2>
       <div class="muted small">${learned} of ${n} learned · ${strong} strong · ${st.done?"practised today ✓":esc(st.sub)}</div>
       <span class="must-bar"><i style="width:${n?Math.round(strong/n*100):0}%"></i></span></div>
     <div class="tt-btns"><button class="btn primary big" data-mustgo="ftest">${st.done?"Practise again":"Practise now 开始练习"}</button>
-      <button class="btn" data-testmock="${l.date}">Practice test 模拟听写</button></div>
+      <button class="btn" data-testmock="${l.date}">Practice test 模拟听写</button>${l.school&&typeof openVocab==="function"?`<button class="btn" data-testmean="${l.date}">Meanings 词义</button>`:""}</div>
   </section>`;
 }
 /* 下午必做: Friday from 12:00 and Saturday and Sunday from 12:00, a short second list on the Year 5 site
@@ -241,8 +245,8 @@ if(document.getElementById("view"))setInterval(()=>{
 
 /* ---------- the parent page: settings and the last 7 days ---------- */
 function mustParent(){
-  const m=mustCfg(), t=today(), items=mustSite(), days=[...Array(7)].map((_,k)=>addDays(t,k-6)).reverse();
-  const cols=m.items.length?m.items:items;
+  const m=mustCfg0(), t=today(), items=mustSite(), days=[...Array(7)].map((_,k)=>addDays(t,k-6)).reverse();
+  const cols=mustCfg().items.length?mustCfg().items:items; // the table shows what the child really gets (with this week's extras)
   const totalSecs=d=>Object.values((B().time||{})[d]||{}).reduce((s,x)=>s+x,0);
   const row=d=>{const sts=cols.map(k=>({k,...mustStatus(k,d)})),r=sts.reduce((s,x)=>s+(x.acc?x.acc.r:0),0),n=sts.reduce((s,x)=>s+(x.acc?x.acc.n:0),0);
     return `<tr><th>${d===t?"Today":esc(shortDate(d))}</th>${sts.map(x=>`<td class="${x.done?"ok":x.p>0?"part":""}" title="${esc(x.sub)}">${x.done?"✓":x.p>0?Math.round(x.p*100)+"%":"–"}${x.acc?`<small>${Math.round(x.acc.r/x.acc.n*100)}%</small>`:""}<small>${fmtMin(mustSecs(d,x.k))}</small></td>`).join("")}
@@ -264,10 +268,10 @@ function mustParent(){
   </div>`;
 }
 function mustParentBind(){
-  const save=ch=>{const b=B(),m={...mustCfg(),...ch};if(m.mode==="today")m.date=today();b.prefs={...b.prefs,must:m,u:Date.now()};Store.save();render();};
-  const on=$("#mustOn"); if(on)on.onchange=()=>save({on:on.checked,items:mustCfg().items.length?mustCfg().items:mustSite().slice(0,4)});
+  const save=ch=>{const b=B(),m={...mustCfg0(),...ch};delete m.auto;if(m.mode==="today")m.date=today();b.prefs={...b.prefs,must:m,u:Date.now()};Store.save();render();};
+  const on=$("#mustOn"); if(on)on.onchange=()=>save({on:on.checked,items:mustCfg0().items.length?mustCfg0().items:mustSite().slice(0,4)});
   const lk=$("#mustLock"); if(lk)lk.onchange=()=>save({lock:lk.checked});
   const pm=$("#mustPm"); if(pm)pm.onchange=()=>{const b=B();b.prefs={...b.prefs,pmOff:!pm.checked,u:Date.now()};Store.save();render();};
   document.querySelectorAll('input[name="mustMode"]').forEach(r=>r.onchange=()=>save({mode:r.value}));
-  document.querySelectorAll("[data-mustitem]").forEach(c=>c.onchange=()=>{const set=new Set(mustCfg().items);c.checked?set.add(c.dataset.mustitem):set.delete(c.dataset.mustitem);save({items:mustSite().filter(k=>set.has(k))});});
+  document.querySelectorAll("[data-mustitem]").forEach(c=>c.onchange=()=>{const set=new Set(mustCfg0().items);c.checked?set.add(c.dataset.mustitem):set.delete(c.dataset.mustitem);save({items:mustSite().filter(k=>set.has(k))});});
 }

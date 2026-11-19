@@ -1133,3 +1133,15 @@ html:not(.zh-on) .zh{display:none}
 .sw-chip.ok{background:var(--green-soft,#e3f6e8)}.sw-chip.bad{background:var(--red-soft,#fde8e8)}
 @media (max-width:640px){.sw-row{grid-template-columns:1fr 1fr auto}.sw-row .sw-ex,.sw-row [data-f="def"]{grid-column:1/-1}}
 @media (max-width:640px){.sw-row [data-swdel]{grid-row:1;grid-column:3}}
+
+/* the test card's word list */
+.test-top{flex-wrap:wrap}
+.tt-list{flex-basis:100%;width:100%;margin-top:6px;border-top:1px solid var(--line,#e5e5ea);padding-top:10px}
+.tt-list-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.tt-list ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.tt-w{display:grid;grid-template-columns:22px auto 1fr auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:12px;background:var(--card,#fff)}
+.tt-n{font-weight:700;color:var(--muted);text-align:center}
+.tt-word{font-size:1.15rem}.tt-zh{color:var(--muted)}.tt-ex{font-style:italic}
+.tt-st{font-size:.8rem;text-align:right;white-space:nowrap}.tt-st small{display:block;color:var(--muted)}
+.tt-w.ok .tt-st{color:var(--green,#1a8f3c)}.tt-w.new .tt-st{color:var(--orange,#c25e00)}
+@media (max-width:560px){.tt-w{grid-template-columns:18px auto 1fr auto;gap:6px}.tt-w .wprac{grid-column:3/-1;justify-self:start}}

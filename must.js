@@ -179,7 +179,18 @@ function testBanner(){
       <span class="must-bar"><i style="width:${n?Math.round(strong/n*100):0}%"></i></span></div>
     <div class="tt-btns"><button class="btn primary big" data-mustgo="ftest">${st.done?"Practise again":"Practise now 开始练习"}</button>
       <button class="btn" data-testmock="${l.date}">Practice test 模拟听写</button>${l.school&&typeof openVocab==="function"?`<button class="btn" data-testmean="${l.date}">Meanings 词义</button>`:""}</div>
+    ${testWordList(ws)}
   </section>`;
+}
+/* every word of the test list, always on show: number, sound, word, meaning (Chinese and English), example, progress */
+function testWordList(ws){
+  if(!ws.length)return "";
+  const st=w=>w.stage>=3?["ok","Strong 很牢"]:w.stage>0?["mid","Learned 学过"]:["new","New 新词"];
+  return `<div class="tt-list no-zh"><div class="tt-list-h"><b>All ${ws.length} words · 全部单词</b><span class="muted tiny">Tap ${ic("speaker")} to listen · 点喇叭听读音</span></div>
+    <ol>${ws.map((w,i)=>{const [c,t]=st(w);return `<li class="tt-w ${c}"><span class="tt-n">${i+1}</span><button class="icon-btn sm" data-say="${esc(w.w)}" aria-label="Play ${esc(w.w)}">${ic("speaker")}</button>
+      <div class="tt-wm"><b class="tt-word">${esc(w.w)}</b>${w.zh?` <span class="tt-zh">${esc(w.zh)}</span>`:""}${w.def?`<div class="small muted">${esc(w.def)}</div>`:""}${w.ex?`<div class="small tt-ex">${esc(w.ex)}</div>`:""}</div>
+      <span class="tt-st">${t}${w.seen?`<small>${w.right||0}/${w.seen} right</small>`:""}</span>
+      <button class="wprac" data-practise="${w.id}" aria-label="Practise ${esc(w.w)}">Practise</button></li>`;}).join("")}</ol></div>`;
 }
 /* 下午必做: Friday from 12:00 and Saturday and Sunday from 12:00, a short second list on the Year 5 site
    (a parent can turn it off: prefs.pmOff). */

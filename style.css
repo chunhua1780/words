@@ -1215,3 +1215,16 @@ html:not(.zh-on) .zh{display:none}
 .fl-ladder span small{display:block;font-weight:400;color:var(--muted)}
 .fl-ladder span.ok{background:var(--green-soft,#e3f6e8)}.fl-ladder span.mid{background:var(--orange-soft,#fff4e5)}
 .fl-par td small{display:block;color:var(--muted)}
+
+/* 单位换算 · units (units.js) */
+#ucOv{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}
+#ucOv[hidden]{display:none}
+#ucOv .s-body{flex:1;overflow:auto}
+.uc-fact{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px;border-radius:18px;background:var(--paper,#fff)}
+.uc-fact span{font:800 36px var(--round,inherit);color:var(--mc)}
+.uc-fact small{color:var(--muted)}
+.uc-sentence{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:18px;background:var(--paper,#fff);font:800 26px var(--round,inherit)}
+.uc-slot{min-width:64px}
+.uc-ans{gap:10px;justify-content:center;align-items:center}
+.uc-ans input{font:800 30px var(--round,inherit);text-align:center;max-width:200px}
+.uc-ans b{font:800 28px var(--round,inherit)}

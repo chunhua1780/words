@@ -77,6 +77,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="report.js"></script>
 <script src="shapes.js"></script>
 <script src="flad.js"></script>
+<script src="units.js"></script>
 <script src="plan.js"></script>
 <script src="weekly.js"></script>
 <script src="must.js"></script>
@@ -250,6 +251,7 @@ function viewDash(){
     ${schoolWordsBlock()}
     ${mustParent()}
     ${flParent()}
+    ${typeof ucParent==="function"?ucParent():""}
     ${customWordsBlock()}
     ${aiParent()}
     ${histBlock()}

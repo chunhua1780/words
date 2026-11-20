@@ -101,8 +101,8 @@ function mustStatus(k,t=today()){
 /* mistakes still waiting: the latest answer was wrong (generated types p:/f: are only summaries) */
 function mustFixLeft(){if(typeof mistakeIds==="function")return mistakeIds().length;const q=((B().maths||{}).q)||{};return Object.entries(q).filter(([id,s])=>s&&s.ok===false&&!/^(p:|f:)/.test(id)&&(typeof MQ==="undefined"||MQ[id]||(id.startsWith("w:")&&s.q))).length;}
 const swNext=()=>{try{const l=nextTestList();return !!(l&&l.school);}catch(e){return false;}};
-const mustTz=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"单词练习":k==="ftest"&&swNext()?"每周必备单词":MUST_ALL[k].tz;
-const mustTitle=k=>k==="words"&&typeof PAPER_TYPES!=="undefined"?"Spelling practice":k==="ftest"&&swNext()?"School words of the week":MUST_ALL[k].t;
+const mustTz=k=>k==="write"&&typeof PAPER_TYPES!=="undefined"?"写作：日记、科学、故事都可以":k==="words"&&typeof PAPER_TYPES!=="undefined"?"单词练习":k==="ftest"&&swNext()?"每周必备单词":MUST_ALL[k].tz;
+const mustTitle=k=>k==="write"&&typeof PAPER_TYPES!=="undefined"?"Writing: 100+ words, any topic":k==="words"&&typeof PAPER_TYPES!=="undefined"?"Spelling practice":k==="ftest"&&swNext()?"School words of the week":MUST_ALL[k].t;
 /* time: seconds per part of the app on a day */
 const mustSecs=(t,k)=>((B().time||{})[t]||{})[k]||0;
 const fmtMin=s=>s<60?(s?"<1 min":"0 min"):Math.round(s/60)+" min";

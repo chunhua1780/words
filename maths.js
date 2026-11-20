@@ -23,6 +23,12 @@ function seedRand(str){let h=2166136261;for(const c of str){h^=c.charCodeAt(0);h
   return ()=>{h+=0x6D2B79F5;let t=h;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};}
 
 /* Today's 20: up to 5 questions answered wrongly before, then new questions spread across all topics */
+/* the questions of the last day with a set (up to 5 days back) that were never answered */
+function mCarry(date){
+  for(let k=1;k<=5;k++){const d=dayOf(addDays(date,-k)); if(!d||!(d.ids||[]).length)continue;
+    return d.ids.filter(id=>!(id in (d.ans||{}))&&MQ[id]&&!/^g/.test(id)).slice(0,12);}
+  return [];
+}
 function dailySet(date,create=true){
   const M=MB(), ex=dayOf(date); if(ex&&ex.ids.length)return ex;
   if(!create)return null;
@@ -30,9 +36,11 @@ function dailySet(date,create=true){
   const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&!id.startsWith("w:")&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
   // spaced check: a question put right about a week ago comes back once, to see that it has stuck
   retry.push(...Object.entries(st).filter(([id,s])=>MQ[id]&&!id.startsWith("w:")&&s.ok===true&&s.fx&&!s.cf&&dayDiff(s.fx,date)>=6&&!retry.includes(id)).sort((a,b)=>(a[1].fx<b[1].fx?-1:1)).slice(0,2).map(x=>x[0]));
+  retry.unshift(...mCarry(date).filter(id=>!retry.includes(id))); // a day missed or not finished: those questions come first today
   // 4 questions from the weakest topics (under 70% right), so the gaps get extra practice every day
   const weak=weakTopics(), focus=[]; for(const t of weak){const pool=MATHS.filter(q=>q.t===t&&!retry.includes(q.id)).map(q=>q.id).sort((a,b)=>lastSeen(a,st)-lastSeen(b,st)||rnd()-.5);
     for(const id of pool){if(focus.length>=4||focus.filter(x=>MQ[x].t===t).length>=2)break;focus.push(id);}}
+  if(typeof w5School==="function")focus.push(...w5School(date,st,[...retry,...focus])); // 6 from the unit taught at school now (school5.js)
   const byT={}; for(const q of MATHS)if(!st[q.id]&&!SERVED[q.id]&&!retry.includes(q.id)&&!focus.includes(q.id))(byT[q.t]=byT[q.t]||[]).push(q.id);
   const need=MDAY-retry.length-focus.length, picked=[...focus], cnt={};
   for(let g=0;picked.length<need+focus.length&&g<400;g++){
@@ -45,7 +53,7 @@ function dailySet(date,create=true){
     const old=Object.entries(st).filter(([id])=>MQ[id]&&!id.startsWith("w:")&&!retry.includes(id)).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1);
     for(const [id] of old){if(picked.length>=need+focus.length)break;if(!picked.includes(id))picked.push(id);}
   }
-  const ids=[...retry,...picked].sort((a,b)=>TI(MQ[a].t)-TI(MQ[b].t)||(a<b?-1:1));
+  const ids=[...retry,...picked].slice(0,MDAY).sort((a,b)=>TI(MQ[a].t)-TI(MQ[b].t)||(a<b?-1:1));
   M.days[DAYP+date]={ids,ans:{},u:Date.now()}; Store.save(); markServed(ids);
   return M.days[DAYP+date];
 }

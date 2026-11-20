@@ -34,12 +34,12 @@ DW_STAGES.push({k:"rich",name:"Rich vocabulary (Years 5–6)",words:DW_RICH});
 /* Vocabulary level (1–4): the mix of new words. It goes up after a week with 85%+ right in word practice and
    dictation (at least 40 answers), and down below 60%. A parent can fix it (prefs.vocabLv). Saved in eng.phon["v:level"].
    1: 5 easiest common + 5 next common · 2: 5 next common + 5 Year 3–4 · 3: 5 Year 3–4 + 5 Year 5–6 · 4: 5 Year 5–6 + 5 rich words */
-const DW_LEVELS={1:[["y1","hf"],["hf2","y2"]],2:[["hf2","y2"],["y34"]],3:[["y34"],["y56"]],4:[["y56"],["rich"]]};
+const DW_LEVELS={1:[["hf2","y2"],["y34"]],2:[["y2"],["y34"]],3:[["y34"],["y56"]],4:[["y56"],["rich"]]};
 function vocabLevel(){
   const fixed=+((B().prefs||{}).vocabLv)||0; if(fixed)return fixed;
   const E=B().eng, rec=(E.phon||{})["v:level"]||{lv:1}, t=today(); if(rec.date===t)return rec.lv||1;
   let n=0,r=0; for(let k=1;k<=7;k++){const l=B().log[addDays(t,-k)]||{};n+=l.done||0;r+=l.right||0;}
-  let lv=rec.lv||1; if(n>=40&&r/n>=.85)lv=Math.min(4,lv+1); else if(n>=40&&r/n<.6)lv=Math.max(1,lv-1);
+  let lv=rec.lv||1; if(n>=40&&r/n>=.8)lv=Math.min(4,lv+1); else if(n>=40&&r/n<.6)lv=Math.max(1,lv-1);
   E.phon=E.phon||{}; E.phon["v:level"]={lv,date:t,acc:n?Math.round(r/n*100):null,u:Date.now()}; return lv;
 }
 const DW_EASY=["y1","hf"], DW_MID=["hf2","y2"];
@@ -57,10 +57,15 @@ function dwPick(n){
 function ensureDailyWords(){
   const b=B(); if(!b||(b.prefs||{}).dwOff)return null;
   const t=today(); if(b.eng.daily[t])return b.eng.daily[t];
-  const pick=dwPick(dwCount()); if(!pick.length)return null;
+  /* a day missed or not finished: the words not learned yet move to today, and fewer new ones are added */
+  let carried=[];
+  for(let k=1;k<=7&&!carried.length;k++){const d=addDays(t,-k),old=b.eng.daily[d];if(!old)continue;
+    const set=new Set((old.words||[]).map(norm)); carried=wordsIn(b,d).filter(w=>set.has(norm(w.w))&&w.stage===0&&!w.custom).slice(0,dwCount()); break;}
+  const pick=dwPick(Math.max(0,dwCount()-carried.length)); if(!pick.length&&!carried.length)return null;
   const {added}=addWordsToBook(b,pick.map(x=>x.w),{date:t});
+  for(const w of carried){w.list=t;w.u=Date.now();}
   const l=b.lists[t]; if(!l.title){l.title="Daily words";l.u=Date.now();}
-  b.eng.daily[t]={words:pick.map(x=>x.w),stage:pick[0].s,u:Date.now()};
+  b.eng.daily[t]={words:[...carried.map(w=>w.w),...pick.map(x=>x.w)],stage:(pick[0]||{}).s||"",...(carried.length?{carried:carried.length}:{}),u:Date.now()};
   Store.save();
   if(typeof enrich==="function")Promise.all(added.map(w=>enrich(w).catch(()=>{}))).then(()=>Store.save());
   return b.eng.daily[t];

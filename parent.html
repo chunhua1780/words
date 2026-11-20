@@ -66,6 +66,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="maths-rounding.js"></script>
 <script src="zh.js"></script>
 <script src="explain.js"></script>
+<script src="school5.js"></script>
 <script src="maths.js"></script>
 <script src="checkup.js"></script>
 <script src="sounds.js"></script>
@@ -250,6 +251,7 @@ function viewDash(){
     ${planParent()}
     ${schoolWordsBlock()}
     ${mustParent()}
+    ${typeof w5Parent==="function"?w5Parent():""}
     ${flParent()}
     ${typeof ucParent==="function"?ucParent():""}
     ${customWordsBlock()}
@@ -340,7 +342,7 @@ async function readDocFile(f){
 }
 function bind(){
   if(typeof mustParentBind==="function")mustParentBind();
-  histBind(); diaryParentBind(); aiParentBind(); customWordsBind(); reportBind(); planParentBind(); schoolWordsBind();
+  histBind(); diaryParentBind(); aiParentBind(); customWordsBind(); reportBind(); planParentBind(); schoolWordsBind(); if(typeof w5ParentBind==="function")w5ParentBind();
   const nfs=$("#nfLevelSel"); if(nfs)nfs.onchange=()=>{setPref("nfLevel",+nfs.value);render();};
   const dwOn=$("#dwOn"); if(dwOn)dwOn.onchange=()=>{setPref("dwOff",!dwOn.checked);render();};
   ["dwN","dwStart","readLv","diaryWords"].forEach(k=>{const e=$("#"+k);if(e)e.onchange=()=>{setPref(k,/^\d+$/.test(e.value)?+e.value:e.value);render();};});

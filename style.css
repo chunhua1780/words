@@ -1228,3 +1228,7 @@ html:not(.zh-on) .zh{display:none}
 .uc-ans{gap:10px;justify-content:center;align-items:center}
 .uc-ans input{font:800 30px var(--round,inherit);text-align:center;max-width:200px}
 .uc-ans b{font:800 28px var(--round,inherit)}
+
+.wr-kinds{display:flex;flex-wrap:wrap;gap:8px}
+.wr-kinds .chip{border:0;border-radius:999px;padding:8px 14px;background:var(--soft,#f2f2f7);font-weight:600;cursor:pointer}
+.wr-kinds .chip.on{background:var(--c-blue,#2f6fec);color:#fff}

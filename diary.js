@@ -7,6 +7,14 @@
      and then come back in dictation by the memory plan.
    Saved in book.eng.diary[date] = {text, words, done, score, fix:[[wrong, right], ...], added:[...], u}. */
 const DIARY_TARGET=()=>Math.max(30,+((B().prefs||{}).diaryWords)||(typeof PAPER_TYPES!=="undefined"?100:80)); // Year 7: 100 words, Year 5: 80
+/* Year 7: write about anything (at least 100 words a day): a diary page, science, a story or a free choice */
+const WR_KINDS={diary:["My day","日记"],science:["Science","科学"],story:["A story","故事"],free:["Anything I like","随便写"]};
+const WR_PROMPTS={
+  science:["Explain how the water cycle works, step by step.","Why does the Moon seem to change shape during a month?","How do plants make their own food? Explain photosynthesis.","What would happen to us if there was no gravity?","Explain why volcanoes erupt.","How does your heart move blood around your body?","Why is the sky blue in the day and red at sunset?","Choose an animal and explain how it is adapted to where it lives.","How could your family use less plastic and energy? Give reasons.","Explain how electricity gets from a power station to your home.","Why do we have seasons in some countries? What about in Dubai?","What is a food chain? Give an example from the desert or the sea."],
+  story:["Write a story that starts: The door had never been opened before…","Write a story about a robot who wants to be a chef.","Write a story set in the desert at night.","Write a story where the main character finds a message in a bottle.","Write a story about a day when everything went wrong, but ended well."],
+  free:["Write about anything you like: a hobby, a book, a game, a place, an opinion or something you learned."]};
+const wrKind=d=>typeof PAPER_TYPES!=="undefined"&&WR_KINDS[(d||{}).kind]?(d||{}).kind:"diary";
+const wrPrompt=(kind,t)=>{const L=WR_PROMPTS[kind];return L?L[Math.floor(pdate(t)/864e5)%L.length]:null;};
 const DIARY_PROMPTS=[
   "What did you do today? Write about the best part of your day.",
   "Write about something you did at school today. What did you learn?",
@@ -129,7 +137,7 @@ function kbdHtml(){
 const DE=()=>{const b=B();b.eng=b.eng||{diary:{},daily:{},phon:{},plog:{}};b.eng.diary=b.eng.diary||{};return b.eng;};
 function diaryView(){
   const t=today(), E=DE();
-  const d=E.diary[t]||{text:""}, prompt=DIARY_PROMPTS[Math.floor(pdate(t)/864e5)%DIARY_PROMPTS.length];
+  const d=E.diary[t]||{text:""}, prompt=wrPrompt(wrKind(d),t)||DIARY_PROMPTS[Math.floor(pdate(t)/864e5)%DIARY_PROMPTS.length];
   const past=Object.entries(E.diary).filter(([k,v])=>k!==t&&v.text).sort((a,b)=>a[0]<b[0]?1:-1).slice(0,10);
   const body=$("#dvBody"), kb=$("#dvKbd");
   const pastHtml=past.length?`<div class="section-title"><h3 style="margin:0">Earlier diary pages</h3></div>${past.map(([k,v])=>`<details class="card dpast"><summary><b>${esc(niceDate(k))}</b> <span class="muted small">· ${wordsOfText(v.text).length} words${v.fix&&v.fix.length?` · ${v.fix.length} spelling${v.fix.length>1?"s":""} fixed`:""}</span></summary><p class="dv-text">${diaryMarked(v.text,v.fix)}</p></details>`).join("")}`:"";
@@ -158,8 +166,9 @@ function diaryView(){
   }
   body.innerHTML=`<div class="m-q eng-page diary">
     <div class="eyebrow">${esc(niceDate(t))}</div>
-    <div class="card"><b>Today’s idea:</b> ${esc(prompt)}${typeof zhLine==="function"?zhLine(prompt):""}
-      <div class="muted small" style="margin-top:6px">Think: Who? Where? What happened first, next and last? How did you feel? Spell every word yourself: the spelling is checked when you hand it in.</div></div>
+    ${typeof PAPER_TYPES!=="undefined"?`<div class="wr-kinds">${Object.entries(WR_KINDS).map(([k,[en,zh]])=>`<button class="chip ${wrKind(d)===k?"on":""}" data-wrk="${k}">${en} · ${zh}</button>`).join("")}</div>`:""}
+    <div class="card"><b>${wrKind(d)==="diary"?"Today’s idea":"Write about"}:</b> ${esc(prompt)}${typeof zhLine==="function"?zhLine(prompt):""}
+      <div class="muted small" style="margin-top:6px">${({science:"Explain it step by step: what happens, how and why. Use science words and an example.",story:"Plan it: who, where, a problem, what happens, how it ends. Use speech marks for talking.",free:"Say what it is, give details and examples, and say what you think and why."})[wrKind(d)]||"Think: Who? Where? What happened first, next and last? How did you feel?"} Spell every word yourself: the spelling is checked when you hand it in.</div></div>
     ${(()=>{const tp=typeof planDiaryTip==="function"&&planDiaryTip();return tp?`<div class="plan-goals"><b>${ic("star")} This week’s diary goal · 本周日记目标</b><div>${esc(tp[0])}<span class="tz">${esc(tp[1])}</span></div></div>`:"";})()}
     <textarea id="dText" rows="8" placeholder="Today I…" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" writingsuggestions="false" data-gramm="false" data-enable-grammarly="false">${esc(d.text||"")}</textarea>
     <div id="dHelp" class="dv-help"></div>
@@ -171,6 +180,7 @@ function diaryView(){
   const ta=$("#dText");
   const save=()=>{const E=DE();E.diary[t]={...(E.diary[t]||{}),text:ta.value,words:wordsOfText(ta.value).length,u:Date.now()};Store.save();};
   DV.save=save;
+  body.querySelectorAll("[data-wrk]").forEach(b=>b.onclick=()=>{const E=DE();E.diary[t]={...(E.diary[t]||{}),text:ta.value,kind:b.dataset.wrk,u:Date.now()};Store.save();diaryView();}); // Year 7: what to write about
   const checks=()=>{const c=diaryCheck(ta.value);$("#dChecks").innerHTML=`<b>Checklist</b>${c.map(x=>`<div class="dchk ${x.ok?"ok":""}">${ic(x.ok?"check":"x")}<span>${esc(x.t)}</span></div>`).join("")}`;
     $("#dCount").textContent=`${wordsOfText(ta.value).length} / ${DIARY_TARGET()} words`;};
   // after each finished sentence: words to make the writing clearer and richer (tap one to put it in)

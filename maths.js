@@ -28,6 +28,8 @@ function dailySet(date,create=true){
   if(!create)return null;
   const rnd=seedRand((Store.user||"")+"|"+date), st=M.q;
   const retry=Object.entries(st).filter(([id,s])=>MQ[id]&&!id.startsWith("w:")&&s.ok===false&&(s.last||"")<date).sort((a,b)=>(a[1].last||"")<(b[1].last||"")?-1:1).slice(0,5).map(x=>x[0]);
+  // spaced check: a question put right about a week ago comes back once, to see that it has stuck
+  retry.push(...Object.entries(st).filter(([id,s])=>MQ[id]&&!id.startsWith("w:")&&s.ok===true&&s.fx&&!s.cf&&dayDiff(s.fx,date)>=6&&!retry.includes(id)).sort((a,b)=>(a[1].fx<b[1].fx?-1:1)).slice(0,2).map(x=>x[0]));
   // 4 questions from the weakest topics (under 70% right), so the gaps get extra practice every day
   const weak=weakTopics(), focus=[]; for(const t of weak){const pool=MATHS.filter(q=>q.t===t&&!retry.includes(q.id)).map(q=>q.id).sort((a,b)=>lastSeen(a,st)-lastSeen(b,st)||rnd()-.5);
     for(const id of pool){if(focus.length>=4||focus.filter(x=>MQ[x].t===t).length>=2)break;focus.push(id);}}
@@ -340,7 +342,8 @@ function answer(q,v){
 }
 function record(q,ok,given){
   const M=MB(), t=today(), key=q.gen?"p:"+q.gen:q.id, s=M.q[key]||{}; // generated questions keep one record per type
-  M.q[key]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{})};
+  M.q[key]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{}),
+    ...(s.wr||!ok?{wr:1}:{}),...(ok&&s.ok===false?{fx:t}:s.fx?{fx:s.fx}:{}),...(s.cf?{cf:s.cf}:ok&&s.fx&&dayDiff(s.fx,t)>=6?{cf:t}:{})}; // wr: once wrong, fx: the day it was put right, cf: still right a week later (spaced check)
   if(q.gen&&!ok){const {id,gen,...keep}=q;M.q["w:"+String(q.id).replace(/^g[a-z]*:/,"")]={n:1,r:0,ok:false,last:t,u:Date.now(),q:keep};} // wrong: keep it for 错题本
   const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
   if(MS.xk&&!q.gen){const X=M.log[MS.xk+":"+t]=M.log[MS.xk+":"+t]||{n:0,r:0};X.n++;if(ok)X.r++;X.u=Date.now();} // afternoon sets (must.js)

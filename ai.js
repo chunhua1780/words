@@ -11,7 +11,7 @@
 const AI_MODELS=["gemini-3.5-flash","gemini-3.1-flash-lite","gemini-3.8-flash","gemini-flash-latest"]; // newest first; a busy or missing model falls through to the next
 const aiCfg=()=>((B()||{}).prefs||{}).ai||{};
 const aiReady=()=>!!aiCfg().key;
-async function aiCall(system,prompt,json){
+async function aiCall(system,prompt,json,img){ // img: a PNG as base64 (e.g. handwriting), optional
   const c=aiCfg(); if(!c.key)throw new Error("no_key");
   let last=null; const tried=[...new Set([c.model,(()=>{try{return localStorage.getItem("ai-model");}catch(e){return null;}})(),...AI_MODELS].filter(Boolean))];
   for(const m of tried){
@@ -19,7 +19,7 @@ async function aiCall(system,prompt,json){
       const ac=new AbortController(); setTimeout(()=>ac.abort(),30000); // a model that hangs (Google busy) is skipped after 30 s
       r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{method:"POST",signal:ac.signal,
         headers:{"Content-Type":"application/json","x-goog-api-key":c.key},
-        body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:prompt}]}],
+        body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:"user",parts:[{text:prompt},...(img?[{inlineData:{mimeType:"image/png",data:img}}]:[])]}],
           generationConfig:{temperature:.5,...(json?{responseMimeType:"application/json"}:{})}})});
     }catch(e){last=new Error("offline");continue;}
     const j=await r.json().catch(()=>null);

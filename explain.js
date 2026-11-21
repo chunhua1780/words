@@ -32,10 +32,10 @@ function stepsHtml(steps,cls=""){return `<ol class="p-steps ${cls}">${steps.map(
 function explainBox(q,full){
   const list=full?stepsFor(q):hintSteps(q);
   if(!list.length)return "";
-  const n=Math.min(MS.exp||0,list.length);
-  if(!n)return `<button class="btn ex-btn" id="mExp">${ic("sparkle")}<span>答疑</span><small>${full?"See how to work it out, step by step":"Stuck? Show me how to start"}</small></button>`;
+  const n=Math.min(MS.exp||0,list.length), tb=typeof openTeach==="function"?`<button class="btn teach-btn" data-teach="${full?1:0}"><span class="tb-face">👩‍🏫</span><span><b>Help · 老师一步步教我</b><small>${full?"Watch and listen: the whole working":"She writes and explains how to start"}</small></span></button>`:"";
+  if(!n)return tb+`<button class="btn ex-btn" id="mExp">${ic("sparkle")}<span>答疑</span><small>${full?"See how to work it out, step by step":"Stuck? Show me how to start"}</small></button>`;
   const anim=MS.exp>=99;
-  return `<div class="ex-box ${full?"":"hint"}">
+  return tb+`<div class="ex-box ${full?"":"hint"}">
     <div class="ex-head"><b>答疑 · ${full?"Step by step":"How to start"}</b><span class="muted small">${n} of ${list.length}</span></div>
     <ol class="p-steps ex ${anim?"show":""}">${list.slice(0,n).map((t,i)=>`<li class="${!anim&&i===n-1?"new":""}" style="--d:${anim?i*.35:0}s">${mt(t)}</li>`).join("")}</ol>
     ${n<list.length?`<div class="ex-more"><button class="btn primary" id="mExpNext">Next step · 下一步</button><button class="btn ghost" id="mExpAll">Show all · 全部</button></div>`
@@ -46,6 +46,7 @@ function bindExplain(body,rerender){
   const step=k=>()=>{MS.exp=k==="all"?99:(MS.exp||0)+1; MS.expAnim=false; rerender();
     const li=body.querySelector(".ex-box li.new")||body.querySelector(".ex-box"); if(li)li.scrollIntoView({block:"nearest",behavior:"smooth"});};
   const a=body.querySelector("#mExp"); if(a)a.onclick=step(1);
+  body.querySelectorAll("[data-teach]").forEach(b=>b.onclick=()=>{const q=MQ[MS.ids[MS.i]];if(q)openTeach(q,b.dataset.teach==="1");});
   const b=body.querySelector("#mExpNext"); if(b)b.onclick=step(1);
   const c=body.querySelector("#mExpAll"); if(c)c.onclick=step("all");
 }

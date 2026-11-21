@@ -1242,3 +1242,28 @@ html.embed body{background:transparent}
 .fam-tabs button{border:0;border-radius:999px;padding:10px 16px;background:var(--soft,#f2f2f7);font-weight:700;cursor:pointer}
 .fam-tabs button.on{background:var(--c-blue,#2f6fec);color:#fff}
 .fam-detail{display:flex;flex-direction:column;gap:8px}
+
+/* Help · 老师一步步教我 (teach.js) */
+.teach-btn{display:flex;align-items:center;gap:10px;width:100%;justify-content:flex-start;text-align:left;margin-bottom:8px;background:color-mix(in srgb,var(--c-pink,#e64980) 12%,var(--paper,#fff));border:2px solid color-mix(in srgb,var(--c-pink,#e64980) 35%,transparent)}
+.teach-btn .tb-face{font-size:28px}.teach-btn small{display:block;color:var(--muted);font-weight:400}
+#teachOv{position:fixed;inset:0;z-index:60;background:rgba(15,20,30,.45);display:flex;align-items:center;justify-content:center;padding:12px}
+#teachOv[hidden]{display:none}
+.tc-card{width:min(760px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px;background:var(--paper,#fff);border-radius:24px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.tc-top{display:flex;align-items:center;gap:12px}.tc-top>div:nth-child(2){flex:1}
+.tc-teacher{width:64px;height:64px;flex:none}.tc-teacher svg{width:100%;height:100%}
+.tc-bg{fill:#ffe3ec}.tc-hair{fill:#6b3f2a}.tc-skin{fill:#ffd9bd}.tc-eye{fill:#3a2a20}.tc-cheek{fill:#ff9db5;opacity:.6}.tc-mouth{fill:#c4475e}
+.tc-teacher.talk .tc-mouth{animation:tcTalk .28s ease-in-out infinite alternate;transform-origin:40px 55px;transform-box:view-box}
+@keyframes tcTalk{from{transform:scaleY(.6)}to{transform:scaleY(2.4)}}
+.tc-teacher .tc-eye{animation:tcBlink 4s infinite;transform-box:fill-box;transform-origin:center}
+@keyframes tcBlink{0%,96%,100%{transform:none}98%{transform:scaleY(.1)}}
+.tc-board{flex:1;overflow:auto;min-height:220px;background:#24453a;color:#f4f1e6;border-radius:18px;padding:16px 18px;border:8px solid #8a5a35;box-shadow:inset 0 0 30px rgba(0,0,0,.35);font-family:"Patrick Hand","Comic Sans MS",Andika,cursive;font-size:22px;line-height:1.45}
+.tc-q{font-size:20px;opacity:.85;border-bottom:2px dashed rgba(255,255,255,.25);padding-bottom:8px;margin-bottom:8px}
+.tc-fig{background:#fff;border-radius:12px;padding:6px;margin:6px 0;color:var(--fg)}
+.tc-steps{margin:0;padding-left:28px;display:flex;flex-direction:column;gap:8px}
+.tc-steps li::marker{color:#ffd66b}
+.tc-steps li.tc-end{color:#ffd66b;list-style:"★ "}
+.tc-pen{display:inline-block;animation:tcPen .25s ease-in-out infinite alternate;margin-left:2px}
+@keyframes tcPen{from{transform:translateY(-2px) rotate(-8deg)}to{transform:translateY(2px) rotate(6deg)}}
+.tc-board .frac{color:inherit}
+.tc-ctrl{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+@media (max-width:560px){.tc-board{font-size:19px;padding:12px;border-width:6px}.tc-ctrl .btn{flex:1}}

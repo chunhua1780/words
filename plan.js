@@ -86,10 +86,11 @@ async function aiPlanAuto(){try{const p=planGet();if(p&&!p.ai&&typeof aiReady===
 
 /* ---------- what the child sees: this week's goals (on the must-do card) ---------- */
 function planGoalsHtml(){
-  const p=planGet(false); if(!p)return "";
+  const p=planGet(false)||{};
   const g=(p.ai&&p.ai.goals||[]).filter(x=>x&&x.en); const tip=p.diary?PL_DIARY_TIP[p.diary]:null;
-  if(!g.length&&!tip)return "";
-  return `<div class="plan-goals"><b>${ic("star")} This week’s goals · 本周目标</b><ul>${g.length?g.map(x=>`<li>${esc(x.en)}<span class="tz">${esc(x.zh||"")}</span></li>`).join(""):`<li>Diary: ${esc(tip[0])}<span class="tz">${esc(tip[1])}</span></li>`}</ul></div>`;
+  const note=((B().prefs||{}).parentNote||{}).text||"";
+  if(!g.length&&!tip&&!note)return "";
+  return `<div class="plan-goals">${note?`<div class="plan-note"><b>💬 From Mum and Dad · 爸爸妈妈说</b><div>${esc(note)}</div></div>`:""}${!g.length&&!tip?"":`<b>${ic("star")} This week’s goals · 本周目标</b>`}<ul>${g.length?g.map(x=>`<li>${esc(x.en)}<span class="tz">${esc(x.zh||"")}</span></li>`).join(""):`<li>Diary: ${esc(tip[0])}<span class="tz">${esc(tip[1])}</span></li>`}</ul></div>`;
 }
 
 /* ---------- the parent page ---------- */
@@ -108,11 +109,14 @@ function planParent(){
       ${ai.goals.length?`<h4>给孩子的 3 个目标（孩子在必做卡片上能看到）</h4><ul>${ai.goals.map(g=>`<li>${esc(g.en)} · ${esc(g.zh||"")}</li>`).join("")}</ul>`:""}
       ${ai.parent?`<p><b>家长配合：</b>${esc(ai.parent)}</p>`:""}<div class="muted tiny">Google AI · ${esc(new Date(ai.at).toLocaleString("zh-CN"))}</div></div>`
       :`<div class="muted small">${typeof aiReady==="function"&&aiReady()?"AI 分析还没有生成：点下面的按钮，或等孩子打开网站时自动生成。":"在下面「AI 学习报告」里填上 Google AI Key 后，AI 会写出详细的计划和孩子的目标。"}</div>`}
+    <label class="field"><b>家长的建议和鼓励（孩子在今日必做卡片上能看到）</b><textarea id="planNote" rows="3" placeholder="例如：这周日记每句话开头大写；数学先做错题。你最近进步很大，加油！">${esc(((B().prefs||{}).parentNote||{}).text||"")}</textarea></label>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" id="planNoteSave">保存给孩子的话</button>${((B().prefs||{}).parentNote||{}).at?`<span class="muted small">上次保存：${esc(new Date(B().prefs.parentNote.at).toLocaleString("zh-CN"))}</span>`:""}</div>
     <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" id="planRe">${ic("check")}重新分析（用最新数据）</button>${typeof aiReady==="function"&&aiReady()?`<button class="btn primary" id="planAi" ${PL_BUSY?"disabled":""}>${ic("sparkle")}${PL_BUSY?"AI 正在分析…":"AI 写本周计划"}</button>`:""}</div>
-    ${PL_MSG?`<div class="notice warn">${esc(PL_MSG)}</div>`:""}
+    ${PL_MSG?`<div class="notice">${esc(PL_MSG)}</div>`:""}
   </div>`;
 }
 function planParentBind(){
+  const ns=$("#planNoteSave"); if(ns)ns.onclick=()=>{const b=B();b.prefs={...b.prefs,parentNote:{text:$("#planNote").value.trim(),at:Date.now()},u:Date.now()};Store.save();PL_MSG="已保存，孩子打开网站就能看到。";render();};
   const on=$("#planOn"); if(on)on.onchange=()=>{const b=B();b.prefs={...b.prefs,planOff:!on.checked,u:Date.now()};Store.save();render();};
   const re=$("#planRe"); if(re)re.onclick=()=>{B().eng.ai[planKey()]=planMake();Store.save();PL_MSG="";render();};
   const ai=$("#planAi"); if(ai)ai.onclick=async()=>{PL_BUSY=true;PL_MSG="";render();try{await aiPlan();}catch(e){PL_MSG=typeof aiErr==="function"?aiErr(e):e.message;}PL_BUSY=false;render();};

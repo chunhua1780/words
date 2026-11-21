@@ -1232,3 +1232,13 @@ html:not(.zh-on) .zh{display:none}
 .wr-kinds{display:flex;flex-wrap:wrap;gap:8px}
 .wr-kinds .chip{border:0;border-radius:999px;padding:8px 14px;background:var(--soft,#f2f2f7);font-weight:600;cursor:pointer}
 .wr-kinds .chip.on{background:var(--c-blue,#2f6fec);color:#fff}
+
+/* parent page inside the Family page */
+html.embed header.top{display:none}
+html.embed body{background:transparent}
+.plan-note{background:var(--paper,#fff);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+
+.fam-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 12px}
+.fam-tabs button{border:0;border-radius:999px;padding:10px 16px;background:var(--soft,#f2f2f7);font-weight:700;cursor:pointer}
+.fam-tabs button.on{background:var(--c-blue,#2f6fec);color:#fff}
+.fam-detail{display:flex;flex-direction:column;gap:8px}

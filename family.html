@@ -70,11 +70,26 @@ const loadAcc=()=>{try{const a=JSON.parse(localStorage.getItem("fam-acc")||"null
   const w=s("ws-session"),c=s("y7-session");
   return [{name:"Wendy",kind:"y5",user:w?w.user:"",pass:w?w.pass:""},{name:"Candy",kind:"y7",user:c?c.user:"",pass:c?c.pass:""}];};
 let ACC=loadAcc(), BOOKS={}, ERR={}, editing=!ACC.some(a=>a.user&&a.pass), loading=false, lastLoad=0;
+/* tabs: the overview of both, or one child's complete parent page shown right here (scores, mistakes, every
+   piece of writing with its marks, the plan and advice, words and dictation lists, settings) */
+let FTAB="all", FGOTO=null;
+const PARENT_REL={y5:"parent.html",y7:"../Candy/parent.html"};
+const SESS_KEY={y5:"ws-session",y7:"y7-session"};
+function openKid(i,goto){const a=ACC[i]; if(!a||!a.user)return;
+  try{localStorage.setItem(SESS_KEY[a.kind],JSON.stringify({user:String(a.user).trim().toLowerCase(),pass:a.pass}));}catch(e){} // the parent page logs in with this
+  FTAB=i; FGOTO=goto||null; render(); window.scrollTo(0,0);}
+function frameTick(){
+  const f=document.getElementById("famIf"); if(!f)return;
+  try{const d=f.contentDocument; if(!d||!d.documentElement)return; const h=d.documentElement.scrollHeight; if(h&&Math.abs(h-f.offsetHeight)>4)f.style.height=h+"px";
+    if(FGOTO){const el=d.getElementById(FGOTO); if(el&&el.offsetHeight){window.scrollTo({top:f.getBoundingClientRect().top+window.scrollY+el.getBoundingClientRect().top-12,behavior:"smooth"});FGOTO=null;}}
+  }catch(e){}
+}
+setInterval(frameTick,700);
 async function loadAll(){
-  loading=true; render();
+  loading=true; if(FTAB==="all")render();
   try{await Promise.all(ACC.map(async(a,i)=>{if(!a.user||!a.pass){ERR[i]="Not set";return;}
     try{const r=await WS.login(String(a.user).trim().toLowerCase(),a.pass);BOOKS[i]=normBook(r&&r.data,a.user);delete ERR[i];}catch(e){ERR[i]=authMsg(e);}}));}catch(e){}
-  loading=false; lastLoad=Date.now(); render();
+  loading=false; lastLoad=Date.now(); if(FTAB==="all")render();
 }
 const pct=(r,n)=>n?Math.round(r/n*100)+"%":"–";
 const mins=s=>s<60?(s?"<1":"0"):String(Math.round(s/60));
@@ -113,7 +128,7 @@ function kidCard0(a,i){
     <details class="fam-rp"><summary><b>学习报告 · Learning report</b> <span class="muted small">scores, trends, what to do next</span></summary>${reportHtml(b,{short:true})}<div class="muted small">完整报告（错题、阅读、日记全文）在 <a href="${S.parent}">家长页</a>。</div></details>
     <div><b>Last 7 days</b> <span class="muted small">minutes a day · maths % right</span>
       <div class="bar7">${days.map(d=>`<div title="${d}: ${mins(tot(d))} min"><span>${mins(tot(d))}</span><i style="height:${tot(d)/mx*100}%"></i><span>${(ml[d]||{}).n?pct(ml[d].r,ml[d].n):"–"}</span><span>${d===t?"Today":WEEK[pdate(d).getDay()]}</span></div>`).join("")}</div></div>
-    <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn" href="${S.parent}">Full parent page · 设置今日必做</a><a class="btn ghost" href="${S.kid}">Child’s page</a></div>
+    <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn primary" data-kid="${i}">${esc(a.name)} 的全部详情 · Everything</button>${a.kind==="y5"?`<button class="btn" data-kid="${i}" data-goto="swBox">${ic("doc")}填写周五听写生字</button>`:""}<button class="btn" data-kid="${i}" data-goto="planNote">给孩子的建议</button><a class="btn ghost" href="${S.kid}">Child’s page</a></div>
   </div>`;
 }
 function render(){
@@ -126,7 +141,13 @@ function render(){
       <div class="acc-form">${ACC.map((a,i)=>`<div class="acc-row"><input data-f="name" data-i="${i}" value="${esc(a.name)}" placeholder="Name"><select data-f="kind" data-i="${i}">${Object.entries(SITES).map(([k,s])=>`<option value="${k}" ${a.kind===k?"selected":""}>${esc(s.label)}</option>`).join("")}</select>
         <input data-f="user" data-i="${i}" value="${esc(a.user)}" placeholder="Username" autocapitalize="none" autocorrect="off"><input data-f="pass" data-i="${i}" value="${esc(a.pass)}" placeholder="Password" type="text" autocapitalize="none" autocorrect="off"></div>`).join("")}</div>
       <div class="row" style="gap:8px"><button class="btn primary" id="fSave">Save and load</button><button class="btn" id="fDev">用这台设备上已登录的账号</button></div><div class="muted small">用户名不分大小写；密码要和孩子登录时完全一样。</div></div>`:""}
-    ${ok?`<div class="fam-grid">${ACC.map(kidCard).join("")}</div>`:`<div class="card muted">Tap “Accounts” and enter both children’s logins.</div>`}`;
+    ${ok?`<div class="fam-tabs"><button class="${FTAB==="all"?"on":""}" data-tab="all">总览 · Overview</button>${ACC.map((a,i)=>a.user?`<button class="${FTAB===i?"on":""}" data-kid="${i}">${esc(a.name)} · 全部详情</button>`:"").join("")}</div>`:""}
+    ${!ok?`<div class="card muted">Tap “Accounts” and enter both children’s logins.</div>`
+      :FTAB==="all"?`<div class="fam-grid">${ACC.map(kidCard).join("")}</div>`
+      :`<div class="fam-detail"><div class="muted small">${esc(ACC[FTAB].name)} 的全部学习情况：成绩和趋势、错题（具体题目和孩子的答案）、常拼错的单词、阅读、每篇作文/日记全文和 AI 评分、本周计划和 AI 建议、给孩子的建议、每周听写生字、今日必做设置。往下滑都能看到；在这里改的设置会直接生效。</div>
+        <iframe id="famIf" src="${PARENT_REL[ACC[FTAB].kind]}?embed=1" title="${esc(ACC[FTAB].name)} parent page" style="width:100%;height:2400px;border:0;display:block"></iframe></div>`}`;
+  document.querySelectorAll("[data-kid]").forEach(b=>b.onclick=()=>openKid(+b.dataset.kid,b.dataset.goto));
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{FTAB="all";render();});
   document.getElementById("fRefresh").onclick=loadAll; reportBind(document.getElementById("app"));
   document.getElementById("fEdit").onclick=()=>{editing=!editing;render();};
   const sv=document.getElementById("fSave");
@@ -140,7 +161,7 @@ function render(){
     render();};
 }
 render(); if(ACC.some(a=>a.user&&a.pass))loadAll();
-setInterval(()=>{if(!editing&&document.visibilityState==="visible")loadAll();},120000);
+setInterval(()=>{if(!editing&&FTAB==="all"&&document.visibilityState==="visible")loadAll();},120000);
 </script>
 <script src="zhui.js"></script>
 <script src="autoupdate.js"></script>

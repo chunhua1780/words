@@ -4,7 +4,12 @@
    with a pencil) and reads it aloud in a soft female British voice. Then the next step, and so on.
    Before the child has answered, the teacher stops before the last step ("Now you try the last step"),
    so the child still works out the answer; after a wrong answer she shows the whole working.
-   Using Help is noted with the answer (h:1 in book.maths.hist) so the parent page can show it. */
+   Help is not there at once: it appears under the Check button after 40 seconds of thinking or after a wrong try,
+   at most 6 times a day. An answer given after Help does not count as right (it goes to the mistakes to do again,
+   and the parent page marks it "Help"), and a similar question follows straight away. On that one the teacher
+   first asks her to try by herself; Help opens there only after a wrong try. After 3 Helps in one go she is
+   gently told to try more on her own. */
+const HELP_WAIT=40000, HELP_DAY=6;
 const TEACH_VOICES=["Martha","Kate","Serena","Stephanie","Libby","Sonia","Hazel","Google UK English Female","Fiona","Moira","Karen","Samantha"];
 let TV=null, TEACH=null;
 function teachVoice(){
@@ -41,6 +46,7 @@ function teachEl(){
       <div><b>Miss Help · 老师来教你</b><div class="muted small" id="tcSub"></div></div>
       <button class="icon-btn" id="tcClose" aria-label="Close">${ic("x")}</button></div>
     <div class="tc-board" id="tcBoard"></div>
+    <div class="tc-nudge" id="tcNudge" hidden><button class="btn primary" id="tcTry">OK, I’ll try 我自己试试</button><button class="btn" id="tcStill" hidden>I still need help 还是需要帮助</button></div>
     <div class="tc-ctrl"><button class="btn" id="tcAgain">↻ Again 再讲一遍</button><button class="btn" id="tcPause">⏸ Pause 暂停</button><button class="btn primary" id="tcNext">Next step ⏭</button></div>
   </div>`;
   document.body.appendChild(el);
@@ -58,8 +64,8 @@ function openTeach(q,full){
   if(!steps.length){if(typeof toast==="function")toast("No steps for this one yet. Try the 答疑 button.");return;}
   const end=full?"That’s how you do it. Now you know! 你学会了！":"Now you try the last step yourself. You can do it! 最后一步你自己来，你可以的！";
   TEACH={q,steps:[...steps,end],i:0,shown:0,paused:false,tok:0,full};
-  if(typeof MS!=="undefined"&&MS){MS.helped=MS.helped||{};MS.helped[q.id]=1;}
-  const el=teachEl(); el.hidden=false; document.body.style.overflow="hidden";
+  if(typeof MS!=="undefined"&&MS&&!full&&(MS.state==="ask"||MS.state==="retry")){MS.helped=MS.helped||{};MS.helped[q.id]=1;}
+  const el=teachEl(); el.hidden=false; document.body.style.overflow="hidden"; teachMode(false);
   $("#tcSub").textContent=full?"Here is the whole working, step by step.":"I’ll show you how to start. 我先带你做前面几步。";
   teachDraw(false); teachRun();
 }
@@ -88,4 +94,69 @@ function teachRun(){
     if(k<text.length)setTimeout(write,text[k-1]===" "?35:48);else{wrote=true;const p=li.querySelector(".tc-pen");if(p)p.remove();next();}};
   teachFace(true); write();
   teachSay(T.steps[T.i],()=>{if(tok!==T.tok)return;spoke=true;teachFace(false);next();});
+}
+
+/* ---------- when Help can be used ---------- */
+const helpUsed=()=>((MB().log["hp:"+today()]||{}).n||0);
+const helpLeft=()=>Math.max(0,HELP_DAY-helpUsed());
+function teachBtnHtml(q){
+  if(typeof MS==="undefined"||!MS||MS.kind==="test"||!(typeof stepsFor==="function"?stepsFor(q):q.steps||[]).length)return "";
+  const st=MS.state;
+  if(st==="right")return "";
+  if(st==="shown")return `<div class="tc-fab-row"><button class="btn teach-fab" data-teach="1">👩‍🏫 Watch how · 看老师讲解</button></div>`;
+  if(MS.helped&&MS.helped[q.id])return `<div class="tc-fab-row"><button class="btn teach-fab" data-teach="0">👩‍🏫 See it again · 再看一遍</button></div>`;
+  if(!helpLeft())return `<div class="tc-fab-row"><span class="muted small">今天的 Help 用完了。自己试试，答错后会看到讲解。 · No Help left today: try it yourself.</span></div>`;
+  const left=HELP_WAIT-(Date.now()-(MS.t0||Date.now()));
+  if(MS.tries<1&&left>0)return `<div class="tc-fab-row"><span class="teach-wait" data-teachwait>👩‍🏫 Help in ${Math.ceil(left/1000)} s · 先自己想一想</span></div>`;
+  return `<div class="tc-fab-row"><button class="btn teach-fab" data-teach="0">👩‍🏫 Help · 老师教我<small>${helpLeft()} left today</small></button></div>`;
+}
+let TEACH_TIMER=null;
+function bindTeach(body,q){
+  body.querySelectorAll("[data-teach]").forEach(b=>b.onclick=()=>teachAsk(q,b.dataset.teach==="1"));
+  clearInterval(TEACH_TIMER);
+  const w=body.querySelector("[data-teachwait]"); if(!w)return;
+  const i=MS.i;
+  TEACH_TIMER=setInterval(()=>{if(!MS||MS.i!==i||MS.state==="right"||MS.state==="shown"){clearInterval(TEACH_TIMER);return;}
+    const left=HELP_WAIT-(Date.now()-(MS.t0||0)), el=document.querySelector("[data-teachwait]"); if(!el){clearInterval(TEACH_TIMER);return;}
+    if(left<=0){clearInterval(TEACH_TIMER);const row=el.parentNode;row.outerHTML=teachBtnHtml(q);document.querySelectorAll("#mBody [data-teach]").forEach(b=>b.onclick=()=>teachAsk(q,b.dataset.teach==="1"));}
+    else el.textContent=`👩‍🏫 Help in ${Math.ceil(left/1000)} s · 先自己想一想`;},1000);
+}
+function teachAsk(q,full){
+  if(full||(MS.helped&&MS.helped[q.id]))return openTeach(q,full);
+  if(MS.twin&&MS.twin[q.id]&&MS.tries<1)
+    return teachNudge("Little one, try this one by yourself first, OK? It is just like the last one. If you really can’t do it, try once, and then I’ll help you. 小朋友，这道题和刚才那道很像，你先试着自己做一下好吗？实在做不出来，先答一次，再来找我帮忙。");
+  const go=()=>{const L=MB().log["hp:"+today()]=MB().log["hp:"+today()]||{n:0};L.n=(L.n||0)+1;L.u=Date.now();Store.save();MS.hpN=(MS.hpN||0)+1;openTeach(q,false);};
+  if((MS.hpN||0)>=3&&!MS.nudged){MS.nudged=1;
+    return teachNudge("You’ve asked me for help quite a lot. Have a go by yourself first: mistakes help you learn, and if it’s wrong you’ll see how to do it. 你今天用了好几次帮助啦。先自己做做看，做错也没关系，错了会看到讲解。",go);}
+  go();
+}
+function teachMode(nudge){const n=$("#tcNudge"),c=document.querySelector("#teachOv .tc-ctrl");if(n)n.hidden=!nudge;if(c)c.hidden=nudge;}
+function teachNudge(msg,still){
+  if(TEACH)TEACH.tok++; TEACH=null;
+  const el=teachEl(); el.hidden=false; document.body.style.overflow="hidden"; teachMode(true);
+  $("#tcSub").textContent="Have a go first · 先自己试试";
+  $("#tcBoard").innerHTML=`<div class="tc-msg">${esc(msg.split(/(?<=[.!?])\s(?=[\u4e00-\u9fff])/)[0])}<div class="tc-msg-zh">${esc((msg.match(/[\u4e00-\u9fff].*$/)||[""])[0])}</div></div>`;
+  $("#tcTry").onclick=closeTeach;
+  const st=$("#tcStill"); st.hidden=!still; st.onclick=()=>{teachMode(false);still();};
+  teachFace(true); teachSay(msg.replace(/[\u4e00-\u9fff，。、！？]+.*$/,""),()=>teachFace(false));
+}
+/* after an answer given with Help: a similar question comes next (up to two in a row) */
+function similarQ(q){
+  const g=q.gen||q.pg||""; let nq=null;
+  try{
+    if(g&&typeof PAPER_BY!=="undefined"&&PAPER_BY[g]){for(let i=0;i<40&&!nq;i++){const x=PAPER_BY[g].gen();if(x&&x.o===q.o)nq=x;}for(let i=0;i<10&&!nq;i++)nq=PAPER_BY[g].gen();}
+    else if(g.startsWith("fm-")&&typeof fmQuestion==="function"&&typeof FM_BY!=="undefined"&&FM_BY[g.slice(3)])nq=fmQuestion(FM_BY[g.slice(3)]);
+  }catch(e){nq=null;}
+  if(nq&&!(nq.k==="n"&&!Number.isFinite(nq.a))){const id="g:tw:"+Date.now().toString(36)+Math.floor(Math.random()*1e4);MQ[id]={...nq,id,gen:g};return id;}
+  if(typeof MATHS==="undefined")return null;
+  const st=MB().q, used=new Set(MS.ids), ok=x=>x.id!==q.id&&!used.has(x.id)&&!(typeof PAPER_TYPES!=="undefined"&&typeof isPrimary==="function"&&isPrimary(x));
+  let pool=MATHS.filter(x=>x.t===q.t&&x.o===q.o&&ok(x)); if(!pool.length)pool=MATHS.filter(x=>x.t===q.t&&ok(x)); if(!pool.length)return null;
+  const fresh=pool.filter(x=>!st[x.id]), from=fresh.length?fresh:pool; return from[Math.floor(Math.random()*from.length)].id;
+}
+function teachTwin(q){
+  if(typeof MS==="undefined"||!MS||MS.kind==="test"||!(MS.helped&&MS.helped[q.id]))return;
+  MS.twin=MS.twin||{}; const depth=(MS.twin[q.id]||0)+1; if(depth>2)return;
+  const id=similarQ(q); if(!id||!MQ[id])return;
+  MS.ids.splice(MS.i+1,0,id); MS.twin[id]=depth;
+  if(typeof toast==="function")toast("Next: a similar question. Try it by yourself! 下一题是类似的，自己试试！");
 }

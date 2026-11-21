@@ -1267,3 +1267,10 @@ html.embed body{background:transparent}
 .tc-board .frac{color:inherit}
 .tc-ctrl{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 @media (max-width:560px){.tc-board{font-size:19px;padding:12px;border-width:6px}.tc-ctrl .btn{flex:1}}
+
+.tc-fab-row{display:flex;justify-content:flex-end;margin-top:14px}
+.teach-fab{display:flex;flex-direction:column;align-items:flex-end;gap:0;padding:8px 14px;border-radius:16px;background:color-mix(in srgb,var(--c-pink,#e64980) 10%,var(--paper,#fff));border:1.5px solid color-mix(in srgb,var(--c-pink,#e64980) 35%,transparent);font-weight:700}
+.teach-fab small{font-weight:400;color:var(--muted);font-size:.75rem}
+.teach-wait{color:var(--muted);font-size:.85rem;padding:8px 12px;border-radius:14px;background:var(--soft,#f2f2f7)}
+.tc-nudge{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.tc-msg{font-size:24px}.tc-msg-zh{margin-top:10px;font-size:20px;color:#ffd66b}

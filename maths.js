@@ -292,10 +292,11 @@ function renderMQ(){
       ${done?"":`<div class="keypad ${q.k}">${keysFor(q).map(k=>`<button data-key="${k}" class="${k==="⌫"?"del":k==="space"?"sp":""}">${k==="⌫"?ic("back"):k==="space"?"space":k}</button>`).join("")}</div>
       <button class="btn primary big" id="mCheck" ${MS.input.trim()&&!(MS.wait&&Date.now()<MS.wait)?"":"disabled"}>${MS.kind==="test"?(MS.i+1<n?"Next":"Finish"):"Check"}</button>`}`}
     <div class="m-feedback">${feedback(q)}</div>
+    ${typeof teachBtnHtml==="function"?teachBtnHtml(q):""}
   </div>`;
   $("#mSay").onclick=()=>sayMaths(q,$("#mSay"));
   $("#mZh").onclick=()=>{zhToggle();renderMQ();};
-  bindExplain(body,renderMQ);
+  bindExplain(body,renderMQ); if(typeof bindTeach==="function")bindTeach(body,q);
   zhFill(body);
   body.querySelectorAll("[data-opt]").forEach(b=>b.onclick=()=>answer(q,+b.dataset.opt));
   body.querySelectorAll("[data-key]").forEach(b=>b.onclick=()=>press(b.dataset.key));
@@ -305,6 +306,7 @@ function renderMQ(){
 function feedback(q){
   const st=MS.state, nx=`<button class="btn primary big" id="mNext">${MS.i+1<MS.ids.length?"Next question":"See results"}</button>`;
   if(st==="retry")return `<div class="mfb warn">${ic("x")}<div><b>Not quite. Have another go.</b><span>Stuck? Tap 答疑 for help, one step at a time.</span></div></div>${explainBox(q,false)}`;
+  if(st==="right"&&MS.helped&&MS.helped[q.id])return `<div class="mfb warn">${ic("check")}<div><b>Right, well done! But you used Help, so this one does not count yet.</b><span>A similar question comes next: try it by yourself. 答对了！不过用了帮助，这题先不算分。下一题是类似的，自己试试！</span></div></div>`;
   if(st==="right")return `<div class="mfb ok">${ic("check")}<div><b>${MS.tries>1?"Correct on your second try!":"Correct!"}</b><span>${mt(q.w)}</span></div></div>${explainBox(q,true)}${nx}`;
   if(st==="shown")return `<div class="mfb bad">${ic("x")}<div><b>The answer is ${fracHtml(esc(showAns(q)))}</b><span>Here is how to work it out, step by step:</span></div></div>${explainBox(q,true)}${nx}`;
   return MS.kind==="test"?"":explainBox(q,false); // before answering: help with the method only (not in a check-up)
@@ -346,22 +348,24 @@ function answer(q,v){
   else if(MS.tries<2){MS.state="retry";beep(false);if(q.k==="c")MS.wrongPick.push(v);else MS.input="";renderMQ();return;}
   else{MS.state="shown";MS.exp=99;beep(false);if(q.k==="c")MS.wrongPick.push(v);}
   record(q,ok,q.k==="c"?q.c[v]:v);
+  if(typeof teachTwin==="function")teachTwin(q); // used Help: a similar question comes next
   renderMQ();
 }
 function record(q,ok,given){
+  const hp=!!(MS.helped&&MS.helped[q.id]), real=ok; if(hp)ok=false; // answered with Help: not counted as right, and it comes back later
   const M=MB(), t=today(), key=q.gen?"p:"+q.gen:q.id, s=M.q[key]||{}; // generated questions keep one record per type
   M.q[key]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{}),
     ...(s.wr||!ok?{wr:1}:{}),...(ok&&s.ok===false?{fx:t}:s.fx?{fx:s.fx}:{}),...(s.cf?{cf:s.cf}:ok&&s.fx&&dayDiff(s.fx,t)>=6?{cf:t}:{})}; // wr: once wrong, fx: the day it was put right, cf: still right a week later (spaced check)
   if(q.gen&&!ok){const {id,gen,...keep}=q;M.q["w:"+String(q.id).replace(/^g[a-z]*:/,"")]={n:1,r:0,ok:false,last:t,u:Date.now(),q:keep};} // wrong: keep it for 错题本
-  const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;
+  if(!hp){const L=M.log[t]=M.log[t]||{n:0,r:0}; L.n++; if(ok)L.r++;}
   if(MS.xk&&!q.gen){const X=M.log[MS.xk+":"+t]=M.log[MS.xk+":"+t]||{n:0,r:0};X.n++;if(ok)X.r++;X.u=Date.now();} // afternoon sets (must.js)
-  if(q.gen){const g=q.gen.split("-")[0],G=M.log[g+":"+t]=M.log[g+":"+t]||{n:0,r:0};G.n++;if(ok)G.r++;G.u=Date.now();
+  if(q.gen&&!hp){const g=q.gen.split("-")[0],G=M.log[g+":"+t]=M.log[g+":"+t]||{n:0,r:0};G.n++;if(ok)G.r++;G.u=Date.now();
     const i=String(q.id).split(":").pop();if(g==="cc"){G.done=[...new Set([...(G.done||[]),i])];}} // per-day counts (must.js)
-  if(MS.kind==="day"){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
+  if(MS.kind==="day"&&(dayOf(MS.date).ids||[]).includes(q.id)){const d=dayOf(MS.date);d.ans[q.id]={v:String(given).slice(0,20),ok,tries:MS.tries};d.u=Date.now();}
   if(MS.kind==="test"){const d=dayOf(MS.key);d.ans[q.id]={v:String(given).slice(0,20),ok};d.u=Date.now();}
   if(MS.fix){const F=M.log["fx:"+t]=M.log["fx:"+t]||{n:0,r:0};F.n++;if(ok)F.r++;F.left=mistakeIds().length;F.start=Math.max(F.start||0,F.left+(ok?1:0));F.u=Date.now();} // 错题重做 progress (must.js)
   // every answer of the day, for the parent page: the question, the child's answer, the right answer
-  try{const H=M.hist[t]=M.hist[t]||[],n=new Date();if(H.length<400)H.push({...(MS.helped&&MS.helped[q.id]?{h:1}:{}),q:String(q.q||"").slice(0,240),a:String(showAns(q)).slice(0,40),v:String(given==null?"":given).slice(0,40),ok,t:String(q.t||"").slice(0,40),...(ok?{}:{w:String(q.w||(q.steps||[]).join(" ")||"").slice(0,320)}),
+  try{const H=M.hist[t]=M.hist[t]||[],n=new Date();if(H.length<400)H.push({...(MS.helped&&MS.helped[q.id]?{h:1}:{}),q:String(q.q||"").slice(0,240),a:String(showAns(q)).slice(0,40),v:String(given==null?"":given).slice(0,40),ok:real,t:String(q.t||"").slice(0,40),...(ok?{}:{w:String(q.w||(q.steps||[]).join(" ")||"").slice(0,320)}),
     s:MS.kind==="day"?"Daily 20":MS.kind==="test"?"Test":MS.fix?"Fix mistakes":String(MS.topic||"Practice").slice(0,40),tr:MS.tries||1,f:q.fig?1:0,tm:String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")});}catch(e){}
   MS.res[q.id]=ok; Store.save();
 }

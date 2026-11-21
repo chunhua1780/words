@@ -32,7 +32,7 @@ function stepsHtml(steps,cls=""){return `<ol class="p-steps ${cls}">${steps.map(
 function explainBox(q,full){
   const list=full?stepsFor(q):hintSteps(q);
   if(!list.length)return "";
-  const n=Math.min(MS.exp||0,list.length), tb=typeof openTeach==="function"?`<button class="btn teach-btn" data-teach="${full?1:0}"><span class="tb-face">👩‍🏫</span><span><b>Help · 老师一步步教我</b><small>${full?"Watch and listen: the whole working":"She writes and explains how to start"}</small></span></button>`:"";
+  const n=Math.min(MS.exp||0,list.length), tb="";
   if(!n)return tb+`<button class="btn ex-btn" id="mExp">${ic("sparkle")}<span>答疑</span><small>${full?"See how to work it out, step by step":"Stuck? Show me how to start"}</small></button>`;
   const anim=MS.exp>=99;
   return tb+`<div class="ex-box ${full?"":"hint"}">
@@ -46,7 +46,6 @@ function bindExplain(body,rerender){
   const step=k=>()=>{MS.exp=k==="all"?99:(MS.exp||0)+1; MS.expAnim=false; rerender();
     const li=body.querySelector(".ex-box li.new")||body.querySelector(".ex-box"); if(li)li.scrollIntoView({block:"nearest",behavior:"smooth"});};
   const a=body.querySelector("#mExp"); if(a)a.onclick=step(1);
-  body.querySelectorAll("[data-teach]").forEach(b=>b.onclick=()=>{const q=MQ[MS.ids[MS.i]];if(q)openTeach(q,b.dataset.teach==="1");});
   const b=body.querySelector("#mExpNext"); if(b)b.onclick=step(1);
   const c=body.querySelector("#mExpAll"); if(c)c.onclick=step("all");
 }

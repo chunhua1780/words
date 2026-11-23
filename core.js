@@ -95,9 +95,9 @@ function mergeBooks(a,b){
   const mlog={...b.maths.log};
   for(const [d,v] of Object.entries(a.maths.log)){const o=mlog[d];mlog[d]=!o?v:{...((o.u||0)>(v.u||0)?{...v,...o}:{...o,...v}),n:Math.max(o.n||0,v.n||0),r:Math.max(o.r||0,v.r||0)};}
   // every answer of a day (for the parent page): keep the longer record of each day, and only the last 45 days
-  const mhist={...b.maths.hist}, hcut=dstr(new Date(Date.now()-45*864e5));
+  const mhist={...b.maths.hist}, hcut=dstr(new Date(Date.now()-60*864e5)), hold=dstr(new Date(Date.now()-400*864e5)); // 60 days in full, then only the wrong answers for a year
   for(const [d,v] of Object.entries(a.maths.hist))if(!mhist[d]||(v||[]).length>(mhist[d]||[]).length)mhist[d]=v;
-  for(const d in mhist)if(d<hcut)delete mhist[d];
+  for(const d in mhist){if(d<hold)delete mhist[d];else if(d<hcut&&(mhist[d]||[]).some(x=>x.ok))mhist[d]=(mhist[d]||[]).filter(x=>!x.ok).map(x=>({...x,w:String(x.w||"").slice(0,200)}));}
   const maths={q:newer(a.maths.q,b.maths.q),days:mdays,log:mlog,hist:mhist};
   // English: diary entries, daily word picks, phonics patterns and phonics per day; keep the newer copy of each
   const eng={diary:newer(a.eng.diary,b.eng.diary),daily:newer(a.eng.daily,b.eng.daily),phon:newer(a.eng.phon,b.eng.phon),plog:newer(a.eng.plog,b.eng.plog),ai:newer(a.eng.ai||{},b.eng.ai||{})}; // ai: saved AI reports by date

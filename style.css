@@ -1274,3 +1274,21 @@ html.embed body{background:transparent}
 .teach-wait{color:var(--muted);font-size:.85rem;padding:8px 12px;border-radius:14px;background:var(--soft,#f2f2f7)}
 .tc-nudge{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .tc-msg{font-size:24px}.tc-msg-zh{margin-top:10px;font-size:20px;color:#ffd66b}
+
+/* 以前的作业记录 · the parent page's day-by-day record */
+.hnav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.hnav input{font:inherit;padding:6px 10px;border-radius:10px;border:1px solid var(--line,#ddd)}
+.hcal{display:flex;flex-direction:column;gap:6px}
+.hcal-h{display:flex;align-items:center;justify-content:space-between;max-width:520px}
+.hcal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:520px}
+.hc-wd{font-size:.72rem;color:var(--muted);text-align:center}
+.hc-d{position:relative;border:0;border-radius:10px;min-height:46px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--soft,#f2f2f7);color:var(--fg)}
+.hc-d b{font-size:.9rem}.hc-d small{font-size:.62rem;color:inherit;opacity:.85;line-height:1.1}
+.hc-d.h1{background:color-mix(in srgb,var(--c-teal,#1aa59a) 22%,var(--paper,#fff))}.hc-d.h2{background:color-mix(in srgb,var(--c-teal,#1aa59a) 45%,var(--paper,#fff))}.hc-d.h3{background:var(--c-teal,#1aa59a);color:#fff}
+.hc-d.fut{opacity:.35;cursor:default}.hc-d.today{outline:2px solid var(--c-orange,#f08c00)}.hc-d.on{outline:3px solid var(--c-blue,#2f6fec)}
+.hc-w{position:absolute;top:2px;right:4px;font-style:normal;font-size:.65rem}
+.hd{display:flex;flex-direction:column;gap:10px;padding:10px 12px;border-radius:14px;background:var(--soft,#f6f6f8)}
+.hd-must,.hd-words{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.hd-must span,.hd-words span{background:var(--paper,#fff);border-radius:10px;padding:3px 8px;font-size:.82rem}
+.hd-must span.ok,.hd-words span.ok{background:var(--green-soft,#e3f6e8)}.hd-must span.part{background:var(--orange-soft,#fff4e5)}
+.hd-words small{display:block;font-size:.68rem;color:var(--muted)}
+.hd-read summary{cursor:pointer}.hd-read ol{margin:6px 0;padding-left:20px}

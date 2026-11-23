@@ -407,9 +407,45 @@ function histOf(date){
   if(typeof cuGet==="function")add(cuGet(date),"Test");
   return out;
 }
-let HIST_DAY=null, HIST_BAD=false;
+let HIST_DAY=null, HIST_BAD=false, HIST_MON=null;
+const H_FULL=60; // days with every answer kept; older days keep only the wrong answers (core.js)
+const hMins=d=>Math.round(Object.values((B().time||{})[d]||{}).reduce((s,x)=>s+x,0)/60);
+/* a month calendar: every day with its minutes and maths %, tap a day to see everything done that day */
+function histCal(sel){
+  const t=today(), m=HIST_MON||sel.slice(0,7), first=pdate(m+"-01"), y=first.getFullYear(), mo=first.getMonth(), nd=new Date(y,mo+1,0).getDate(), lead=(first.getDay()+6)%7;
+  const ML=(MB().log)||{}, cells=[];
+  for(let i=0;i<lead;i++)cells.push(`<span class="hc-e"></span>`);
+  for(let k=1;k<=nd;k++){const d=`${m}-${String(k).padStart(2,"0")}`, mi=hMins(d), L=ML[d]||{}, di=((B().eng||{}).diary||{})[d], fut=d>t;
+    const lv=fut?"fut":mi>=45?"h3":mi>=20?"h2":mi>0||L.n?"h1":"h0";
+    cells.push(`<button class="hc-d ${lv} ${d===sel?"on":""} ${d===t?"today":""}" data-hday="${d}" ${fut?"disabled":""}><b>${k}</b>${!fut&&(mi||L.n)?`<small>${mi?mi+"′":""}${L.n?` ${Math.round((L.r||0)/L.n*100)}%`:""}</small>`:""}${di&&di.done?`<i class="hc-w" title="writing">✎</i>`:""}</button>`);}
+  const prevM=dstr(new Date(y,mo-1,1)).slice(0,7), nextM=dstr(new Date(y,mo+1,1)).slice(0,7);
+  return `<div class="hcal"><div class="hcal-h"><button class="icon-btn sm" data-hmon="${prevM}" aria-label="Previous month">‹</button><b>${first.toLocaleDateString("en-GB",{month:"long",year:"numeric"})}</b><button class="icon-btn sm" data-hmon="${nextM}" ${nextM>t.slice(0,7)?"disabled":""} aria-label="Next month">›</button></div>
+    <div class="hcal-g">${["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(w=>`<span class="hc-wd">${w}</span>`).join("")}${cells.join("")}</div>
+    <div class="muted tiny">颜色越深学得越久 · 每格：分钟 和 数学正确率 · ✎ = 交了作文/日记</div></div>`;
+}
+/* everything else done on a day (not only maths) */
+function histDay(d){
+  const b=B(), E=b.eng||{}, M=MB(), out=[], T=(b.time||{})[d]||{};
+  const secs=Object.entries(T).filter(([,s])=>s>=30).sort((x,y)=>y[1]-x[1]);
+  if(typeof mustCfg==="function"){try{const items=mustCfg().items, st=items.map(k=>({k,...mustStatus(k,d)})), dn=st.filter(x=>x.done).length;
+    out.push(`<div><b>今日必做 Must-do</b> <span class="muted small">${dn}/${st.length} done · ${hMins(d)} min</span><div class="hd-must">${st.map(x=>`<span class="${x.done?"ok":x.p>0?"part":""}" title="${esc(x.sub)}">${x.done?"✓":x.p>0?Math.round(x.p*100)+"%":"–"} ${esc(typeof mustTitle==="function"?mustTitle(x.k):x.k)}</span>`).join("")}</div>
+      ${secs.length?`<div class="muted small">Time 时间: ${secs.map(([k,s])=>`${esc(k)} ${Math.round(s/60)} min`).join(" · ")}</div>`:""}</div>`);}catch(e){}}
+  const dl=(E.daily||{})[d]; if(dl&&(dl.words||[]).length){const set=new Set(dl.words.map(norm)), ws=Object.values(b.words).filter(w=>set.has(norm(w.w)));
+    out.push(`<div><b>New words 新单词</b> <span class="muted small">${dl.words.length}${dl.carried?` · ${dl.carried} carried over from an earlier day 前一天没学完的`:""}</span><div class="hd-words">${dl.words.map(w=>{const o=ws.find(x=>norm(x.w)===norm(w));return `<span class="${o&&o.stage>0?"ok":""}">${esc(w)}${o?`<small>${o.stage>0?"learned":"not yet"}${o.seen?` · ${o.right||0}/${o.seen}`:""}</small>`:""}</span>`;}).join("")}</div></div>`);}
+  const wl=(b.log||{})[d]; if(wl&&wl.done)out.push(`<div class="small"><b>Spelling practice 拼写练习</b>: ${wl.right||0}/${wl.done} right</div>`);
+  const rd=Object.entries((b.reading||{}).done||{}).filter(([,x])=>x.date===d);
+  if(rd.length)out.push(`<div><b>Reading 阅读</b>${rd.map(([id,x])=>{const r=typeof READINGS!=="undefined"&&READINGS.find(y=>y.id===id);
+    return `<details class="hd-read"><summary>${esc(x.title||(r&&r.title)||id)}${x.kind?` <span class="muted small">${esc(x.kind)}</span>`:""} · <b>${x.score}/${x.n}</b></summary>${r&&r.questions&&x.answers?`<ol class="small">${r.questions.map((q,i)=>{const ok=x.answers[i];return `<li><span class="${ok?"hist-right":"hist-wrong"}">${ok?"✓":ok===false?"✗":"–"}</span> ${esc(q.q)}${ok?"":`<br><span class="muted">Correct answer 正确答案:</span> <b>${esc(q.o?q.o[q.a]:String(q.a))}</b>${q.why?` <span class="muted">(${esc(q.why)})</span>`:""}`}${q.skill?` <span class="hist-t">${esc(q.skill)}</span>`:""}</li>`;}).join("")}</ol>`:`<div class="muted small">Answers not saved for this one.</div>`}</details>`;}).join("")}</div>`);
+  const di=(E.diary||{})[d]; if(di&&di.text)out.push(`<details class="hd-read"><summary><b>Writing 作文/日记</b> · ${wordsOfText(di.text).length} words${di.kind&&di.kind!=="diary"?` · ${esc(di.kind)}`:""}${di.done?"":" · not handed in"}${di.ai?` · <b>AI ${di.ai.score}/10</b>`:""}${(di.fix||[]).length?` · ${(di.fix||[]).length} spelling mistakes`:""}</summary>
+    <p class="dv-text">${typeof diaryMarked==="function"?diaryMarked(di.text,di.fix||[]):esc(di.text)}</p>${di.ai?`<div class="small">${esc(di.ai.praise_zh||di.ai.praise_en||"")}${(di.ai.improve||[]).map(x=>`<div>· ${esc(x.zh||x.en)}</div>`).join("")}</div>`:""}</details>`);
+  const fl=M.log["fl:"+d], uc=M.log["uc:"+d], hp=M.log["hp:"+d];
+  if(fl&&fl.n)out.push(`<div class="small"><b>Formulas 公式四步</b>: ${fl.r}/${fl.n} right first time${fl.done?" · all done ✓":""}${(fl.items||[]).length?` · ${fl.items.map(x=>esc((typeof FM_BY!=="undefined"&&FM_BY[x.k]?FM_BY[x.k].f:x.k))+` (step ${x.step})`).join(", ")}`:""}</div>`);
+  if(uc&&uc.n)out.push(`<div class="small"><b>Units 单位换算</b>: ${uc.r}/${uc.n} right first time${uc.done?" · all done ✓":""}</div>`);
+  if(hp&&hp.n)out.push(`<div class="small"><b>Help used 用了帮助</b>: ${hp.n} time${hp.n>1?"s":""} (those answers do not count)</div>`);
+  return out.length?`<div class="hd">${out.join("")}</div>`:"";
+}
 function histBlock(){
-  const t=today(), d=HIST_DAY||t, days=[...Array(10)].map((_,k)=>addDays(t,-k));
+  const t=today(), d=HIST_DAY||t, ML=(MB().log||{})[d]||{}, old=d<addDays(t,-H_FULL);
   const byQ=histOf.byQ||(histOf.byQ=Object.fromEntries(Object.values(MQ).map(q=>[String(q.q||"").slice(0,240),q])));
   const all=histOf(d).map(x=>{const q=byQ[x.q];return {...x,t:x.t||(q&&q.t)||"",w:x.w||(!x.ok&&q?String(q.w||(q.steps||[]).join(" ")).slice(0,320):"")};}),
     list=HIST_BAD?all.filter(x=>!x.ok):all, right=all.filter(x=>x.ok).length;
@@ -419,8 +455,12 @@ function histBlock(){
   const nm=x=>x===t?"今天 Today":x===addDays(t,-1)?"昨天 Yesterday":x===addDays(t,-2)?"前天":shortDate(x);
   return `<div class="card stack" id="hist">
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">每天做题记录 · Every question, every day</h3>
-      <span class="muted small">${all.length?`${right} / ${all.length} right (${Math.round(right/all.length*100)}%)`:"Nothing answered"}</span></div>
-    <div class="quick">${days.map(x=>{const h=histOf(x);return `<button class="${x===d?"on":""}" data-hday="${x}">${esc(nm(x))}${h.length?` <small>${h.filter(y=>y.ok).length}/${h.length}</small>`:""}</button>`;}).join("")}</div>
+      <span class="muted small">${ML.n?`Maths ${ML.r||0} / ${ML.n} right (${Math.round((ML.r||0)/ML.n*100)}%)`:all.length?`${right} / ${all.length} right`:"Nothing answered"}</span></div>
+    <div class="hnav"><button class="btn sm" data-hday="${addDays(d,-1)}">‹ Previous day 前一天</button><input type="date" id="histDate" value="${d}" max="${t}"><button class="btn sm" data-hday="${addDays(d,1)}" ${d>=t?"disabled":""}>Next day 后一天 ›</button>${d!==t?`<button class="btn sm" data-hday="${t}">Today 今天</button>`:""}</div>
+    ${histCal(d)}
+    <h4 style="margin:4px 0 0">${esc(niceDate(d))} · ${esc(nm(d))}</h4>
+    ${histDay(d)}
+    ${old?`<div class="notice">这一天比较久了：只保存了做错的题（每天的总数和正确率一直保存）。 Older than ${H_FULL} days: only the wrong answers are kept.</div>`:""}
     ${all.length?`<div><div class="muted small" style="margin-bottom:4px"><b>By topic 按题型</b> (weakest first 最弱的在前)</div><div class="hist-topics">${Object.entries(tp).sort((a,b)=>a[1].r/a[1].n-b[1].r/b[1].n).map(([k,o])=>`<span class="${o.r/o.n<.7?"bad":"ok"}">${esc(k)} <b>${o.r}/${o.n}</b></span>`).join("")}</div></div>`:""}
     ${mk.length||pl.n||pl.cn||di?`<div class="hist-eng"><b>English this day 英语</b>
       ${pl.n||pl.sn||pl.cn||pl.bn?`<div class="muted small">Phonics 拼读: ${[pl.cn?`sounds ${pl.cr||0}/${pl.cn}`:"",pl.bn?`build ${pl.br||0}/${pl.bn}`:"",pl.n?`letters ${pl.r||0}/${pl.n}`:"",pl.sn?`spell ${pl.sr||0}/${pl.sn}`:""].filter(Boolean).join(" · ")}</div>`:""}
@@ -437,6 +477,8 @@ function histBlock(){
   </div>`;
 }
 function histBind(){
-  document.querySelectorAll("[data-hday]").forEach(b=>b.onclick=()=>{HIST_DAY=b.dataset.hday;render();setTimeout(()=>{const h=document.getElementById("hist");if(h)h.scrollIntoView({block:"start"});},50);});
+  const hd=document.getElementById("histDate"); if(hd)hd.onchange=()=>{if(!hd.value)return;HIST_DAY=hd.value>today()?today():hd.value;HIST_MON=null;render();setTimeout(()=>{const h=document.getElementById("hist");if(h)h.scrollIntoView({block:"start"});},50);};
+  document.querySelectorAll("[data-hmon]").forEach(b=>b.onclick=()=>{HIST_MON=b.dataset.hmon;render();setTimeout(()=>{const h=document.getElementById("hist");if(h)h.scrollIntoView({block:"start"});},50);});
+  document.querySelectorAll("[data-hday]").forEach(b=>b.onclick=()=>{HIST_DAY=b.dataset.hday;HIST_MON=null;render();setTimeout(()=>{const h=document.getElementById("hist");if(h)h.scrollIntoView({block:"start"});},50);});
   const hb=document.getElementById("histBad"); if(hb)hb.onchange=()=>{HIST_BAD=hb.checked;render();};
 }

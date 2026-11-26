@@ -284,7 +284,7 @@ function renderMQ(){
   $("#maths").style.setProperty("--tc",topicColor(q.t));
   const unit=q.u&&q.k==="n"?q.u:"", pre=unit==="£"?"£":"", post=unit&&unit!=="£"?unit:"";
   body.innerHTML=`<div class="m-q">
-    <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>
+    <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}${q.example?" · 例题 Example":""}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>
     <div class="m-text">${mt(q.q)} <span class="m-tools"><button class="icon-btn sm" id="mSay" aria-label="Read the question">${ic("speaker")}</button>${zhBtnHtml()}</span></div>${zhLine(q.q,"q")}
     ${mFig(q.f)}
     ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${fracHtml(esc(c))}${zhLine(c,"opt")}</button>`).join("")}</div>`
@@ -306,6 +306,7 @@ function renderMQ(){
 function feedback(q){
   const st=MS.state, nx=`<button class="btn primary big" id="mNext">${MS.i+1<MS.ids.length?"Next question":"See results"}</button>`;
   if(st==="retry")return `<div class="mfb warn">${ic("x")}<div><b>Not quite. Have another go.</b><span>Stuck? Tap 答疑 for help, one step at a time.</span></div></div>${explainBox(q,false)}`;
+  if(st==="right"&&q.example)return `<div class="mfb ok">${ic("check")}<div><b>That was the example. Now try ones like it by yourself! 例题做完了，下面的同类题自己做！</b><span>${mt(q.w||"")}</span></div></div>`;
   if(st==="right"&&MS.helped&&MS.helped[q.id])return `<div class="mfb warn">${ic("check")}<div><b>Right, well done! But you used Help, so this one does not count yet.</b><span>A similar question comes next: try it by yourself. 答对了！不过用了帮助，这题先不算分。下一题是类似的，自己试试！</span></div></div>`;
   if(st==="right")return `<div class="mfb ok">${ic("check")}<div><b>${MS.tries>1?"Correct on your second try!":"Correct!"}</b><span>${mt(q.w)}</span></div></div>${explainBox(q,true)}${nx}`;
   if(st==="shown")return `<div class="mfb bad">${ic("x")}<div><b>The answer is ${fracHtml(esc(showAns(q)))}</b><span>Here is how to work it out, step by step:</span></div></div>${explainBox(q,true)}${nx}`;
@@ -352,7 +353,7 @@ function answer(q,v){
   renderMQ();
 }
 function record(q,ok,given){
-  const hp=!!(MS.helped&&MS.helped[q.id]), real=ok; if(hp)ok=false; // answered with Help: not counted as right, and it comes back later
+  const hp=!!(MS.helped&&MS.helped[q.id])||!!q.example, real=ok; if(hp&&!q.example)ok=false; // a worked example is not counted either // answered with Help: not counted as right, and it comes back later
   const M=MB(), t=today(), key=q.gen?"p:"+q.gen:q.id, s=M.q[key]||{}; // generated questions keep one record per type
   M.q[key]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,last:t,u:Date.now(),...(s.q?{q:s.q}:{}),
     ...(s.wr||!ok?{wr:1}:{}),...(ok&&s.ok===false?{fx:t}:s.fx?{fx:s.fx}:{}),...(s.cf?{cf:s.cf}:ok&&s.fx&&dayDiff(s.fx,t)>=6?{cf:t}:{})}; // wr: once wrong, fx: the day it was put right, cf: still right a week later (spaced check)

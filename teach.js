@@ -102,6 +102,7 @@ const helpLeft=()=>Math.max(0,HELP_DAY-helpUsed());
 function teachBtnHtml(q){
   if(typeof MS==="undefined"||!MS||MS.kind==="test"||!(typeof stepsFor==="function"?stepsFor(q):q.steps||[]).length)return "";
   const st=MS.state;
+  if(q.example)return `<div class="tc-fab-row"><span class="muted small" style="margin-right:auto">例题 · Example: watch how, then type the answer. It doesn’t count.</span><button class="btn teach-fab" data-teach="1">👩‍🏫 Watch the example · 看例题讲解</button></div>`;
   if(st==="right")return "";
   if(st==="shown")return `<div class="tc-fab-row"><button class="btn teach-fab" data-teach="1">👩‍🏫 Watch how · 看老师讲解</button></div>`;
   if(MS.helped&&MS.helped[q.id])return `<div class="tc-fab-row"><button class="btn teach-fab" data-teach="0">👩‍🏫 See it again · 再看一遍</button></div>`;
@@ -113,6 +114,7 @@ function teachBtnHtml(q){
 let TEACH_TIMER=null;
 function bindTeach(body,q){
   body.querySelectorAll("[data-teach]").forEach(b=>b.onclick=()=>teachAsk(q,b.dataset.teach==="1"));
+  if(q.example&&MS.state==="ask"){MS.exSeen=MS.exSeen||{};if(!MS.exSeen[q.id]){MS.exSeen[q.id]=1;setTimeout(()=>openTeach(q,true),400);}} // a worked example: the teacher shows it first
   clearInterval(TEACH_TIMER);
   const w=body.querySelector("[data-teachwait]"); if(!w)return;
   const i=MS.i;
@@ -154,7 +156,7 @@ function similarQ(q){
   const fresh=pool.filter(x=>!st[x.id]), from=fresh.length?fresh:pool; return from[Math.floor(Math.random()*from.length)].id;
 }
 function teachTwin(q){
-  if(typeof MS==="undefined"||!MS||MS.kind==="test"||!(MS.helped&&MS.helped[q.id]))return;
+  if(typeof MS==="undefined"||!MS||MS.kind==="test"||q.example||!(MS.helped&&MS.helped[q.id]))return;
   MS.twin=MS.twin||{}; const depth=(MS.twin[q.id]||0)+1; if(depth>2)return;
   const id=similarQ(q); if(!id||!MQ[id])return;
   MS.ids.splice(MS.i+1,0,id); MS.twin[id]=depth;

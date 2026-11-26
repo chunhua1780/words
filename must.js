@@ -31,14 +31,14 @@ const MUST_ALL={
   units:  {icon:"maths",    min:8,  t:"Units: step by step",tz:"单位换算"},
   add20:  {icon:"star",     min:5,  t:"+ − within 20, no fingers",tz:"20以内加减（不数手指）"},
 };
-const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","science","write","maths","shapes","test","formula","paper","fix"]:["words","dict","phonics","read","science","write","add20","maths","shapes","units","facts","calc","test","fix"];
+const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","science","write","maths","shapes","test","formula","paper","fix"]:["words","dict","phonics","read","science","write","add20","maths","fracs","shapes","units","facts","calc","test","fix"];
 /* the next spelling test (a word list marked as a test, e.g. every Friday), if one is open to practise */
 function nextTestList(t=today()){
   const b=B(); if(!b||!b.lists)return null;
   return Object.values(b.lists).filter(l=>l.test&&l.date>=t&&listOpen(l)&&wordsIn(b,l.date).length).sort((a,c)=>a.date<c.date?-1:1)[0]||null;
 }
 /* Until a parent saves their own choice, a default must-do list is on (no lock) so the child always sees today's tasks */
-const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","shapes","words","read","write","fix"]:["words","dict","phonics","read","write","add20","maths","shapes","units","facts","calc"];
+const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","shapes","words","read","write","fix"]:["words","dict","phonics","read","write","add20","maths","fracs","shapes","units","facts","calc"];
 const scienceDay=(d=new Date())=>[1,3,5].includes(d.getDay());
 const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];
   if(c.on&&typeof planExtra==="function")for(const k of planExtra())if(!c.items.includes(k)&&MUST_ALL[k])c.items=[...c.items,k]; // this week's plan (plan.js)
@@ -50,7 +50,8 @@ const mustCfg0=()=>{const m=(B().prefs||{}).must;
   if(!m.fl&&!items.includes("shapes")){const i=items.indexOf("maths");items=i<0?[...items,"shapes"]:[...items.slice(0,i+1),"shapes",...items.slice(i+1)];} // 公式四步 added once to lists saved before it existed; a parent can untick it
   if(!m.uc&&mustSite().includes("units")&&!items.includes("units")){const i=items.indexOf("shapes");items=i<0?[...items,"units"]:[...items.slice(0,i+1),"units",...items.slice(i+1)];} // 单位换算 added once (Year 5)
   if(!m.a2&&mustSite().includes("add20")&&!items.includes("add20")){const i=items.indexOf("maths");items=i<0?[...items,"add20"]:[...items.slice(0,i),"add20",...items.slice(i)];} // 20以内加减 added once (Year 5)
-  return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items,lock:m.lock!==false,fl:true,uc:true,a2:true};};
+  if(!m.fr&&mustSite().includes("fracs")&&!items.includes("fracs")){const i=items.indexOf("maths");items=i<0?[...items,"fracs"]:[...items.slice(0,i+1),"fracs",...items.slice(i+1)];} // fractions every day (Year 5)
+  return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items,lock:m.lock!==false,fl:true,uc:true,a2:true,fr:true};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 
 /* ---------- how each block is going (only reads saved data, so the parent page can use it too) ---------- */
@@ -88,7 +89,7 @@ function mustStatus(k,t=today()){
   if(k==="words2"){const d=((b.eng||{}).daily||{})[t]||{}, set=new Set([...(d.pm||[]),...(d.pm2||[])].map(norm)), ws=Object.values(b.words).filter(w=>w.list===t&&set.has(norm(w.w))), l=ws.filter(w=>w.stage>0).length;
     return {done:ws.length>0&&l===ws.length,p:ws.length?l/ws.length:0,sub:ws.length?`${l} of ${ws.length} learned`:"10 more new words: 5 easy, 5 a bit harder",acc:null};}
   if(k==="round"){const g=mLog("rd:"+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
-  if(k==="fracs"){const g=mLog("fr:"+t)||{n:0,r:0};return {done:g.n>=10,p:Math.min(1,g.n/10),sub:`${Math.min(10,g.n)} of 10 questions`,acc:acc(g.r,g.n)};}
+  if(k==="fracs"){const g=mLog("fr:"+t)||{n:0,r:0};return {done:g.n>=12,p:Math.min(1,g.n/12),sub:`${Math.min(12,g.n)} of 12 · 3 kinds, an example first`,acc:acc(g.r,g.n)};}
   if(k==="facts"){const g=mLog("nf:"+t)||{n:0,r:0};return {done:g.n>=60,p:Math.min(1,g.n/60),sub:`${Math.min(60,g.n)} of 60 facts · level ${g.lv||(typeof nfLevel==="function"?nfLevel():1)}`,acc:acc(g.r,g.n)};}
   if(k==="calc"){const g=mLog("cc:"+t)||{n:0,r:0},d=(g.done||[]).length;return {done:d>=12,p:Math.min(1,d/12),sub:`${d} of 12 · 6 divisions, 6 fractions`,acc:acc(g.r,g.n)};}
   if(k==="ftest"){const l=nextTestList(t);if(!l)return {done:true,p:1,sub:"No spelling test coming up",acc:null};

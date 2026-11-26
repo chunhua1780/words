@@ -86,7 +86,34 @@ function flResult(it,ok){
   else FL.q.push({...it,again:true}); // it comes back at the end until it is right
   Store.save();
 }
-function flNext(){FL.i++;FL.sub=0;FL.cart=false;if(typeof ctStop==="function")ctStop();flShow();}
+function flNext(){
+  const it=FL.q[FL.i];
+  if(it&&!it.calcDone&&!it.again&&!FL.cq){it.calcDone=true;FL.cq={k:it.k,n:it.step===1?4:5,i:0,r:0,extra:0};if(typeof ctStop==="function")ctStop();return flCalcShow();} // then 4–5 calculations with new numbers
+  FL.cq=null;FL.i++;FL.sub=0;FL.cart=false;if(typeof ctStop==="function")ctStop();flShow();}
+/* 练习计算 · use the formula: new numbers each time, typed answers, the working shown after each one */
+function flCalcShow(){
+  const Q=FL.cq, F=flF(Q.k), body=$("#flBody"); body.scrollTop=0;
+  if(Q.i>=Q.n){
+    body.innerHTML=`<div class="m-q fl-q"><div class="mfb ${Q.r>=Q.n-1?"ok":"warn"}">${ic("check")}<div><b>${Q.r} of ${Q.n} worked out right</b><span>${esc(F.f)} · ${esc(F.vars)}</span></div></div>${flBtnNext("Next formula · 下一个")}</div>`;
+    $("#flNext").onclick=flNext; return;}
+  const C=Q.cur||(Q.cur=F.calc()), pi=/π/.test(F.f)?" Use π = 3.14.":"";
+  body.innerHTML=`<div class="m-q fl-q"><div class="fl-steps"><span class="on" style="grid-column:1/-1"><b>✎</b>Practise ${Q.i+1} of ${Q.n}<small>练习计算：用公式算一算</small></span></div>
+    <div class="fl-pic" style="--mc:${FM_M[F.m]}">${shapeSVG(F.sh,C.lab)}</div>
+    <div class="m-text">Work out the ${esc(fmMeasure(F))} of this ${esc(F.name.toLowerCase().replace(/ \(.*\)/,""))}.${pi}</div>
+    ${Q.i===0?`<div class="muted small">Formula: <b>${esc(F.f)}</b> (${esc(F.vars)})</div>`:`<div class="muted small">Remember the formula! 记住公式</div>`}
+    <div class="row uc-ans"><input id="flCalcIn" class="plain" inputmode="decimal" autocomplete="off" placeholder="?"><b>${fmUnit(F)}</b></div>
+    <div id="flFb"><button class="btn primary big" id="flCalcCheck">${ic("check")}Check 检查</button></div></div>`;
+  const inp=$("#flCalcIn"); inp.focus();
+  const check=()=>{const v=parseFloat(String(inp.value).replace(/,/g,"")); if(isNaN(v)){toast("Type a number.");return;}
+    const ok=Math.abs(v-C.a)<=(/π/.test(F.f)?0.06:1e-9); inp.disabled=true; if(ok)Q.r++; if(typeof beep==="function")beep(ok);
+    const t=today(),L=MB().log["fl:"+t]; if(L){L.cn=(L.cn||0)+1;if(ok)L.cr=(L.cr||0)+1;L.u=Date.now();}
+    const H=MB().hist[t]=MB().hist[t]||[]; if(H.length<400)H.push({q:`${F.m} of a ${F.name.toLowerCase()}: ${C.sub.replace(/^[A-Z]+ = /,"")}`,a:`${fmN(C.a)} ${fmUnit(F)}`,v:String(inp.value),ok,t:"Formulas",s:"Formulas: practise",...(ok?{}:{w:[F.f,C.sub,...C.work].join(" · ")})});
+    if(!ok&&Q.extra<2){Q.n++;Q.extra++;} // one more of the same, so the last one is right
+    Store.save();
+    $("#flFb").innerHTML=`<div class="mfb ${ok?"ok":"bad"}">${ic(ok?"check":"x")}<div><b>${ok?"Correct!":"Not quite. The answer is "+fmN(C.a)+" "+fmUnit(F)}</b><span>1. ${esc(F.f)} · 2. ${esc(C.sub)} · ${C.work.map((w,i)=>`${i+3}. ${esc(w)}`).join(" · ")} = <b>${fmN(C.a)} ${fmUnit(F)}</b></span></div></div><button class="btn primary big" id="flCalcNext">Next</button>`;
+    $("#flCalcNext").onclick=()=>{Q.i++;Q.cur=null;flCalcShow();};};
+  $("#flCalcCheck").onclick=check; inp.onkeydown=e=>{if(e.key==="Enter")check();};
+}
 function flEnd(){
   const L=flLog(), n=(L.items||[]).length;
   $("#flProg").textContent="";

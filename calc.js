@@ -54,8 +54,10 @@ function ccSet(date=today()){
 }
 /* 10 fraction calculations for the afternoon list: every kind in turn (+, −, related denominators, × whole, × fraction, ÷ whole) */
 let frSeq=0;
-function frSet(n=10){const kinds=["add","sub","rel","mulw","mulf","divw"],ids=[];
-  for(let i=0;i<n;i++){const k=kinds[i%kinds.length],q=ccFr(Math.random,k),id=`g:fr:${Date.now().toString(36)}:${++frSeq}`;MQ[id]={...q,id,gen:"fr-"+k};ids.push(id);}
+/* 3 kinds a day (taking turns), each as a block: a worked example (the teacher shows it, it does not count), then 4 of the same kind */
+function frSet(n=12){const kinds=["add","sub","rel","mulw","mulf","divw"],ids=[], day=Math.floor(Date.now()/864e5), per=4, nk=Math.max(1,Math.round(n/per));
+  for(let b=0;b<nk;b++){const k=kinds[(day*3+b)%kinds.length];
+    for(let j=0;j<=per;j++){const q=ccFr(Math.random,k),id=`g:fr:${Date.now().toString(36)}:${++frSeq}`;MQ[id]={...q,id,gen:"fr-"+k,...(j===0?{example:true}:{})};ids.push(id);}}
   return ids;}
 function openCalc(){const ids=ccSet(),g=(MB().log||{})["cc:"+today()]||{},done=new Set(g.done||[]),left=ids.filter(id=>!done.has(id.split(":").pop()));
   openMaths({kind:"topic",topic:"笔算 · Division and fractions",ids:left.length?left:ids});}

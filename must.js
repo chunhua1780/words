@@ -29,15 +29,16 @@ const MUST_ALL={
   ftest:  {icon:"doc",      min:10, t:"Spelling test words",tz:"听写测验单词"},
   shapes: {icon:"layers",   min:8,  t:"Formulas: 4 steps",  tz:"公式四步：周长面积体积"},
   units:  {icon:"maths",    min:8,  t:"Units: step by step",tz:"单位换算"},
+  add20:  {icon:"star",     min:5,  t:"+ − within 20, no fingers",tz:"20以内加减（不数手指）"},
 };
-const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","science","write","maths","shapes","test","formula","paper","fix"]:["words","dict","phonics","read","science","write","maths","shapes","units","facts","calc","test","fix"];
+const mustSite=()=>typeof PAPER_TYPES!=="undefined"?["words","read","science","write","maths","shapes","test","formula","paper","fix"]:["words","dict","phonics","read","science","write","add20","maths","shapes","units","facts","calc","test","fix"];
 /* the next spelling test (a word list marked as a test, e.g. every Friday), if one is open to practise */
 function nextTestList(t=today()){
   const b=B(); if(!b||!b.lists)return null;
   return Object.values(b.lists).filter(l=>l.test&&l.date>=t&&listOpen(l)&&wordsIn(b,l.date).length).sort((a,c)=>a.date<c.date?-1:1)[0]||null;
 }
 /* Until a parent saves their own choice, a default must-do list is on (no lock) so the child always sees today's tasks */
-const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","shapes","words","read","write","fix"]:["words","dict","phonics","read","write","maths","shapes","units","facts","calc"];
+const MUST_DEFAULT=()=>typeof PAPER_TYPES!=="undefined"?["maths","paper","shapes","words","read","write","fix"]:["words","dict","phonics","read","write","add20","maths","shapes","units","facts","calc"];
 const scienceDay=(d=new Date())=>[1,3,5].includes(d.getDay());
 const mustCfg=()=>{const c=mustCfg0();if(c.on&&nextTestList()&&!c.items.includes("ftest"))c.items=["ftest",...c.items];
   if(c.on&&typeof planExtra==="function")for(const k of planExtra())if(!c.items.includes(k)&&MUST_ALL[k])c.items=[...c.items,k]; // this week's plan (plan.js)
@@ -48,7 +49,8 @@ const mustCfg0=()=>{const m=(B().prefs||{}).must;
   let items=(m.items||[]).filter(k=>mustSite().includes(k));
   if(!m.fl&&!items.includes("shapes")){const i=items.indexOf("maths");items=i<0?[...items,"shapes"]:[...items.slice(0,i+1),"shapes",...items.slice(i+1)];} // 公式四步 added once to lists saved before it existed; a parent can untick it
   if(!m.uc&&mustSite().includes("units")&&!items.includes("units")){const i=items.indexOf("shapes");items=i<0?[...items,"units"]:[...items.slice(0,i+1),"units",...items.slice(i+1)];} // 单位换算 added once (Year 5)
-  return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items,lock:m.lock!==false,fl:true,uc:true};};
+  if(!m.a2&&mustSite().includes("add20")&&!items.includes("add20")){const i=items.indexOf("maths");items=i<0?[...items,"add20"]:[...items.slice(0,i),"add20",...items.slice(i)];} // 20以内加减 added once (Year 5)
+  return {on:!!m.on,mode:m.mode||"every",date:m.date||"",items,lock:m.lock!==false,fl:true,uc:true,a2:true};};
 const mustActive=(t=today())=>{const m=mustCfg();return m.on&&m.items.length&&(m.mode==="every"||m.date===t);};
 
 /* ---------- how each block is going (only reads saved data, so the parent page can use it too) ---------- */
@@ -94,6 +96,7 @@ function mustStatus(k,t=today()){
     return {done:left===0,p:n?(n-Math.min(n,left))/n:1,sub:left?`${left} of ${n} words to practise · test ${shortDate(l.date)}`:`All ${n} practised today · test ${shortDate(l.date)}`,acc:null};}
   if(k==="shapes")return typeof flStatus==="function"?flStatus(t):{done:false,p:0,sub:"",acc:null};
   if(k==="units")return typeof ucStatus==="function"?ucStatus(t):{done:false,p:0,sub:"",acc:null};
+  if(k==="add20")return typeof a20Status==="function"?a20Status(t):{done:false,p:0,sub:"",acc:null};
   if(k==="fix"){const g=mLog("fx:"+t)||{n:0,r:0},left=t===today()?mustFixLeft():(g.left||0),start=Math.max(left,(g.start||0));
     return {done:left===0,p:start?1-left/start:1,sub:left?`${left} mistake${left>1?"s":""} to fix`:(g.n?`All fixed · ${g.r} put right`:"No mistakes to fix"),acc:acc(g.r,g.n)};}
   return {done:false,p:0,sub:"",acc:null};
@@ -139,6 +142,7 @@ function mustLaunch(k){
     if(p.review.length)return startSession("review",p.review.slice(0,10).map(w=>w.id),{listDate:l.date});return startSession("dict",p.all.map(w=>w.id),{listDate:l.date});}
   if(k==="shapes")return openFormulas();
   if(k==="units")return openUnits();
+  if(k==="add20")return openAdd20();
   if(k==="fix"){if(!mustFixLeft()){toast("No mistakes to fix. Brilliant!");return mustGate(true);}return openMistakes();}
 }
 function mustHide(){const e=document.getElementById("must");if(e)e.hidden=true;}

@@ -84,6 +84,7 @@ details.list[open] .chev{transform:rotate(90deg)}
 <script src="weekly.js"></script>
 <script src="must.js"></script>
 <script src="facts.js"></script>
+<script src="add20.js"></script>
 <script>
 "use strict";
 const B=()=>Store.book;
@@ -254,6 +255,7 @@ function viewDash(){
     ${mustParent()}
     ${typeof w5Parent==="function"?w5Parent():""}
     ${flParent()}
+    ${typeof a20Parent==="function"?a20Parent():""}
     ${typeof ucParent==="function"?ucParent():""}
     ${customWordsBlock()}
     ${aiParent()}

@@ -1320,3 +1320,18 @@ html.embed body{background:transparent}
 @keyframes ctPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
 .ct-drop{animation:ctDrop .35s cubic-bezier(.3,1.4,.5,1) both}@keyframes ctDrop{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:none}}
 .ct-glow,.ct-shade{stroke-dashoffset:0;stroke-dasharray:none}
+
+/* 20以内加减 (add20.js) */
+#a20Ov{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}#a20Ov[hidden]{display:none}#a20Ov .s-body{flex:1;overflow:auto}
+.a20-sum{font:800 56px var(--round,inherit);text-align:center;margin:10px 0}
+.a20-ans{display:inline-block;min-width:1.4em;border-bottom:4px solid var(--c-blue,#2f6fec);color:var(--c-blue,#2f6fec)}
+.a20-ans.quick{color:var(--green,#1a8f3c);border-color:var(--green,#1a8f3c)}.a20-ans.slow{color:var(--c-orange,#f08c00)}.a20-ans.wrong{color:var(--red,#d33)}
+.a20-clock{height:10px;border-radius:5px;background:var(--soft,#eee);overflow:hidden}.a20-clock i{display:block;height:100%;width:100%;background:var(--green,#1a8f3c);transition:width .08s linear}.a20-clock i.late{background:var(--c-orange,#f08c00)}
+.a20-pad{max-width:360px;margin:0 auto}.a20-pad .ok{background:var(--c-blue,#2f6fec);color:#fff}
+.a20-stage{background:var(--paper,#fff);border-radius:18px;padding:10px;text-align:center}
+.tf-svg{width:100%;max-width:520px}.tf-box{fill:#fff8e1;stroke:#b08a3e;stroke-width:3}.tf-c{fill:#fff;stroke:#d9c08a;stroke-width:1.5}
+.tf-r{fill:#e03131}.tf-b{fill:#1c7ed6}.tf-svg circle{transform-box:fill-box;transform-origin:center;animation:ctPop .4s cubic-bezier(.3,1.6,.5,1) both;animation-delay:var(--d)}
+.tf-move{fill:#1c7ed6;stroke:#ffd43b;stroke-width:3}.tf-x{opacity:.25}
+.tf-txt{font:800 24px var(--round,inherit);margin-top:6px;color:#d6336c}
+.a20-groups{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.a20-groups span{background:var(--soft,#f2f2f7);border-radius:10px;padding:4px 8px;font-size:.82rem;font-weight:600}
+.a20-groups span small{display:block;font-weight:400;color:var(--muted)}.a20-groups span.ok{background:var(--green-soft,#e3f6e8)}.a20-groups span.on{background:var(--c-blue,#2f6fec);color:#fff}.a20-groups span.on small{color:#fff}

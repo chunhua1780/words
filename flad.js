@@ -58,7 +58,7 @@ function openFormulas(){
   if(!q.length)return flEnd();
   flShow();
 }
-function closeFormulas(){window.__busy=false;flEl().hidden=true;document.body.style.overflow="";FL=null;Store.save();if(typeof render==="function")render();}
+function closeFormulas(){if(typeof ctStop==="function")ctStop();window.__busy=false;flEl().hidden=true;document.body.style.overflow="";FL=null;Store.save();if(typeof render==="function")render();}
 const STEP_NAME={1:["Learn","看懂"],2:["Choose","选一选"],3:["Build","拼公式"],4:["Write","写公式"]};
 function flHead(F,step){
   return `<div class="fl-steps">${[1,2,3,4].map(s=>`<span class="${s===step?"on":s<step?"done":""}"><b>${s}</b>${STEP_NAME[s][0]}<small>${STEP_NAME[s][1]}</small></span>`).join("")}</div>
@@ -86,7 +86,7 @@ function flResult(it,ok){
   else FL.q.push({...it,again:true}); // it comes back at the end until it is right
   Store.save();
 }
-function flNext(){FL.i++;FL.sub=0;flShow();}
+function flNext(){FL.i++;FL.sub=0;FL.cart=false;if(typeof ctStop==="function")ctStop();flShow();}
 function flEnd(){
   const L=flLog(), n=(L.items||[]).length;
   $("#flProg").textContent="";
@@ -102,13 +102,24 @@ const flBtnNext=(lab="Next")=>`<button class="btn primary big" id="flNext">${lab
 /* 1 · Learn */
 function flLearn(F,it,body){
   const C=F.calc(), opts=shuffle([F.f,...shuffle(F.wrong).slice(0,3)]);
+  /* first a cartoon (cartoon.js), played to the end, then the formula */
+  if(FL.sub===0&&!FL.cart&&typeof ctHas==="function"&&ctHas(it.k)){
+    body.innerHTML=`<div class="m-q fl-q">${flHead(F,1).replace(/<div class="fl-pic"[\s\S]*$/,"")}
+      <div class="m-text">Watch first: what does ${esc(fmMeasure(F))} mean? 先看动画</div>${ctPlayerHtml(it.k)}
+      <div class="row" style="gap:8px;justify-content:flex-end"><button class="btn primary big" id="flCartNext" ${ctSeen(it.k)?"":"disabled"}>Now the formula · 看公式</button></div></div>`;
+    const root=body.querySelector(".ct-player"), go=()=>{const b=$("#flCartNext");if(b)b.disabled=false;};
+    root.querySelector("[data-ctplay]").onclick=()=>ctPlay(root,go); ctPlay(root,go);
+    $("#flCartNext").onclick=()=>{if(typeof ctStop==="function")ctStop();FL.cart=true;flShow();};
+    return;
+  }
   if(FL.sub===0){
     body.innerHTML=`<div class="m-q fl-q">${flHead(F,1)}
       <div class="fl-formula" style="--mc:${FM_M[F.m]}"><small>${esc(F.m)} · ${esc(F.name)}</small><span>${esc(F.f)}</span><small>${esc(F.vars)}</small></div>
       <ol class="fl-how">${F.frames.map(fr=>`<li>${esc(fr[1])}</li>`).join("")}</ol>
       <div class="fl-ex"><b>Example 例子</b><div class="fl-pic sm" style="--mc:${FM_M[F.m]}">${shapeSVG(F.sh,C.lab)}</div>
         <ol><li>Write the formula: <b>${esc(F.f)}</b></li><li>Put the numbers in: ${esc(C.sub)}</li>${C.work.map(w=>`<li>${esc(w)}</li>`).join("")}<li><b>${esc(F.name.replace(/ \(.*\)/,""))} ${esc(fmMeasure(F))} = ${fmN(C.a)} ${fmUnit(F)}</b></li></ol></div>
-      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" id="flRead">${ic("speaker")}Read it to me</button>${flBtnNext("I understand · 我看懂了")}</div></div>`;
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button class="btn" id="flRead">${ic("speaker")}Read it to me</button>${typeof ctHas==="function"&&ctHas(it.k)?`<button class="btn" id="flCart">▶ Cartoon again 再看动画</button>`:""}${flBtnNext("I understand · 我看懂了")}</div></div>`;
+    const ca=$("#flCart"); if(ca)ca.onclick=()=>{FL.cart=false;flShow();};
     $("#flRead").onclick=()=>flSay(`${F.m} of a ${F.name}. ${F.f.replace(/π/g,"pi").replace(/²/g," squared").replace(/³/g," cubed").replace(/½/g,"half")}. ${F.frames.map(f=>f[1]).join(" ")}`);
     $("#flNext").onclick=()=>{FL.sub=1;flShow();};
     return;

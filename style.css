@@ -1292,3 +1292,31 @@ html.embed body{background:transparent}
 .hd-must span.ok,.hd-words span.ok{background:var(--green-soft,#e3f6e8)}.hd-must span.part{background:var(--orange-soft,#fff4e5)}
 .hd-words small{display:block;font-size:.68rem;color:var(--muted)}
 .hd-read summary{cursor:pointer}.hd-read ol{margin:6px 0;padding-left:20px}
+
+/* 动画讲解 · cartoons (cartoon.js) */
+.ct-player{display:flex;flex-direction:column;gap:8px}
+.ct-stage{background:linear-gradient(#fffdf5,#fff7e0);border-radius:20px;border:3px solid #f2d48a;overflow:hidden}
+.ct-svg{display:block;width:100%;height:auto;font-family:var(--round,inherit)}
+.ct-cap{min-height:3.2em;font:600 1.15rem/1.4 var(--round,inherit);text-align:center;padding:6px 10px;border-radius:14px;background:var(--paper,#fff)}
+.ct-bar{display:flex;align-items:center;justify-content:space-between;gap:8px}.ct-dots{color:var(--c-orange,#f08c00);letter-spacing:2px}
+.ct-shape{fill:#e6f4ff;stroke:#2b4c7e;stroke-width:4;stroke-linejoin:round}
+.ct-box{fill:none;stroke:#8aa;stroke-width:2;stroke-dasharray:6 5}
+.ct-draw{stroke-dasharray:100;stroke-dashoffset:100;animation:ctDraw 1.2s ease forwards}
+@keyframes ctDraw{to{stroke-dashoffset:0}}
+.ct-glow{animation:ctGlow 1s ease-in-out 2 alternate}@keyframes ctGlow{to{stroke:#f08c00;stroke-width:9}}
+.ct-shade{animation:ctShade 1.6s ease forwards}@keyframes ctShade{to{fill:#bfe3ff}}
+.ct-lab{font:700 17px var(--round,sans-serif);fill:#2b4c7e}.ct-lab.sm{font-size:14px}
+.ct-side{stroke:#f08c00;stroke-width:8;stroke-linecap:round;opacity:.8}
+.ct-num{font:800 22px var(--round,sans-serif);fill:#fff;stroke:#f08c00;stroke-width:7;paint-order:stroke}
+.ct-sum{font:800 22px var(--round,sans-serif);fill:#d6336c}
+.ct-sq{fill:#7dd3a8;stroke:#2f9e6b;stroke-width:2}
+.ct-cnt{font:700 14px var(--round,sans-serif);fill:#145a3a}
+.ct-row{fill:none;stroke:#f08c00;stroke-width:4}
+.ct-other{fill:#fff;opacity:.75}.ct-half{fill:#ffd43b;opacity:.55}.ct-cut{stroke:#d6336c;stroke-width:4;stroke-dasharray:100}
+.ct-edge{stroke:#2b4c7e;stroke-width:3}.ct-hid{stroke:#2b4c7e;stroke-width:2;stroke-dasharray:5 5;opacity:.5}
+.ct-ctop{fill:#a5d8ff;stroke:#1c5f99;stroke-width:1.2}.ct-cl{fill:#4dabf7;stroke:#1c5f99;stroke-width:1.2}.ct-cr{fill:#1c7ed6;stroke:#1c5f99;stroke-width:1.2}
+.ct-fbox{fill:#2b4c7e}.ct-f{font:800 24px var(--round,sans-serif);fill:#fff}.ct-fx{font:600 15px var(--round,sans-serif);fill:#ffe066}
+.ct-pop{transform-box:fill-box;transform-origin:center;animation:ctPop .45s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes ctPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:none}}
+.ct-drop{animation:ctDrop .35s cubic-bezier(.3,1.4,.5,1) both}@keyframes ctDrop{from{opacity:0;transform:translateY(-40px)}to{opacity:1;transform:none}}
+.ct-glow,.ct-shade{stroke-dashoffset:0;stroke-dasharray:none}

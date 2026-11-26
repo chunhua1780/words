@@ -65,6 +65,18 @@ const CT_SCENES={
     ["Now the second layer, and the third layer.",S=>ctCubes(S,3,3,3,2)],
     ["3 layers of 9 makes 27 cubes. The volume is 27 cubic centimetres.",S=>ctSum(S,"9 × 3 = 27 cm³")],
     ["Side times side times side. We write it s cubed.",S=>ctFormula(S,"V = s × s × s = s³","3 × 3 × 3 = 27 cm³")]]},
+  "circ-c":{steps:[
+    ["This is a circle. The radius goes from the centre to the edge. Here it is 2 centimetres.",S=>ctCircle(S,"r")],
+    ["The diameter goes all the way across, through the centre. It is two radiuses: 4 centimetres.",S=>ctCircle(S,"d")],
+    ["The circumference is the distance all the way around the edge. Let's unroll the edge into a straight line.",S=>ctUnroll(S)],
+    ["Now lay diameters along it: 1, 2, 3, and a little bit more. Always just over 3 diameters!",S=>ctDiams(S)],
+    ["That number is pi: about 3 point 1 4. So circumference equals pi times diameter.",S=>ctFormula(S,"C = π × d = 2 × π × r","3.14 × 4 = 12.56 cm")]]},
+  "circ-a":{steps:[
+    ["This circle has a radius of 3 centimetres.",S=>ctCircle(S,"r",3)],
+    ["Draw a square on the radius. It is 3 by 3, so its area is 9 squares: r squared.",S=>ctRSquare(S,1)],
+    ["How many of these squares cover the circle? About 3, and a little bit more.",S=>ctRSquare(S,3)],
+    ["Just over 3 again: that's pi, 3 point 1 4. So the circle is pi lots of r squared.",S=>ctSum(S,"3.14 × 9 = 28.26 cm²")],
+    ["Area of a circle equals pi times r squared. Square the radius first, then times by pi.",S=>ctFormula(S,"A = π × r²","3.14 × 3 × 3 = 28.26 cm²")]]},
 };
 /* ---------- drawing ---------- */
 const CT_O={x:80,y:60};
@@ -157,6 +169,56 @@ async function ctCubes(S,l,w,h,upTo){
 }
 function ctFormula(S,f,ex){$s(S,"ctTop").insertAdjacentHTML("beforeend",`<g class="ct-pop"><rect x="20" y="${CT_H-92}" width="${CT_W-40}" height="62" rx="14" class="ct-fbox"/><text x="${CT_W/2}" y="${CT_H-62}" text-anchor="middle" class="ct-f">${f}</text><text x="${CT_W/2}" y="${CT_H-40}" text-anchor="middle" class="ct-fx">${ex}</text></g>`);$s(S,"ctSum").textContent="";return 3000;}
 
+/* circles */
+function ctCircle(S,show,r=2){
+  if(!S.circ){ctBase(S);S.circ={r,cx:CT_W/2,cy:115,R:r===3?78:72};}
+  const {cx,cy,R}=S.circ;
+  $s(S,"ctShape").innerHTML=`<circle cx="${cx}" cy="${cy}" r="${R}" class="ct-shape ${show==="r"&&!S.cdrawn?"ct-draw":""}" pathLength="100"/><circle cx="${cx}" cy="${cy}" r="4" fill="#2b4c7e"/>`
+    +`<line x1="${cx}" y1="${cy}" x2="${cx+R}" y2="${cy}" class="ct-rad ct-draw" pathLength="100"/><text x="${cx+R/2}" y="${cy-8}" text-anchor="middle" class="ct-lab sm ct-pop">r = ${S.circ.r} cm</text>`
+    +(show==="d"?`<line x1="${cx-R}" y1="${cy+2}" x2="${cx+R}" y2="${cy+2}" class="ct-dia ct-draw" pathLength="100"/><text x="${cx}" y="${cy+24}" text-anchor="middle" class="ct-lab sm ct-pop">d = ${S.circ.r*2} cm</text>`:"");
+  S.cdrawn=true; return 1800;
+}
+async function ctUnroll(S){
+  const {cx,cy,R}=S.circ, tok=CT.tok, len=Math.PI*2*R*.62, x0=(CT_W-len)/2, y=cy+R+38, g=$s(S,"ctTop");
+  g.innerHTML=`<circle cx="${cx}" cy="${cy}" r="${R}" class="ct-edgeo" pathLength="100" style="stroke-dasharray:100;stroke-dashoffset:0"/><line x1="${x0}" y1="${y}" x2="${x0}" y2="${y}" class="ct-edgeo" id="ctLine"/>`;
+  const c=g.firstChild, l=g.querySelector("#ctLine");
+  for(let k=0;k<=50;k++){if(CT.tok!==tok)return 0;c.style.strokeDashoffset=String(k*2);l.setAttribute("x2",x0+len*k/50);await ctWait(40);}
+  S.unroll={x0,y,len}; $s(S,"ctSum").textContent="the edge, unrolled"; return 600;
+}
+async function ctDiams(S){
+  const {x0,y,len}=S.unroll, d=len/Math.PI, tok=CT.tok, g=$s(S,"ctTop"), cols=["#e03131","#1c7ed6","#2f9e44"];
+  for(let i=0;i<3;i++){if(CT.tok!==tok)return 0;g.insertAdjacentHTML("beforeend",`<g class="ct-pop"><line x1="${x0+i*d+1}" y1="${y+14}" x2="${x0+(i+1)*d-1}" y2="${y+14}" stroke="${cols[i]}" stroke-width="8" stroke-linecap="round"/><text x="${x0+(i+.5)*d}" y="${y+36}" text-anchor="middle" class="ct-lab sm">${i+1}</text></g>`);await ctWait(900);}
+  g.insertAdjacentHTML("beforeend",`<g class="ct-pop"><line x1="${x0+3*d+1}" y1="${y+14}" x2="${x0+len}" y2="${y+14}" stroke="#f08c00" stroke-width="8" stroke-linecap="round"/><text x="${x0+3.07*d}" y="${y+36}" class="ct-lab sm">+ a bit</text></g>`);
+  $s(S,"ctSum").textContent="just over 3 diameters"; return 1500;
+}
+async function ctRSquare(S,n){
+  const {cx,cy,R}=S.circ, g=$s(S,"ctFill"), u=R/3, tok=CT.tok;
+  const sq=(x,y,cls)=>{let h="";for(let j=0;j<3;j++)for(let i=0;i<3;i++)h+=`<rect x="${x+i*u+1}" y="${y+j*u+1}" width="${u-2}" height="${u-2}" rx="2" class="${cls}"/>`;return h;};
+  if(n===1){g.innerHTML=`<g class="ct-pop">${sq(cx,cy-R,"ct-sq")}</g>`;$s(S,"ctSum").textContent="r × r = 3 × 3 = 9";return 1800;}
+  const pos=[[cx-R,cy-R],[cx-R,cy],[cx,cy]], cls=["ct-sq2","ct-sq3","ct-sq4"];
+  for(let i=0;i<3;i++){if(CT.tok!==tok)return 0;g.insertAdjacentHTML("beforeend",`<g class="ct-pop">${sq(pos[i][0],pos[i][1],cls[i])}</g>`);await ctWait(800);}
+  $s(S,"ctTop").innerHTML=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#d6336c" stroke-width="5"/><text x="${CT_W/2}" y="22" text-anchor="middle" class="ct-lab sm ct-pop">4 squares here, but the circle covers only about 3.14</text>`;
+  $s(S,"ctSum").textContent="about 3 and a bit squares"; return 1500;
+}
+
+/* ---------- the library: every cartoon, to watch at any time (Maths page) ---------- */
+const CT_NAMES={"rect-p":"Perimeter of a rectangle","sq-p":"Perimeter of a square","tri-p":"Perimeter of a triangle","rect-a":"Area of a rectangle","sq-a":"Area of a square","tri-a":"Area of a triangle","cuboid-v":"Volume of a cuboid","cube-v":"Volume of a cube","circ-c":"Circumference of a circle","circ-a":"Area of a circle"};
+const ctMark=k=>{try{const q=MB().q,o=q["ct:"+k]||{};q["ct:"+k]={n:(o.n||0)+1,last:today(),u:Date.now()};Store.save();}catch(e){}};
+const ctDue=k=>{try{const o=MB().q["ct:"+k];return !o||dayDiff(o.last,today())>=7;}catch(e){return true;}};
+function cartoonsCard(){return `<button class="card rn-entry" data-cartoons><span class="rn-entry-l">▶<br>🎬</span><span class="stack tight" style="gap:4px;text-align:left"><b>Cartoons: perimeter, area, volume</b><span class="muted small">动画讲解：周长、面积、体积是什么意思，怎么算。${Object.keys(CT_SCENES).length} short cartoons with a teacher’s voice.</span></span><span class="chev">${ic("chevron")}</span></button>`;}
+function openCartoons(k){
+  let el=document.getElementById("ctOv"); if(!el){el=document.createElement("section");el.id="ctOv";el.className="ct-ov";document.body.appendChild(el);}
+  window.__busy=true; el.hidden=false; document.body.style.overflow="hidden";
+  const close=()=>{ctStop();el.hidden=true;window.__busy=false;document.body.style.overflow="";};
+  el.innerHTML=`<div class="s-top"><button class="icon-btn" id="ctClose" aria-label="Close">${ic("x")}</button><span class="s-label">Cartoons · 动画讲解</span></div><div class="s-body"><div class="m-q fl-q">
+    <div class="ct-list">${Object.keys(CT_SCENES).map(x=>`<button class="chip ${x===k?"on":""}" data-ctk="${x}">${esc(CT_NAMES[x]||x)}</button>`).join("")}</div>
+    ${k?ctPlayerHtml(k):`<p class="muted">Choose one to watch. 选一个看。</p>`}</div></div>`;
+  el.querySelector("#ctClose").onclick=close;
+  el.querySelectorAll("[data-ctk]").forEach(b=>b.onclick=()=>{ctStop();openCartoons(b.dataset.ctk);});
+  if(k){const root=el.querySelector(".ct-player");root.querySelector("[data-ctplay]").onclick=()=>ctPlay(root);ctPlay(root);}
+}
+document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-cartoons]");if(b&&Store.book){e.preventDefault();openCartoons();}});
+
 /* ---------- the player ---------- */
 const ctHas=k=>!!CT_SCENES[k];
 function ctPlayerHtml(k){return `<div class="ct-player" data-ct="${k}"><div class="ct-stage"></div><div class="ct-cap" aria-live="polite"></div>
@@ -177,7 +239,7 @@ async function ctPlay(root,onDone){
     const said=new Promise(r=>ctAudio(k,i,text,r)), acted=Promise.resolve(act(S)).then(ms=>ctWait(ms||0));
     await Promise.all([said,acted]); if(CT&&CT.tok!==tok)return; await ctWait(500);
   }
-  if(CT&&CT.tok===tok){try{localStorage.setItem("ct-seen:"+k,"1");}catch(e){} onDone&&onDone();}
+  if(CT&&CT.tok===tok){try{localStorage.setItem("ct-seen:"+k,"1");}catch(e){} ctMark(k); onDone&&onDone();}
 }
 function ctStop(){if(CT){CT.tok=-1;try{CT.audio&&CT.audio.pause();}catch(e){}}CT=null;if(typeof teachStop==="function")teachStop();}
 const ctSeen=k=>{try{return !!localStorage.getItem("ct-seen:"+k);}catch(e){return false;}};

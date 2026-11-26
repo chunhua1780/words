@@ -226,6 +226,7 @@ function viewMaths(){
       <div class="hero-num"><b>${sc.done}<small>/${sc.n}</small></b><span class="muted small">answered today</span></div>
     </div>
     ${checkupCard()}
+    ${typeof cartoonsCard==="function"?cartoonsCard():""}
     ${typeof drillCard==="function"?drillCard():""}
     ${typeof calcCard==="function"?calcCard():""}
     ${mistakesCard()}

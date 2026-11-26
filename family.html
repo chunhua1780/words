@@ -80,11 +80,11 @@ function openKid(i,goto){const a=ACC[i]; if(!a||!a.user)return;
   FTAB=i; FGOTO=goto||null; render(); window.scrollTo(0,0);}
 function frameTick(){
   const f=document.getElementById("famIf"); if(!f)return;
-  try{const d=f.contentDocument; if(!d||!d.documentElement)return; const h=d.documentElement.scrollHeight; if(h&&Math.abs(h-f.offsetHeight)>4)f.style.height=h+"px";
+  try{const d=f.contentDocument; if(!d||!d.documentElement)return; const h=Math.max(d.body?d.body.scrollHeight:0,600)+40; if(h&&Math.abs(h-f.offsetHeight)>4)f.style.height=h+"px";
     if(FGOTO){const el=d.getElementById(FGOTO); if(el&&el.offsetHeight){window.scrollTo({top:f.getBoundingClientRect().top+window.scrollY+el.getBoundingClientRect().top-12,behavior:"smooth"});FGOTO=null;}}
   }catch(e){}
 }
-setInterval(frameTick,700);
+setInterval(frameTick,400);
 async function loadAll(){
   loading=true; if(FTAB==="all")render();
   try{await Promise.all(ACC.map(async(a,i)=>{if(!a.user||!a.pass){ERR[i]="Not set";return;}
@@ -144,8 +144,8 @@ function render(){
     ${ok?`<div class="fam-tabs"><button class="${FTAB==="all"?"on":""}" data-tab="all">总览 · Overview</button>${ACC.map((a,i)=>a.user?`<button class="${FTAB===i?"on":""}" data-kid="${i}">${esc(a.name)} · 全部详情</button>`:"").join("")}</div>`:""}
     ${!ok?`<div class="card muted">Tap “Accounts” and enter both children’s logins.</div>`
       :FTAB==="all"?`<div class="fam-grid">${ACC.map(kidCard).join("")}</div>`
-      :`<div class="fam-detail"><div class="muted small">${esc(ACC[FTAB].name)} 的全部学习情况：成绩和趋势、错题（具体题目和孩子的答案）、常拼错的单词、阅读、每篇作文/日记全文和 AI 评分、本周计划和 AI 建议、给孩子的建议、每周听写生字、今日必做设置。往下滑都能看到；在这里改的设置会直接生效。</div>
-        <iframe id="famIf" src="${PARENT_REL[ACC[FTAB].kind]}?embed=1" title="${esc(ACC[FTAB].name)} parent page" style="width:100%;height:2400px;border:0;display:block"></iframe></div>`}`;
+      :`<div class="fam-detail"><div class="muted small">${esc(ACC[FTAB].name)} 的全部学习情况：成绩和趋势、错题（具体题目和孩子的答案）、常拼错的单词、阅读、每篇作文/日记全文和 AI 评分、本周计划和 AI 建议、给孩子的建议、每周听写生字、今日必做设置。往下滑都能看到；在这里改的设置会直接生效。 <a href="${PARENT_REL[ACC[FTAB].kind]}" target="_blank" rel="noopener">在新页面打开 ↗</a></div>
+        <iframe id="famIf" src="${PARENT_REL[ACC[FTAB].kind]}?embed=1" title="${esc(ACC[FTAB].name)} parent page" scrolling="no" style="width:100%;height:2400px;border:0;display:block"></iframe></div>`}`;
   document.querySelectorAll("[data-kid]").forEach(b=>b.onclick=()=>openKid(+b.dataset.kid,b.dataset.goto));
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{FTAB="all";render();});
   document.getElementById("fRefresh").onclick=loadAll; reportBind(document.getElementById("app"));

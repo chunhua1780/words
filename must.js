@@ -75,8 +75,8 @@ function mustStatus(k,t=today()){
     const secs=((b.reading.log[t]||{}).secs)||0, fin=Object.values(b.reading.done).filter(x=>x.date===t);
     return {done:secs>=600,p:Math.min(1,secs/600),sub:`${Math.floor(secs/60)} of 10 minutes${fin.length?` · ${fin.length} story finished`:""}`,acc:acc(fin.reduce((s,x)=>s+x.score,0),fin.reduce((s,x)=>s+x.n,0))};
   }
-  if(k==="write"){const d=((b.eng||{}).diary||{})[t]||{},n=(String(d.text||"").match(/[A-Za-z’']+/g)||[]).length,goal=Math.max(30,+((b.prefs||{}).diaryWords)||60);
-    return {done:!!d.done,p:d.done?1:Math.min(.95,n/goal),sub:d.done?`Finished · ${n} words`:`${n} of ${goal} words`,acc:d.score!=null?{r:d.score,n:8}:null};}
+  if(k==="write"){const d=((b.eng||{}).diary||{})[t]||{},n=(String(d.text||"").match(/[A-Za-z’']+/g)||[]).length,goal=typeof DIARY_TARGET==="function"&&b===B()?DIARY_TARGET():Math.max(30,+((b.prefs||{}).diaryWords)||60);
+    return {done:!!d.done,p:d.done?1:Math.min(.95,n/goal),sub:d.done?`Finished · ${n} words`:n?`Draft 草稿: ${n} of ${goal} words`:`${n} of ${goal} words`,acc:d.score!=null?{r:d.score,n:8}:null};}
   if(k==="maths"){const d=typeof dayOf==="function"?dayOf(t):null,a=d?Object.values(d.ans||{}):[];const n=d?d.ids.length:20;
     return {done:!!d&&a.length>=n,p:a.length/n,sub:`${a.length} of ${n} answered`,acc:acc(a.filter(x=>x.ok).length,a.length)};}
   if(k==="test"){const d=typeof cuGet==="function"?cuGet(t):null,a=d?Object.values(d.ans||{}):[];const n=d?d.ids.length:15;

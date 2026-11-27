@@ -137,7 +137,8 @@ function kbdHtml(){
 const DE=()=>{const b=B();b.eng=b.eng||{diary:{},daily:{},phon:{},plog:{}};b.eng.diary=b.eng.diary||{};return b.eng;};
 function diaryView(){
   const t=today(), E=DE();
-  const d=E.diary[t]||{text:""}, prompt=wrPrompt(wrKind(d),t)||DIARY_PROMPTS[Math.floor(pdate(t)/864e5)%DIARY_PROMPTS.length];
+  const d=E.diary[t]||{text:""}, pi=d.pi||0, L0=typeof PAPER_TYPES!=="undefined"&&WR_PROMPTS[wrKind(d)]?WR_PROMPTS[wrKind(d)]:DIARY_PROMPTS;
+  const prompt=L0[(Math.floor(pdate(t)/864e5)+pi)%L0.length]; // pi: "Another idea" moves to the next prompt
   const past=Object.entries(E.diary).filter(([k,v])=>k!==t&&v.text).sort((a,b)=>a[0]<b[0]?1:-1).slice(0,10);
   const body=$("#dvBody"), kb=$("#dvKbd");
   const pastHtml=past.length?`<div class="section-title"><h3 style="margin:0">Earlier diary pages</h3></div>${past.map(([k,v])=>`<details class="card dpast"><summary><b>${esc(niceDate(k))}</b> <span class="muted small">· ${wordsOfText(v.text).length} words${v.fix&&v.fix.length?` · ${v.fix.length} spelling${v.fix.length>1?"s":""} fixed`:""}</span></summary><p class="dv-text">${diaryMarked(v.text,v.fix)}</p></details>`).join("")}`:"";
@@ -173,13 +174,17 @@ function diaryView(){
     <textarea id="dText" rows="8" placeholder="Today I…" inputmode="none" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" writingsuggestions="false" data-gramm="false" data-enable-grammarly="false">${esc(d.text||"")}</textarea>
     <div id="dHelp" class="dv-help"></div>
     <div class="row" style="gap:10px;flex-wrap:wrap"><button class="btn" id="dRead">${ic("speaker")}Read it to me</button><button class="btn primary" id="dDone">${ic("check")}提交 · Hand it in</button><span class="muted small" id="dCount"></span></div>
+    <div class="row d-draft" style="gap:10px;flex-wrap:wrap;align-items:center"><button class="btn" id="dIdea">↻ Another idea 换个题目</button><button class="btn" id="dLater">${ic("check")}Save draft, do it later 保存草稿，先做别的</button><span class="muted small" id="dSaved">${d.text?`Draft saved 草稿已保存 · ${wordsOfText(d.text).length} words`:"Your writing is saved as you type. 边写边自动保存。"}</span></div>
     <div class="card stack tight" id="dChecks"></div>
     ${pastHtml}
   </div>`;
   if(typeof zhFill==="function")zhFill(body);
   const ta=$("#dText");
-  const save=()=>{const E=DE();E.diary[t]={...(E.diary[t]||{}),text:ta.value,words:wordsOfText(ta.value).length,u:Date.now()};Store.save();};
+  const save=()=>{const E=DE();E.diary[t]={...(E.diary[t]||{}),text:ta.value,words:wordsOfText(ta.value).length,u:Date.now()};Store.save();
+    const sv=document.getElementById("dSaved"); if(sv)sv.textContent=`✓ Draft saved 草稿已保存 ${new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} · ${wordsOfText(ta.value).length} words`;};
   DV.save=save;
+  $("#dIdea").onclick=()=>{save();const E=DE();E.diary[t]={...(E.diary[t]||{}),pi:(pi+1),u:Date.now()};Store.save();diaryView();};
+  $("#dLater").onclick=()=>{save();closeDiary();if(typeof toast==="function")toast("Draft saved. Come back to finish it later! 草稿已保存，稍后再写。");if(typeof mustGate==="function")setTimeout(()=>mustGate(true),300);}; // on to the next task
   body.querySelectorAll("[data-wrk]").forEach(b=>b.onclick=()=>{const E=DE();E.diary[t]={...(E.diary[t]||{}),text:ta.value,kind:b.dataset.wrk,u:Date.now()};Store.save();diaryView();}); // Year 7: what to write about
   const checks=()=>{const c=diaryCheck(ta.value);$("#dChecks").innerHTML=`<b>Checklist</b>${c.map(x=>`<div class="dchk ${x.ok?"ok":""}">${ic(x.ok?"check":"x")}<span>${esc(x.t)}</span></div>`).join("")}`;
     $("#dCount").textContent=`${wordsOfText(ta.value).length} / ${DIARY_TARGET()} words`;};

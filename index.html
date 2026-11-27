@@ -101,6 +101,7 @@
 <script src="illustrations.js"></script>
 <script src="readings-easy.js"></script>
 <script src="readings-science.js"></script>
+<script src="readings-more.js"></script>
 <script src="maths-bank.js"></script>
 <script src="maths-roman.js"></script>
 <script src="maths-rounding.js"></script>
@@ -751,8 +752,32 @@ function wrapText(text,gloss){
   return esc(text).replace(re,(m)=>{const k=m.toLowerCase().replace(/’/g,"'");const g=gloss[k]||gloss[m.toLowerCase()];
     return `<span class="rw${g?" g":""}" data-w="${m}">${m}</span>`;});
 }
+/* 今天的文章 1 2 3: the articles of the day as numbered tabs at the top of the reader, to move between freely */
+function rTodayIds(){
+  const t=today(), R=B().reading, ids=[...((R.log[t]||{}).ids||[])].filter(id=>READINGS.some(r=>r.id===id));
+  const add=r=>{if(r&&!ids.includes(r.id))ids.push(r.id);};
+  add(todaysReading());
+  if(READINGS.some(r=>r.kind==="Science"))add(READINGS.find(r=>r.kind==="Science"&&!R.done[r.id]&&!ids.includes(r.id)));
+  return ids;
+}
+function rNewId(ids){const R=B().reading, lv=typeof readLevel==="function"?readLevel():null;
+  const r=READINGS.find(x=>(!lv||x.lv===lv)&&!R.done[x.id]&&!ids.includes(x.id))||READINGS.find(x=>!R.done[x.id]&&!ids.includes(x.id))
+    ||READINGS.filter(x=>!ids.includes(x.id)).sort((a,b)=>((R.done[a.id]||{}).u||0)-((R.done[b.id]||{}).u||0))[0]; // all read: the one read longest ago, to read again
+  return r&&r.id;}
+function rTabs(){
+  let tb=document.getElementById("rTabs");
+  if(!tb){tb=document.createElement("div");tb.id="rTabs";tb.className="r-tabs";document.querySelector("#reader .r-top").after(tb);}
+  const R=B().reading, t=today(), ids=rTodayIds(); if(RD&&!ids.includes(RD.r.id))ids.push(RD.r.id);
+  const cur=RD?ids.indexOf(RD.r.id):-1, doneHere=RD&&R.done[RD.r.id]&&R.done[RD.r.id].date===t, next=ids.slice(cur+1).find(id=>!(R.done[id]&&R.done[id].date===t));
+  tb.innerHTML=`<span class="muted small">今天的文章 Today:</span>${ids.map((id,i)=>{const r=READINGS.find(x=>x.id===id),d=R.done[id]&&R.done[id].date===t;
+      return `<button class="r-tab ${i===cur?"on":""} ${d?"done":""}" data-rtab="${id}" title="${esc(r.title)}"><b>${i+1}</b>${d?`<small>✓ ${R.done[id].score}/${R.done[id].n}</small>`:r.kind==="Science"?`<small>科学</small>`:""}</button>`;}).join("")}
+    <button class="r-tab add" data-rtab="+" title="Another article">+ <small>New 新文章</small></button>
+    ${doneHere?`<button class="btn primary sm r-nextbtn" data-rtab="${next||"+"}">Next 下一篇 ›</button>`:""}`;
+  tb.querySelectorAll("[data-rtab]").forEach(b=>b.onclick=()=>{let id=b.dataset.rtab; if(id==="+")id=rNewId(ids); if(!id){toast("No more new articles at this level.");return;}
+    if(RD&&id===RD.r.id)return; stopListen(); closeSheet(); Store.save(); openReader(id);});
+}
 function renderReader(){
-  const b=$("#rBody"), r=RD.r;
+  const b=$("#rBody"), r=RD.r; rTabs();
   if(RD.phase==="read"){
     $("#rListen").innerHTML=ic("play");
     const gl=Object.fromEntries(Object.entries(r.glossary).map(([k,v])=>[k.toLowerCase(),v]));

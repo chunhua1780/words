@@ -7,6 +7,8 @@
    - for primes and factors, at least once a week anyway.
    Watching is saved with her book (book.maths.q["ct:L-…"]), so the parent can see it. */
 const LS_LIST=[ // first match wins
+  {k:"L-fraccompare",re:/((compare|order|larger|smaller|bigger|greater|greatest|smallest|largest|biggest|<|>).*\d+\/\d+)|(\d+\/\d+.*(larger|smaller|bigger|greater|greatest|smallest|largest|order))|compare.*fraction|order.*fraction/i,weekly:true},
+  {k:"L-negative",re:/negative|below zero|temperature|(^|[\s(,:])[−-]\d/i,weekly:true}, // a minus sign stuck to a number (not "8,398 − 6,098")
   {k:"L-roundrange",re:/round.*(smallest|largest|greatest|least|biggest|lowest)|(smallest|largest|greatest|least|biggest|lowest).*round/i,weekly:true},
   {k:"L-round",re:/round/i},
   {k:"L-pfactor",re:/prime factor/i},
@@ -17,7 +19,7 @@ const LS_LIST=[ // first match wins
   {k:"L-cubes",re:/cube number|cubed|³/i},
   {k:"L-squares",re:/square number|squared|²/i},
 ];
-const LS_NAME={"L-roundrange":"Rounding: the smallest and largest number","L-round":"Rounding to the nearest 10, 100, 1000","L-factors":"Factors and how many factors","L-prime":"Prime numbers","L-pfactor":"Prime factors","L-common":"Common factors","L-multiples":"Multiples","L-squares":"Square numbers","L-cubes":"Cube numbers"};
+const LS_NAME={"L-negative":"Negative numbers on a number line","L-fraccompare":"Comparing fractions","L-roundrange":"Rounding: the smallest and largest number","L-round":"Rounding to the nearest 10, 100, 1000","L-factors":"Factors and how many factors","L-prime":"Prime numbers","L-pfactor":"Prime factors","L-common":"Common factors","L-multiples":"Multiples","L-squares":"Square numbers","L-cubes":"Cube numbers"};
 function lessonFor(q){if(!q)return null;return LS_LIST.find(l=>l.re.test(q.q||""))||LS_LIST.find(l=>l.re.test(q.o||""))||null;} // the question itself first, then its objective
 /* how she does on this type: all saved answers to questions with the same objective */
 function lsWeak(q){
@@ -78,14 +80,38 @@ function lsTree(S,stage){
 /* a number line */
 function lsLine(S,lo,hi,labels){
   ctBase(S); const x0=40,x1=380,y=150, X=v=>x0+(v-lo)/(hi-lo)*(x1-x0); S.nl={lo,hi,X,y};
-  $s(S,"ctShape").innerHTML=`<line x1="${x0-10}" y1="${y}" x2="${x1+10}" y2="${y}" class="nl-axis ct-draw" pathLength="100"/>`+labels.map(v=>`<g class="ct-pop"><line x1="${X(v)}" y1="${y-9}" x2="${X(v)}" y2="${y+9}" class="nl-tick"/><text x="${X(v)}" y="${y+30}" text-anchor="middle" class="ct-lab sm">${v.toLocaleString("en-GB")}</text></g>`).join("");
+  $s(S,"ctShape").innerHTML=`<line x1="${x0-10}" y1="${y}" x2="${x1+10}" y2="${y}" class="nl-axis ct-draw" pathLength="100"/>`+labels.map(v=>`<g class="ct-pop"><line x1="${X(v)}" y1="${y-9}" x2="${X(v)}" y2="${y+9}" class="nl-tick"/><text x="${X(v)}" y="${y+30}" text-anchor="middle" class="ct-lab sm">${v<0?"−"+Math.abs(v).toLocaleString("en-GB"):v.toLocaleString("en-GB")}</text></g>`).join("");
   return 1600;
 }
 function lsMark(S,v,cls,label,dy=-22){const {X,y}=S.nl;$s(S,"ctTop").insertAdjacentHTML("beforeend",`<g class="ct-pop"><circle cx="${X(v)}" cy="${y}" r="8" class="${cls}"/>${label?`<text x="${X(v)}" y="${y+dy}" text-anchor="middle" class="ct-lab sm ${cls}-t">${label}</text>`:""}</g>`);return 1500;}
 function lsBand(S,a,b,cls){const {X,y}=S.nl;$s(S,"ctFill").insertAdjacentHTML("beforeend",`<rect x="${X(a)}" y="${y-14}" width="${X(b)-X(a)}" height="28" rx="6" class="${cls} ct-grow"/>`);return 1600;}
 async function lsMove(S,from,to,label){const {X,y}=S.nl,g=$s(S,"ctTop"),tok=CT.tok;g.insertAdjacentHTML("beforeend",`<g id="lsPt"><text class="ct-bug" font-size="26" text-anchor="middle">📍</text><text class="ct-lab sm" text-anchor="middle" dy="-30">${label}</text></g>`);
   const pt=g.querySelector("#lsPt"); for(let k=0;k<=30;k++){if(!CT||CT.tok!==tok)return 0;const v=from+(to-from)*k/30;pt.setAttribute("transform",`translate(${X(v)},${y-12})`);await ctWait(k===0?700:35);} pt.removeAttribute("id"); return 800;}
+/* fraction bars: rows of [parts, shaded, label] */
+function lsBars(S,rows,keep){
+  if(!keep)ctBase(S); const W=290,x0=100,h=34, g=$s(S,"ctFill"); g.innerHTML="";
+  rows.forEach(([n,k,lab],j)=>{const y=40+j*58, w=W/n;
+    g.insertAdjacentHTML("beforeend",`<g class="ct-pop" style="animation-delay:${j*.5}s"><text x="${x0-14}" y="${y+h/2+7}" text-anchor="end" class="ls-frac">${lab}</text>${[...Array(n)].map((_,i)=>`<rect x="${x0+i*w}" y="${y}" width="${w}" height="${h}" class="${i<k?"fb-on":"fb-off"}" style="animation-delay:${j*.5+i*.08}s"/>`).join("")}</g>`);});
+  return 1800+rows.length*500;
+}
 Object.assign(CT_SCENES,{
+  "L-negative":{steps:[
+    ["Negative numbers are numbers below zero, like the temperature on a very cold day.",S=>lsTitle(S,"Negative numbers")],
+    ["On a number line, zero is in the middle. Positive numbers go to the right. Negative numbers go to the left.",S=>{lsLine(S,-10,10,[-10,-5,0,5,10]);return lsMark(S,0,"nl-b","0");}],
+    ["The further left, the smaller the number. So minus 7 is smaller than minus 2.",S=>{lsMark(S,-7,"nl-r","−7");lsMark(S,-2,"nl-g","−2");return ctSum(S,"−7 < −2");}],
+    ["To add, move to the right. Minus 3, add 5: start at minus 3, move 5 to the right, and you land on 2.",S=>{lsLine(S,-10,10,[-10,-5,0,5,10]);return lsMove(S,-3,2,"−3 + 5 = 2");}],
+    ["To take away, move to the left. 4 take away 6: start at 4, move 6 to the left, and you land on minus 2.",S=>lsMove(S,4,-2,"4 − 6 = −2")],
+    ["The difference between minus 3 and 5: count the steps. 3 steps to zero, then 5 more. That makes 8.",S=>{lsLine(S,-10,10,[-10,-5,0,5,10]);lsBand(S,-3,5,"nl-band");return ctSum(S,"3 + 5 = 8");}],
+    ["Remember: add, move right. Take away, move left. Further left means smaller.",S=>ctFormula(S,"+ → right · − ← left","−7 < −2 < 0 < 5")]]},
+  "L-fraccompare":{steps:[
+    ["Which is bigger: 3 fifths, or 2 fifths?",S=>lsTitle(S,"Comparing fractions")],
+    ["When the bottom numbers are the same, the pieces are the same size. 3 pieces is more than 2, so 3 fifths is bigger.",S=>{lsBars(S,[[5,3,"3/5"],[5,2,"2/5"]]);return ctSum(S,"3/5 > 2/5");}],
+    ["When the top numbers are the same, look at the bottom. 1 third is bigger than 1 quarter: fewer pieces means bigger pieces.",S=>{lsBars(S,[[3,1,"1/3"],[4,1,"1/4"]]);return ctSum(S,"1/3 > 1/4");}],
+    ["Different bottom numbers? Make them the same first. Let's compare 2 thirds and 3 quarters.",S=>lsBars(S,[[3,2,"2/3"],[4,3,"3/4"]])],
+    ["Change both into twelfths. 2 thirds is 8 twelfths. 3 quarters is 9 twelfths.",S=>lsBars(S,[[12,8,"8/12"],[12,9,"9/12"]])],
+    ["9 twelfths is more than 8 twelfths, so 3 quarters is bigger.",S=>ctSum(S,"3/4 > 2/3")],
+    ["Remember: same bottom, compare the tops. Different bottoms, make them the same first.",S=>ctFormula(S,"same bottom → compare tops","different bottoms → make them the same")]]},
+
   "L-round":{steps:[
     ["Let's round 3,746 to the nearest hundred.",S=>lsTitle(S,"Round 3,746 to the nearest 100")],
     ["3,746 is between 3,700 and 3,800. Let's put it on a number line.",S=>{lsLine(S,3700,3800,[3700,3750,3800]);return lsMove(S,3746,3746,"3,746");}],

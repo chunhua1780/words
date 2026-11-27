@@ -1372,3 +1372,4 @@ html.embed body{background:transparent}
 .nl-b{fill:#1c7ed6}.nl-g{fill:#2f9e44}.nl-r{fill:#fff;stroke:#e03131;stroke-width:4}
 .nl-b-t{fill:#1c7ed6}.nl-g-t{fill:#2f9e44}.nl-r-t{fill:#e03131}
 .nl-band{fill:#b2f2bb;opacity:.75}.ct-grow{transform-box:fill-box;transform-origin:left;animation:ctGrow 1.2s ease both}@keyframes ctGrow{from{transform:scaleX(0)}to{transform:none}}
+.ls-frac{font:800 20px var(--round,sans-serif);fill:#2b4c7e}.fb-on{fill:#ffa94d;stroke:#c2410c;stroke-width:2}.fb-off{fill:#fff;stroke:#c2410c;stroke-width:2}

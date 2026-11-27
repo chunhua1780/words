@@ -1340,3 +1340,13 @@ html.embed body{background:transparent}
 .ct-sq2{fill:#7dd3a8;stroke:#2f9e6b;stroke-width:1.5;opacity:.85}.ct-sq3{fill:#ffd43b;stroke:#c99a00;stroke-width:1.5;opacity:.85}.ct-sq4{fill:#ff8fab;stroke:#c2255c;stroke-width:1.5;opacity:.85}
 #ctOv{position:fixed;inset:0;z-index:30;background:var(--bg);display:flex;flex-direction:column}#ctOv[hidden]{display:none}#ctOv .s-body{flex:1;overflow:auto}
 .ct-list{display:flex;flex-wrap:wrap;gap:8px}.ct-list .chip{border:0;border-radius:999px;padding:8px 12px;background:var(--soft,#f2f2f7);font-weight:600}.ct-list .chip.on{background:var(--c-blue,#2f6fec);color:#fff}
+
+/* 题型动画课 (lessons.js) */
+.ls-title{font:800 30px var(--round,sans-serif);fill:#2b4c7e}
+.ls-dot{fill:#1c7ed6}.ls-bad{fill:#e03131}
+.ls-li{font:700 17px var(--round,sans-serif)}.ls-li.ok{fill:#2f9e44}.ls-li.bad{fill:#e03131}
+.ls-on{fill:#b2f2bb;stroke:#2f9e44;stroke-width:2.5}.ls-off{fill:#fff;stroke:#adb5bd;stroke-width:1.5}
+.ls-n{font:700 15px var(--round,sans-serif);fill:#212529}.ls-n.big{font-size:19px}
+.ls-line{stroke:#495057;stroke-width:3}
+.ls-pulse{animation:lsPulse .9s ease-in-out 3 alternate}@keyframes lsPulse{to{fill:#69db7c}}
+.ls-li{font-size:15px}

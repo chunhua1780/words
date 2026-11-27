@@ -107,7 +107,7 @@ async function ctWalk(S,sides){
   for(let i=0;i<n;i++){
     const [a,b]=[pts[i],pts[(i+1)%n]], steps=40;
     top.insertAdjacentHTML("afterbegin",`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" class="ct-side"/>`);
-    for(let k=0;k<=steps;k++){if(CT.tok!==tok)return 0;const t=k/steps;bug.setAttribute("x",a[0]+(b[0]-a[0])*t);bug.setAttribute("y",a[1]+(b[1]-a[1])*t);await ctWait(22);}
+    for(let k=0;k<=steps;k++){if((!CT||CT.tok!==tok))return 0;const t=k/steps;bug.setAttribute("x",a[0]+(b[0]-a[0])*t);bug.setAttribute("y",a[1]+(b[1]-a[1])*t);await ctWait(22);}
     run.push(sides[i]); $s(S,"ctSum").textContent=run.join(" + ")+" cm";
     top.insertAdjacentHTML("beforeend",`<text x="${(a[0]+b[0])/2}" y="${(a[1]+b[1])/2}" text-anchor="middle" dominant-baseline="central" class="ct-num ct-pop">${sides[i]}</text>`);
     await ctWait(250);
@@ -119,14 +119,14 @@ function ctOneSquare(S){$s(S,"ctTop").innerHTML=`<g class="ct-pop"><rect x="${CT
 async function ctFill(S,c,r,{fast}={}){
   const g=$s(S,"ctFill"), tok=CT.tok, x=S.x!=null?S.x:(CT_W-c*CT_U)/2, y=S.y!=null?S.y:40; let n=0;
   $s(S,"ctTop").innerHTML="";
-  for(let j=0;j<r;j++)for(let i=0;i<c;i++){if(CT.tok!==tok)return 0;n++;
+  for(let j=0;j<r;j++)for(let i=0;i<c;i++){if((!CT||CT.tok!==tok))return 0;n++;
     g.insertAdjacentHTML("beforeend",`<g class="ct-drop"><rect x="${x+i*CT_U+2}" y="${y+j*CT_U+2}" width="${CT_U-4}" height="${CT_U-4}" rx="4" class="ct-sq"/>${fast?"":`<text x="${x+i*CT_U+CT_U/2}" y="${y+j*CT_U+CT_U/2+6}" text-anchor="middle" class="ct-cnt">${n}</text>`}</g>`);
     $s(S,"ctSum").textContent=`${n} square${n>1?"s":""}`; await ctWait(fast?60:330);}
   return 500;
 }
 async function ctRows(S,c,r){
   const g=$s(S,"ctTop"), x=S.x!=null?S.x:(CT_W-c*CT_U)/2, y=S.y!=null?S.y:40, tok=CT.tok;
-  for(let j=0;j<r;j++){if(CT.tok!==tok)return 0;g.insertAdjacentHTML("beforeend",`<rect x="${x-3}" y="${y+j*CT_U}" width="${c*CT_U+6}" height="${CT_U}" rx="6" class="ct-row ct-pop"/><text x="${x-12}" y="${y+j*CT_U+CT_U/2+6}" text-anchor="end" class="ct-lab sm ct-pop">row ${j+1}: ${c}</text>`);await ctWait(700);}
+  for(let j=0;j<r;j++){if((!CT||CT.tok!==tok))return 0;g.insertAdjacentHTML("beforeend",`<rect x="${x-3}" y="${y+j*CT_U}" width="${c*CT_U+6}" height="${CT_U}" rx="6" class="ct-row ct-pop"/><text x="${x-12}" y="${y+j*CT_U+CT_U/2+6}" text-anchor="end" class="ct-lab sm ct-pop">row ${j+1}: ${c}</text>`);await ctWait(700);}
   return 600;
 }
 function ctRightTri(S,first,box){
@@ -161,7 +161,7 @@ async function ctCubes(S,l,w,h,upTo){
   const g=$s(S,"ctFill"), tok=CT.tok; $s(S,"ctTop").innerHTML="";
   S.layer=S.layer||0;
   for(let z=S.layer;z<=upTo;z++){let n=0;
-    for(let s=0;s<=l+w-2;s++)for(let x=0;x<l;x++){const y=s-x;if(y<0||y>=w)continue;if(CT.tok!==tok)return 0;n++;
+    for(let s=0;s<=l+w-2;s++)for(let x=0;x<l;x++){const y=s-x;if(y<0||y>=w)continue;if((!CT||CT.tok!==tok))return 0;n++;
       g.insertAdjacentHTML("beforeend",ctCubeSvg(S,x,y,z,"ct-drop"));
       $s(S,"ctSum").textContent=`layer ${z+1}: ${n} cube${n>1?"s":""}`; await ctWait(upTo>0&&z>0?120:260);}
     await ctWait(300);}
@@ -182,12 +182,12 @@ async function ctUnroll(S){
   const {cx,cy,R}=S.circ, tok=CT.tok, len=Math.PI*2*R*.62, x0=(CT_W-len)/2, y=cy+R+38, g=$s(S,"ctTop");
   g.innerHTML=`<circle cx="${cx}" cy="${cy}" r="${R}" class="ct-edgeo" pathLength="100" style="stroke-dasharray:100;stroke-dashoffset:0"/><line x1="${x0}" y1="${y}" x2="${x0}" y2="${y}" class="ct-edgeo" id="ctLine"/>`;
   const c=g.firstChild, l=g.querySelector("#ctLine");
-  for(let k=0;k<=50;k++){if(CT.tok!==tok)return 0;c.style.strokeDashoffset=String(k*2);l.setAttribute("x2",x0+len*k/50);await ctWait(40);}
+  for(let k=0;k<=50;k++){if((!CT||CT.tok!==tok))return 0;c.style.strokeDashoffset=String(k*2);l.setAttribute("x2",x0+len*k/50);await ctWait(40);}
   S.unroll={x0,y,len}; $s(S,"ctSum").textContent="the edge, unrolled"; return 600;
 }
 async function ctDiams(S){
   const {x0,y,len}=S.unroll, d=len/Math.PI, tok=CT.tok, g=$s(S,"ctTop"), cols=["#e03131","#1c7ed6","#2f9e44"];
-  for(let i=0;i<3;i++){if(CT.tok!==tok)return 0;g.insertAdjacentHTML("beforeend",`<g class="ct-pop"><line x1="${x0+i*d+1}" y1="${y+14}" x2="${x0+(i+1)*d-1}" y2="${y+14}" stroke="${cols[i]}" stroke-width="8" stroke-linecap="round"/><text x="${x0+(i+.5)*d}" y="${y+36}" text-anchor="middle" class="ct-lab sm">${i+1}</text></g>`);await ctWait(900);}
+  for(let i=0;i<3;i++){if((!CT||CT.tok!==tok))return 0;g.insertAdjacentHTML("beforeend",`<g class="ct-pop"><line x1="${x0+i*d+1}" y1="${y+14}" x2="${x0+(i+1)*d-1}" y2="${y+14}" stroke="${cols[i]}" stroke-width="8" stroke-linecap="round"/><text x="${x0+(i+.5)*d}" y="${y+36}" text-anchor="middle" class="ct-lab sm">${i+1}</text></g>`);await ctWait(900);}
   g.insertAdjacentHTML("beforeend",`<g class="ct-pop"><line x1="${x0+3*d+1}" y1="${y+14}" x2="${x0+len}" y2="${y+14}" stroke="#f08c00" stroke-width="8" stroke-linecap="round"/><text x="${x0+3.07*d}" y="${y+36}" class="ct-lab sm">+ a bit</text></g>`);
   $s(S,"ctSum").textContent="just over 3 diameters"; return 1500;
 }
@@ -196,7 +196,7 @@ async function ctRSquare(S,n){
   const sq=(x,y,cls)=>{let h="";for(let j=0;j<3;j++)for(let i=0;i<3;i++)h+=`<rect x="${x+i*u+1}" y="${y+j*u+1}" width="${u-2}" height="${u-2}" rx="2" class="${cls}"/>`;return h;};
   if(n===1){g.innerHTML=`<g class="ct-pop">${sq(cx,cy-R,"ct-sq")}</g>`;$s(S,"ctSum").textContent="r × r = 3 × 3 = 9";return 1800;}
   const pos=[[cx-R,cy-R],[cx-R,cy],[cx,cy]], cls=["ct-sq2","ct-sq3","ct-sq4"];
-  for(let i=0;i<3;i++){if(CT.tok!==tok)return 0;g.insertAdjacentHTML("beforeend",`<g class="ct-pop">${sq(pos[i][0],pos[i][1],cls[i])}</g>`);await ctWait(800);}
+  for(let i=0;i<3;i++){if((!CT||CT.tok!==tok))return 0;g.insertAdjacentHTML("beforeend",`<g class="ct-pop">${sq(pos[i][0],pos[i][1],cls[i])}</g>`);await ctWait(800);}
   $s(S,"ctTop").innerHTML=`<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#d6336c" stroke-width="5"/><text x="${CT_W/2}" y="22" text-anchor="middle" class="ct-lab sm ct-pop">4 squares here, but the circle covers only about 3.14</text>`;
   $s(S,"ctSum").textContent="about 3 and a bit squares"; return 1500;
 }
@@ -234,10 +234,10 @@ async function ctPlay(root,onDone){
   const stage=root.querySelector(".ct-stage"), cap=root.querySelector(".ct-cap"), dots=root.querySelector(".ct-dots"), btn=root.querySelector("[data-ctplay]");
   stage.innerHTML=ctSvg(""); const S={svg:stage.firstChild}; btn.textContent="↻ Play again 再看一遍";
   for(let i=0;i<sc.steps.length;i++){
-    if(CT.tok!==tok)return;
+    if((!CT||CT.tok!==tok))return;
     const [text,act]=sc.steps[i]; cap.textContent=text; dots.textContent=sc.steps.map((_,j)=>j<=i?"●":"○").join(" ");
     const said=new Promise(r=>ctAudio(k,i,text,r)), acted=Promise.resolve(act(S)).then(ms=>ctWait(ms||0));
-    await Promise.all([said,acted]); if(CT&&CT.tok!==tok)return; await ctWait(500);
+    await Promise.all([said,acted]); if(CT&&(!CT||CT.tok!==tok))return; await ctWait(500);
   }
   if(CT&&CT.tok===tok){try{localStorage.setItem("ct-seen:"+k,"1");}catch(e){} ctMark(k); onDone&&onDone();}
 }

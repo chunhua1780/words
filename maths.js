@@ -283,6 +283,7 @@ function renderMQ(){
   if(MS.i>=n){renderMResults();return;}
   const q=MQ[MS.ids[MS.i]], st=MS.state, done=st==="right"||st==="shown";
   $("#maths").style.setProperty("--tc",topicColor(q.t));
+  if(typeof lessonGate==="function"&&lessonGate(q,body))return; // a type she often gets wrong: the cartoon lesson first (lessons.js)
   const unit=q.u&&q.k==="n"?q.u:"", pre=unit==="£"?"£":"", post=unit&&unit!=="£"?unit:"";
   body.innerHTML=`<div class="m-q">
     <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}${q.example?" · 例题 Example":""}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>

@@ -7,6 +7,8 @@
    - for primes and factors, at least once a week anyway.
    Watching is saved with her book (book.maths.q["ct:L-…"]), so the parent can see it. */
 const LS_LIST=[ // first match wins
+  {k:"L-roundrange",re:/round.*(smallest|largest|greatest|least|biggest|lowest)|(smallest|largest|greatest|least|biggest|lowest).*round/i,weekly:true},
+  {k:"L-round",re:/round/i},
   {k:"L-pfactor",re:/prime factor/i},
   {k:"L-common",re:/common factor|highest common|HCF/i},
   {k:"L-factors",re:/factor/i,weekly:true},
@@ -15,7 +17,7 @@ const LS_LIST=[ // first match wins
   {k:"L-cubes",re:/cube number|cubed|³/i},
   {k:"L-squares",re:/square number|squared|²/i},
 ];
-const LS_NAME={"L-factors":"Factors and how many factors","L-prime":"Prime numbers","L-pfactor":"Prime factors","L-common":"Common factors","L-multiples":"Multiples","L-squares":"Square numbers","L-cubes":"Cube numbers"};
+const LS_NAME={"L-roundrange":"Rounding: the smallest and largest number","L-round":"Rounding to the nearest 10, 100, 1000","L-factors":"Factors and how many factors","L-prime":"Prime numbers","L-pfactor":"Prime factors","L-common":"Common factors","L-multiples":"Multiples","L-squares":"Square numbers","L-cubes":"Cube numbers"};
 function lessonFor(q){if(!q)return null;return LS_LIST.find(l=>l.re.test(q.q||""))||LS_LIST.find(l=>l.re.test(q.o||""))||null;} // the question itself first, then its objective
 /* how she does on this type: all saved answers to questions with the same objective */
 function lsWeak(q){
@@ -73,7 +75,34 @@ function lsTree(S,stage){
   $s(S,"ctShape").innerHTML=h; return 1800;
 }
 
+/* a number line */
+function lsLine(S,lo,hi,labels){
+  ctBase(S); const x0=40,x1=380,y=150, X=v=>x0+(v-lo)/(hi-lo)*(x1-x0); S.nl={lo,hi,X,y};
+  $s(S,"ctShape").innerHTML=`<line x1="${x0-10}" y1="${y}" x2="${x1+10}" y2="${y}" class="nl-axis ct-draw" pathLength="100"/>`+labels.map(v=>`<g class="ct-pop"><line x1="${X(v)}" y1="${y-9}" x2="${X(v)}" y2="${y+9}" class="nl-tick"/><text x="${X(v)}" y="${y+30}" text-anchor="middle" class="ct-lab sm">${v.toLocaleString("en-GB")}</text></g>`).join("");
+  return 1600;
+}
+function lsMark(S,v,cls,label,dy=-22){const {X,y}=S.nl;$s(S,"ctTop").insertAdjacentHTML("beforeend",`<g class="ct-pop"><circle cx="${X(v)}" cy="${y}" r="8" class="${cls}"/>${label?`<text x="${X(v)}" y="${y+dy}" text-anchor="middle" class="ct-lab sm ${cls}-t">${label}</text>`:""}</g>`);return 1500;}
+function lsBand(S,a,b,cls){const {X,y}=S.nl;$s(S,"ctFill").insertAdjacentHTML("beforeend",`<rect x="${X(a)}" y="${y-14}" width="${X(b)-X(a)}" height="28" rx="6" class="${cls} ct-grow"/>`);return 1600;}
+async function lsMove(S,from,to,label){const {X,y}=S.nl,g=$s(S,"ctTop"),tok=CT.tok;g.insertAdjacentHTML("beforeend",`<g id="lsPt"><text class="ct-bug" font-size="26" text-anchor="middle">📍</text><text class="ct-lab sm" text-anchor="middle" dy="-30">${label}</text></g>`);
+  const pt=g.querySelector("#lsPt"); for(let k=0;k<=30;k++){if(!CT||CT.tok!==tok)return 0;const v=from+(to-from)*k/30;pt.setAttribute("transform",`translate(${X(v)},${y-12})`);await ctWait(k===0?700:35);} pt.removeAttribute("id"); return 800;}
 Object.assign(CT_SCENES,{
+  "L-round":{steps:[
+    ["Let's round 3,746 to the nearest hundred.",S=>lsTitle(S,"Round 3,746 to the nearest 100")],
+    ["3,746 is between 3,700 and 3,800. Let's put it on a number line.",S=>{lsLine(S,3700,3800,[3700,3750,3800]);return lsMove(S,3746,3746,"3,746");}],
+    ["Look at the tens digit, the 4. It is less than 5, so we round down.",S=>ctSum(S,"3,7(4)6: 4 is less than 5 → round down")],
+    ["3,746 is nearer to 3,700. So 3,746 rounded to the nearest hundred is 3,700.",S=>lsMove(S,3746,3700,"→ 3,700")],
+    ["If the digit is 5 or more, we round up. 3,756 rounds up to 3,800.",S=>{lsMark(S,3756,"nl-g","3,756");return lsMove(S,3756,3800,"→ 3,800");}],
+    ["Remember: find the digit after the place you round to. 0 to 4, round down. 5 to 9, round up.",S=>ctFormula(S,"0–4 round down · 5–9 round up","look at the next digit to the right")]]},
+  "L-roundrange":{steps:[
+    ["A number was rounded to the nearest hundred, and the answer was 700. What could the number be?",S=>lsTitle(S,"? → nearest 100 → 700")],
+    ["Draw a number line from 600 to 800. 700 is in the middle.",S=>{lsLine(S,600,800,[600,650,700,750,800]);return lsMark(S,700,"nl-b","700");}],
+    ["Halfway between 600 and 700 is 650. 650 rounds up, to 700. So the smallest number is 650.",S=>lsMark(S,650,"nl-g","smallest 650",-26)],
+    ["Halfway between 700 and 800 is 750. But 750 rounds up to 800, so it is too big!",S=>lsMark(S,750,"nl-r","750 → 800 ✗",-26)],
+    ["So every whole number from 650 to 749 rounds to 700. The largest is 749.",S=>{lsBand(S,650,749,"nl-band");return ctSum(S,"650 … 749 → 700");}],
+    ["Nearest ten: if the answer is 40, the number is from 35 to 44.",S=>{lsLine(S,30,50,[30,35,40,45,50]);lsBand(S,35,44,"nl-band");return ctSum(S,"35 … 44 → 40");}],
+    ["Nearest thousand: if the answer is 3,000, the number is from 2,500 to 3,499.",S=>{lsLine(S,2000,4000,[2000,2500,3000,3500,4000]);lsBand(S,2500,3499,"nl-band");return ctSum(S,"2,500 … 3,499 → 3,000");}],
+    ["The trick: smallest equals the answer, take away half. Largest equals the answer, add half, then take away 1.",S=>ctFormula(S,"smallest = N − half · largest = N + half − 1","nearest 100: 700 − 50 = 650 · 700 + 50 − 1 = 749")]]},
+
   "L-factors":{steps:[
     ["Factors of a number are the numbers that divide into it exactly, with nothing left over.",S=>lsTitle(S,"Factors of 12")],
     ["Let's put 12 dots into equal rows. One row of 12: so 1 and 12 are factors.",S=>lsArr(S,12,1,"1 × 12 ✓")],

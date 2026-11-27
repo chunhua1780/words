@@ -97,8 +97,7 @@ function openAdd20(){
   a20Show();
 }
 function closeAdd20(){clearInterval(A2&&A2.tm);if(typeof ctStop==="function")ctStop();window.__busy=false;a20El().hidden=true;document.body.style.overflow="";A2=null;Store.save();if(typeof render==="function")render();}
-function a20Audio(k,i,text,done){const a=new Audio(`audio/a20/${k}-${i}.mp3`);let fin=false;const end=()=>{if(!fin){fin=true;done&&done();}};
-  a.onended=end;a.onerror=()=>{if(typeof teachSay==="function")teachSay(text,end);else end();};const p=a.play();if(p&&p.catch)p.catch(()=>a.onerror());setTimeout(end,3500+text.length*90);A2.aud=a;}
+function a20Audio(k,i,text,done){A2.aud=typeof recPlay==="function"?recPlay(`audio/a20/${k}-${i}.mp3`,text,done):null;}
 function a20Show(){
   const body=$("#a20Body"), G=A20_G[A2.g];
   if(A2.intro){const L=A20_INTRO[G.k], [line,pic]=L[A2.ii];

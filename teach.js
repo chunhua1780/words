@@ -16,8 +16,8 @@ let TV=null, TEACH=null;
 function teachVoice(){
   if(TV!==null||!("speechSynthesis" in window))return TV;
   const vs=speechSynthesis.getVoices(); if(!vs.length)return null;
-  const en=vs.filter(v=>/^en/i.test(v.lang)), sc=v=>{const i=TEACH_VOICES.findIndex(n=>v.name.includes(n));return (i<0?99:i)+(/GB/i.test(v.lang)?0:20)+(/Enhanced|Premium|Natural/.test(v.name)?-10:0);};
-  const best=en.sort((a,b)=>sc(a)-sc(b))[0]; TV=best&&sc(best)<90?best:false; return TV;
+  const en=vs.filter(v=>/^en[-_]GB/i.test(v.lang)), sc=v=>{const i=TEACH_VOICES.findIndex(n=>v.name.includes(n));return (i<0?99:i)+(/Enhanced|Premium|Natural/.test(v.name)?-10:0);};
+  const best=en.sort((a,b)=>sc(a)-sc(b))[0]; TV=best&&sc(best)<90?best:false; return TV; // British English women's voices only (else Google's British voice)
 }
 if("speechSynthesis" in window)try{speechSynthesis.addEventListener("voiceschanged",()=>{TV=null;teachVoice();});}catch(e){}
 /* say maths aloud the way a teacher would */

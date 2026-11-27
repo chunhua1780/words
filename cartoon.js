@@ -223,11 +223,18 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
 const ctHas=k=>!!CT_SCENES[k];
 function ctPlayerHtml(k){return `<div class="ct-player" data-ct="${k}"><div class="ct-stage"></div><div class="ct-cap" aria-live="polite"></div>
   <div class="ct-bar"><button class="btn" data-ctplay>▶ Play the cartoon 播放动画</button><span class="ct-dots"></span></div></div>`;}
-function ctAudio(k,i,text,done){
-  const a=new Audio(`audio/ct/${k}-${i}.mp3`); let fin=false; const end=()=>{if(!fin){fin=true;done();}};
-  a.onended=end; a.onerror=()=>{if(typeof teachSay==="function")teachSay(text,end);else if(typeof say==="function")say(text,{onend:end});else setTimeout(end,1500+text.length*60);};
-  const p=a.play(); if(p&&p.catch)p.catch(()=>a.onerror()); setTimeout(end,4000+text.length*90); CT.audio=a;
+/* play a recorded British clip through the page's one audio player (index.html): iPads only let a player that was
+   started by a tap play again later, so a new Audio() for every line would be silenced and fall back to another voice */
+function recPlay(src,text,done){
+  const P=(typeof player!=="undefined"&&player)?player:new Audio(); let fin=false;
+  const end=()=>{if(!fin){fin=true;P.onended=null;P.onerror=null;done&&done();}};
+  const fall=()=>{if(fin)return;P.onended=null;P.onerror=null;if(typeof say==="function")say(text,{onend:end});else end();}; // Google's British voice
+  try{if("speechSynthesis" in window)speechSynthesis.cancel();}catch(e){}
+  P.onended=end; P.onerror=fall; P.src=src; P.playbackRate=1;
+  const pr=P.play(); if(pr&&pr.catch)pr.catch(fall);
+  setTimeout(end,6000+text.length*95); return P;
 }
+function ctAudio(k,i,text,done){CT.audio=recPlay(`audio/ct/${k}-${i}.mp3`,text,done);}
 async function ctPlay(root,onDone){
   const k=root.dataset.ct, sc=CT_SCENES[k]; if(!sc)return;
   ctStop(); CT={tok:Date.now()}; const tok=CT.tok;

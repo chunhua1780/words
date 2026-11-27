@@ -321,6 +321,7 @@ function renderMQ(){
   const unit=q.u&&q.k==="n"?q.u:"", pre=unit==="£"?"£":"", post=unit&&unit!=="£"?unit:"";
   body.innerHTML=`<div class="m-q">
     <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}${mEx(q)?" · 例题 Example":""}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>
+    ${n>1&&MS.kind!=="test"?`<div class="m-nav"><button class="btn sm" data-mgo="${MS.i-1}" ${MS.i<1?"disabled":""}>‹ Back 上一题</button><div class="m-dots">${MS.ids.map((id,k)=>`<button class="m-dot ${k===MS.i?"on":""} ${id in MS.res?(MS.res[id]?"ok":"bad"):""}" data-mgo="${k}">${k+1}</button>`).join("")}</div><button class="btn sm" data-mgo="${MS.i+1}" ${MS.i+1>=n?"disabled":""}>Skip 下一题 ›</button></div>`:""}
     <div class="m-text">${mt(q.q)} <span class="m-tools"><button class="icon-btn sm" id="mSay" aria-label="Read the question">${ic("speaker")}</button>${zhBtnHtml()}</span></div>${zhLine(q.q,"q")}
     ${mFig(q.f)}
     ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${fracHtml(esc(c))}${zhLine(c,"opt")}</button>`).join("")}</div>`
@@ -332,6 +333,7 @@ function renderMQ(){
   </div>`;
   $("#mSay").onclick=()=>sayMaths(q,$("#mSay"));
   $("#mZh").onclick=()=>{zhToggle();renderMQ();};
+  body.querySelectorAll("[data-mgo]").forEach(b=>b.onclick=()=>goQ(+b.dataset.mgo));
   bindExplain(body,renderMQ); if(typeof bindTeach==="function")bindTeach(body,q);
   zhFill(body);
   body.querySelectorAll("[data-opt]").forEach(b=>b.onclick=()=>answer(q,+b.dataset.opt));
@@ -342,8 +344,8 @@ function renderMQ(){
 function feedback(q){
   const st=MS.state, nx=`<button class="btn primary big" id="mNext">${MS.i+1<MS.ids.length?"Next question":"See results"}</button>`;
   if(st==="retry")return `<div class="mfb warn">${ic("x")}<div><b>Not quite. Have another go.</b><span>Stuck? Tap 答疑 for help, one step at a time.</span></div></div>${explainBox(q,false)}`;
-  if(st==="right"&&mEx(q))return `<div class="mfb ok">${ic("check")}<div><b>That was the example. Now try ones like it by yourself! 例题做完了，下面的同类题自己做！</b><span>${mt(q.w||"")}</span></div></div>`;
-  if(st==="right"&&MS.helped&&MS.helped[q.id])return `<div class="mfb warn">${ic("check")}<div><b>Right, well done! But you used Help, so this one does not count yet.</b><span>A similar question comes next: try it by yourself. 答对了！不过用了帮助，这题先不算分。下一题是类似的，自己试试！</span></div></div>`;
+  if(st==="right"&&mEx(q))return `<div class="mfb ok">${ic("check")}<div><b>That was the example. Now try ones like it by yourself! 例题做完了，下面的同类题自己做！</b><span>${mt(q.w||"")}</span></div></div>${nx}`;
+  if(st==="right"&&MS.helped&&MS.helped[q.id])return `<div class="mfb warn">${ic("check")}<div><b>Right, well done! You used Help, so this one does not count.</b><span>答对了！用了帮助，这题不算分。不会的题型明天会先讲解再练。</span></div></div>${nx}`;
   if(st==="right")return `<div class="mfb ok">${ic("check")}<div><b>${MS.tries>1?"Correct on your second try!":"Correct!"}</b><span>${mt(q.w)}</span></div></div>${explainBox(q,true)}${nx}`;
   if(st==="shown")return `<div class="mfb bad">${ic("x")}<div><b>The answer is ${fracHtml(esc(showAns(q)))}</b><span>Here is how to work it out, step by step:</span></div></div>${explainBox(q,true)}${nx}`;
   return MS.kind==="test"?"":explainBox(q,false); // before answering: help with the method only (not in a check-up)
@@ -406,7 +408,16 @@ function record(q,ok,given){
     s:MS.kind==="day"?"Daily 20":MS.kind==="test"?"Test":MS.fix?"Fix mistakes":String(MS.topic||"Practice").slice(0,40),tr:MS.tries||1,f:q.fig?1:0,tm:String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0")});}catch(e){}
   MS.res[q.id]=ok; Store.save();
 }
-function nextQ(){MS.i++;MS.exp=0;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}
+/* jump to any question: an answered one is shown with its result, an open one can be answered */
+function goQ(k){
+  if(k<0||k>=MS.ids.length)return; if(typeof teachStop==="function")teachStop();
+  MS.i=k; MS.exp=0; MS.tries=0; MS.input=""; MS.wrongPick=[]; MS.t0i=-1;
+  const id=MS.ids[k]; if(id in MS.res){MS.state=MS.res[id]?"right":"shown";MS.exp=MS.res[id]?0:99;}else MS.state="ask";
+  renderMQ(); window.scrollTo(0,0); $("#mBody").scrollTop=0;
+}
+function nextQ(){
+  if(MS.kind!=="test"&&MS.i+1>=MS.ids.length){const open=MS.ids.findIndex(id=>!(id in MS.res)); if(open>=0&&open!==MS.i)return goQ(open);} // questions skipped: back to the first one left
+  MS.i++;MS.exp=0;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}
 function renderMResults(){
   if(MS.kind==="test"){renderCheckupReport();return;}
   const ids=MS.ids, right=ids.filter(id=>MS.res[id]).length, n=ids.length, pct=right/n;

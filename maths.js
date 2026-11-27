@@ -315,13 +315,13 @@ function renderMQ(){
   if(MS.t0i!==MS.i){MS.t0i=MS.i;MS.t0=Date.now();}
   $("#mProg").style.width=(Math.min(MS.i,n)/n*100)+"%";
   if(MS.i>=n){renderMResults();return;}
-  const q=MQ[MS.ids[MS.i]], st=MS.state, done=st==="right"||st==="shown";
+  const q=MQ[MS.ids[MS.i]], st=MS.state, done=st==="right"||st==="shown"||st==="locked";
   $("#maths").style.setProperty("--tc",topicColor(q.t));
   if(typeof lessonGate==="function"&&lessonGate(q,body))return; // a type she often gets wrong: the cartoon lesson first (lessons.js)
   const unit=q.u&&q.k==="n"?q.u:"", pre=unit==="£"?"£":"", post=unit&&unit!=="£"?unit:"";
   body.innerHTML=`<div class="m-q">
     <div class="row" style="justify-content:space-between"><span class="kind-tag" style="--kc:${topicColor(q.t)}">${esc(q.t)}${mEx(q)?" · 例题 Example":""}</span><span class="muted small">Question ${MS.i+1} of ${n}</span></div>
-    ${n>1&&MS.kind!=="test"?`<div class="m-nav"><button class="btn sm" data-mgo="${MS.i-1}" ${MS.i<1?"disabled":""}>‹ Back 上一题</button><div class="m-dots">${MS.ids.map((id,k)=>`<button class="m-dot ${k===MS.i?"on":""} ${id in MS.res?(MS.res[id]?"ok":"bad"):""}" data-mgo="${k}">${k+1}</button>`).join("")}</div><button class="btn sm" data-mgo="${MS.i+1}" ${MS.i+1>=n?"disabled":""}>Skip 下一题 ›</button></div>`:""}
+    ${n>1?`<div class="m-nav"><button class="btn sm" data-mgo="${MS.i-1}" ${MS.i<1?"disabled":""}>‹ Back 上一题</button><div class="m-dots">${MS.ids.map((id,k)=>`<button class="m-dot ${k===MS.i?"on":""} ${id in MS.res?(MS.kind==="test"?"done":MS.res[id]?"ok":"bad"):""}" data-mgo="${k}">${k+1}</button>`).join("")}</div><button class="btn sm" data-mgo="${MS.i+1}" ${MS.i+1>=n?"disabled":""}>Skip 下一题 ›</button></div>`:""}
     <div class="m-text">${mt(q.q)} <span class="m-tools"><button class="icon-btn sm" id="mSay" aria-label="Read the question">${ic("speaker")}</button>${zhBtnHtml()}</span></div>${zhLine(q.q,"q")}
     ${mFig(q.f)}
     ${q.k==="c"?`<div class="m-opts">${q.c.map((c,i)=>`<button class="opt-btn m-opt ${done&&i===q.a?"right":""} ${MS.wrongPick.includes(i)?"wrong":""}" data-opt="${i}" ${done||MS.wrongPick.includes(i)?"disabled":""}>${fracHtml(esc(c))}${zhLine(c,"opt")}</button>`).join("")}</div>`
@@ -342,6 +342,7 @@ function renderMQ(){
   const nx=$("#mNext"); if(nx){nx.onclick=nextQ;nx.focus({preventScroll:true});}
 }
 function feedback(q){
+  if(MS.state==="locked")return `<div class="mfb">${ic("check")}<div><b>Already answered · 已作答</b><span>Your answer: ${esc(String((((dayOf(MS.key)||{}).ans||{})[q.id]||{}).v||""))} · marks at the end 交卷后看分数</span></div></div><button class="btn primary big" id="mNext">Next 下一题</button>`;
   const st=MS.state, nx=`<button class="btn primary big" id="mNext">${MS.i+1<MS.ids.length?"Next question":"See results"}</button>`;
   if(st==="retry")return `<div class="mfb warn">${ic("x")}<div><b>Not quite. Have another go.</b><span>Stuck? Tap 答疑 for help, one step at a time.</span></div></div>${explainBox(q,false)}`;
   if(st==="right"&&mEx(q))return `<div class="mfb ok">${ic("check")}<div><b>That was the example. Now try ones like it by yourself! 例题做完了，下面的同类题自己做！</b><span>${mt(q.w||"")}</span></div></div>${nx}`;
@@ -412,11 +413,12 @@ function record(q,ok,given){
 function goQ(k){
   if(k<0||k>=MS.ids.length)return; if(typeof teachStop==="function")teachStop();
   MS.i=k; MS.exp=0; MS.tries=0; MS.input=""; MS.wrongPick=[]; MS.t0i=-1;
-  const id=MS.ids[k]; if(id in MS.res){MS.state=MS.res[id]?"right":"shown";MS.exp=MS.res[id]?0:99;}else MS.state="ask";
+  const id=MS.ids[k]; if(id in MS.res){if(MS.kind==="test"){MS.state="locked";}else{MS.state=MS.res[id]?"right":"shown";MS.exp=MS.res[id]?0:99;}}else MS.state="ask"; // a test: answered ones stay hidden until the end
   renderMQ(); window.scrollTo(0,0); $("#mBody").scrollTop=0;
 }
 function nextQ(){
-  if(MS.kind!=="test"&&MS.i+1>=MS.ids.length){const open=MS.ids.findIndex(id=>!(id in MS.res)); if(open>=0&&open!==MS.i)return goQ(open);} // questions skipped: back to the first one left
+  if(MS.kind==="test"){const after=MS.ids.findIndex((id,k)=>k>MS.i&&!(id in MS.res)), open=after>=0?after:MS.ids.findIndex(id=>!(id in MS.res)); if(open>=0&&open!==MS.i)return goQ(open); MS.i=MS.ids.length;MS.state="ask";renderMQ();return;} // a test: the next one not answered yet, then the marks
+  if(MS.i+1>=MS.ids.length){const open=MS.ids.findIndex(id=>!(id in MS.res)); if(open>=0&&open!==MS.i)return goQ(open);} // questions skipped: back to the first one left
   MS.i++;MS.exp=0;MS.tries=0;MS.input="";MS.state="ask";MS.wrongPick=[];renderMQ();window.scrollTo(0,0);$("#mBody").scrollTop=0;}
 function renderMResults(){
   if(MS.kind==="test"){renderCheckupReport();return;}

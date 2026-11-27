@@ -1366,3 +1366,4 @@ html.embed body{background:transparent}
 .m-dot.ok{background:var(--green-soft,#d3f9d8);color:var(--green,#1a8f3c)}.m-dot.bad{background:var(--red-soft,#ffe3e3);color:var(--red,#d33)}
 .m-dot.on{outline:3px solid var(--c-blue,#2f6fec);outline-offset:1px}
 @media (max-width:560px){.m-nav{flex-wrap:wrap}.m-dots{order:-1;flex-basis:100%}.m-dot{width:28px;height:28px}}
+.m-dot.done{background:#dbe4ff;color:#364fc7}

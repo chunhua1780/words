@@ -1373,3 +1373,9 @@ html.embed body{background:transparent}
 .nl-b-t{fill:#1c7ed6}.nl-g-t{fill:#2f9e44}.nl-r-t{fill:#e03131}
 .nl-band{fill:#b2f2bb;opacity:.75}.ct-grow{transform-box:fill-box;transform-origin:left;animation:ctGrow 1.2s ease both}@keyframes ctGrow{from{transform:scaleX(0)}to{transform:none}}
 .ls-frac{font:800 20px var(--round,sans-serif);fill:#2b4c7e}.fb-on{fill:#ffa94d;stroke:#c2410c;stroke-width:2}.fb-off{fill:#fff;stroke:#c2410c;stroke-width:2}
+
+/* 当天的成绩 (report.js) */
+.rp-day{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:14px;background:var(--soft,#f6f7fb);margin:6px 0}
+.rp-pc{padding:2px 8px;border-radius:8px}.rp-pc.g{background:#d3f9d8;color:#2b8a3e}.rp-pc.m{background:#fff3bf;color:#946200}.rp-pc.l{background:#ffe3e3;color:#c92a2a}
+.rp-tot td{border-top:2px solid var(--line,#ddd)}
+.rp-day td small{display:block}

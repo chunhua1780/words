@@ -48,6 +48,45 @@ function rpScores(b,from,to){
 let RP_RANGE=30;
 function rpRange(){const t=today();return RP_RANGE?[addDays(t,-(RP_RANGE-1)),t]:["2020-01-01",t];}
 /* the whole report for one child */
+
+/* ---------- 当天 · one day on its own: every activity with its own count, right answers and % ----------
+   Only that day's real answers (no minimum); 7/30/90 days below are for the trend. */
+let RP_DAY=null;
+function rpDayRows(b,d){
+  const E=b.eng||{}, PL=(E.plog||{})[d]||{}, M=b.maths||{}, ML=M.log||{}, rows=[];
+  const add=(name,n,r,extra)=>{if(n)rows.push({name,n,r,extra:extra||""});};
+  const wl=(b.log||{})[d]||{}; add("Spelling practice 单词拼写",wl.done||0,wl.right||0);
+  add("Phonics 拼读",(PL.n||0)+(PL.sn||0)+(PL.cn||0)+(PL.bn||0),(PL.r||0)+(PL.sr||0)+(PL.cr||0)+(PL.br||0));
+  add("Word meanings 词义",PL.vn||0,PL.vr||0);
+  const pfx=(typeof PAPER_TYPES!=="undefined"||/^y7/.test(String(b.kind||"")))?"y7:":"y5:", dk=k=>(M.days||{})[pfx+k]||(M.days||{})["y5:"+k]||(M.days||{})["y7:"+k]||(M.days||{})[k];
+  const ds=dk(d); if(ds&&ds.ids){const a=Object.entries(ds.ans||{}).filter(([id])=>!(ds.ex||[]).includes(id)).map(([,x])=>x);add("Daily maths 每日数学",a.length,a.filter(x=>x.ok).length,`${a.length}/${ds.ids.length-((ds.ex||[]).length)} done`);}
+  const pp=dk("pp-"+d); if(pp&&pp.ids){const a=Object.values(pp.ans||{});add("Test paper 每日试卷题",a.length,a.filter(x=>x.ok).length,`${a.length}/${pp.ids.length} done`);}
+  const tst=dk("test-"+d); if(tst&&tst.ids){const a=Object.values(tst.ans||{});add("Maths test 数学测试",a.length,a.filter(x=>x.ok).length,`${a.length}/${tst.ids.length} done`);}
+  const g=(k,name)=>{const L=ML[k+":"+d];if(L&&L.n)add(name,L.n,L.r||0,L.q!=null?`${L.q} quick`:"");};
+  g("fr","Fractions 分数");g("rd","Rounding 四舍五入");g("nf","Number facts 口诀");g("cc","Written methods 笔算");g("fx","Fix mistakes 错题重做");g("fm","Formula quiz 公式练习");
+  g("a20","+ − within 20 · 20以内加减");
+  const fl=ML["fl:"+d]; if(fl&&(fl.n||fl.cn)){add("Formulas 公式四步",fl.n||0,fl.r||0,"right first time");if(fl.cn)add("Formula calculations 公式计算",fl.cn,fl.cr||0);}
+  const uc=ML["uc:"+d]; if(uc&&uc.n)add("Units 单位换算",uc.n,uc.r||0,"right first time");
+  const rd=Object.values((b.reading||{}).done||{}).filter(x=>x.date===d);
+  const nonSci=rd.filter(x=>x.kind!=="Science"), sci=rd.filter(x=>x.kind==="Science");
+  if(nonSci.length)add("Reading 阅读",nonSci.reduce((s,x)=>s+(x.n||0),0),nonSci.reduce((s,x)=>s+(x.score||0),0),`${nonSci.length} text${nonSci.length>1?"s":""}`);
+  if(sci.length)add("Science reading 科学阅读",sci.reduce((s,x)=>s+(x.n||0),0),sci.reduce((s,x)=>s+(x.score||0),0),`${sci.length} text${sci.length>1?"s":""}`);
+  const all=rows.reduce((s,x)=>({n:s.n+x.n,r:s.r+x.r}),{n:0,r:0});
+  const di=(E.diary||{})[d], secs=Object.values((b.time||{})[d]||{}).reduce((s,x)=>s+x,0), rs=((b.reading||{}).log||{})[d], hp=ML["hp:"+d];
+  return {rows,all,di,mins:Math.round(secs/60),readMin:rs?Math.floor((rs.secs||0)/60):0,help:hp?hp.n:0};
+}
+function rpDayHtml(b){
+  const t=today(), d=RP_DAY||t, D=rpDayRows(b,d), pc=(r,n)=>n?Math.round(r/n*100):null, cls=p=>p==null?"":p>=90?"g":p>=70?"m":"l";
+  const lab=x=>x===t?"今天 Today":x===addDays(t,-1)?"昨天 Yesterday":x===addDays(t,-2)?"前天":shortDate(x);
+  return `<div class="rp-day"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h4 style="margin:0">当天的成绩 · ${esc(lab(d))} <span class="muted small">${esc(niceDate(d))}</span></h4>
+      <div class="quick">${[t,addDays(t,-1),addDays(t,-2)].map(x=>`<button class="${x===d?"on":""}" data-rpday="${x}">${esc(lab(x))}</button>`).join("")}</div></div>
+    ${D.rows.length?`<table class="rp-table"><thead><tr><th>做了什么 Activity</th><th>做题 Done</th><th>对 Right</th><th>正确率</th></tr></thead><tbody>
+      ${D.rows.map(x=>{const p=pc(x.r,x.n);return `<tr><td>${esc(x.name)}${x.extra?` <small class="muted">${esc(x.extra)}</small>`:""}</td><td>${x.n}</td><td>${x.r}</td><td><b class="rp-pc ${cls(p)}">${p}%</b></td></tr>`;}).join("")}
+      <tr class="rp-tot"><td><b>Total 合计</b></td><td><b>${D.all.n}</b></td><td><b>${D.all.r}</b></td><td><b class="rp-pc ${cls(pc(D.all.r,D.all.n))}">${pc(D.all.r,D.all.n)}%</b></td></tr></tbody></table>`
+      :`<div class="notice">这天还没有做题。 Nothing answered on this day yet.</div>`}
+    <div class="small muted">学习时间 ${D.mins} 分钟 · 阅读 ${D.readMin} 分钟${D.di&&D.di.text?` · 写作 ${wordsOfText(D.di.text).length} 词${D.di.done?"（已交）":"（草稿）"}${D.di.ai?` · AI ${D.di.ai.score}/10`:""}`:" · 没有写作"}${D.help?` · 用了 ${D.help} 次 Help（不算分）`:""}</div>
+  </div>`;
+}
 function reportHtml(b,opts={}){
   const [from,to]=rpRange(), S=rpScores(b,from,to), t=today(), E=b.eng||{}, PL=E.plog||{}, days=rpDays(from,to).filter(d=>d>="2026-01-01");
   const used=k=>!(k==="phonics"&&!S.phonics.n&&typeof PAPER_TYPES!=="undefined");
@@ -86,6 +125,8 @@ function reportHtml(b,opts={}){
   const rangeBtns=[[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All 全部"]].map(([v,l])=>`<button class="${RP_RANGE===v?"on":""}" data-rprange="${v}">${l}</button>`).join("");
   return `<div class="rp no-zh">
     <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><h3 style="margin:0">学习报告 · Learning report</h3><div class="quick">${rangeBtns}</div></div>
+    ${rpDayHtml(b)}
+    <h4 style="margin:6px 0 0">趋势 · Over ${RP_RANGE?RP_RANGE+" days":"all time"}</h4>
     <div class="muted small">${from<"2026-01-01"?"All time":`${esc(shortDate(from))} – ${esc(shortDate(to))}`} · 所有分数都来自孩子真实完成的练习，做得太少的项目不评分。</div>
     <table class="rp-table"><thead><tr><th>Subject 科目</th><th>Score 分数</th><th>Work done 完成量</th><th>8 weeks 趋势</th></tr></thead><tbody>${Object.keys(RP_NAMES).filter(used).map(R).join("")}</tbody></table>
     ${tips.length?`<div class="rp-tips"><b>提升建议 · What to do next</b><ul>${tips.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
@@ -110,4 +151,4 @@ function reportHtml(b,opts={}){
       <p>等级：A 90–100 优秀 · B 80–89 良好 · C 70–79 达标 · D 60–69 需要练习 · E 60 以下 需要帮助。趋势图是最近8周每周的分数（每周至少5题/1篇才显示）。</p></div></details>`}
   </div>`;
 }
-function reportBind(root=document){root.querySelectorAll("[data-rprange]").forEach(b=>b.onclick=()=>{RP_RANGE=+b.dataset.rprange;if(typeof render==="function")render();});}
+function reportBind(root=document){root.querySelectorAll("[data-rpday]").forEach(b=>b.onclick=()=>{RP_DAY=b.dataset.rpday;if(typeof render==="function")render();});root.querySelectorAll("[data-rprange]").forEach(b=>b.onclick=()=>{RP_RANGE=+b.dataset.rprange;if(typeof render==="function")render();});}

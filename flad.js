@@ -94,7 +94,7 @@ function flResult(it,ok){
   }
   L.u=Date.now();
   if(ok){L.fin=[...new Set([...(L.fin||[]),it.k])];if(L.fin.length>=(L.items||[]).length)L.done=true;}
-  else FL.q.push({...it,again:true}); // it comes back at the end until it is right
+  else{L.fin=[...new Set([...(L.fin||[]),it.k])];if(L.fin.length>=(L.items||[]).length)L.done=true;} // not repeated today: it comes back tomorrow, one step back
   Store.save();
 }
 function flNext(){
@@ -119,7 +119,7 @@ function flCalcShow(){
     const ok=Math.abs(v-C.a)<=(/π/.test(F.f)?0.06:1e-9); inp.disabled=true; if(ok)Q.r++; if(typeof beep==="function")beep(ok);
     const t=today(),L=MB().log["fl:"+t]; if(L){L.cn=(L.cn||0)+1;if(ok)L.cr=(L.cr||0)+1;L.u=Date.now();}
     const H=MB().hist[t]=MB().hist[t]||[]; if(H.length<400)H.push({q:`${F.m} of a ${F.name.toLowerCase()}: ${C.sub.replace(/^[A-Z]+ = /,"")}`,a:`${fmN(C.a)} ${fmUnit(F)}`,v:String(inp.value),ok,t:"Formulas",s:"Formulas: practise",...(ok?{}:{w:[F.f,C.sub,...C.work].join(" · ")})});
-    if(!ok&&Q.extra<2){Q.n++;Q.extra++;} // one more of the same, so the last one is right
+
     Store.save();
     $("#flFb").innerHTML=`<div class="mfb ${ok?"ok":"bad"}">${ic(ok?"check":"x")}<div><b>${ok?"Correct!":"Not quite. The answer is "+fmN(C.a)+" "+fmUnit(F)}</b><span>1. ${esc(F.f)} · 2. ${esc(C.sub)} · ${C.work.map((w,i)=>`${i+3}. ${esc(w)}`).join(" · ")} = <b>${fmN(C.a)} ${fmUnit(F)}</b></span></div></div><button class="btn primary big" id="flCalcNext">Next</button>`;
     $("#flCalcNext").onclick=()=>{Q.i++;Q.cur=null;flCalcShow();};};

@@ -133,7 +133,7 @@ function a20Check(){
   const f=A2.q[A2.i], ms=Date.now()-A2.t0, ok=+A2.input===f.ans, quick=ok&&ms<=A20_FAST; clearInterval(A2.tm);
   if(typeof recordFact==="function"){const M=MB(),s=M.q[f.id]||{};M.q[f.id]={n:(s.n||0)+1,r:(s.r||0)+(ok?1:0),ok,ms:Math.round(ms),st:quick?(s.st||0)+1:0,last:today(),u:Date.now()};}
   const t=today(),L=MB().log["a20:"+t]=MB().log["a20:"+t]||{n:0,r:0,q:0}; if(!f.again){L.n++;if(ok)L.r++;if(quick)L.q++;} L.ms=Math.round(((L.ms||0)*(L.n-1)+ms)/Math.max(1,L.n));L.u=Date.now();
-  if(!quick){A2.q.splice(Math.min(A2.q.length,A2.i+4),0,{...f,again:true});if(!ok){const H=MB().hist[t]=MB().hist[t]||[];if(H.length<400)H.push({q:f.q,a:String(f.ans),v:A2.input,ok:false,t:"Number facts within 20",s:"+ − within 20",w:factTip(f)});}}
+  if(!quick){if(!ok){const H=MB().hist[t]=MB().hist[t]||[];if(H.length<400)H.push({q:f.q,a:String(f.ans),v:A2.input,ok:false,t:"Number facts within 20",s:"+ − within 20",w:factTip(f)});}}
   A2.state=quick?"quick":ok?"slow":"wrong"; if(typeof beep==="function")beep(ok);
   Store.save(); a20Show();
 }

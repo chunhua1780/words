@@ -252,6 +252,7 @@ function viewDash(){
     <div><div class="eyebrow">${esc(niceDate(t))}</div><h1>${esc(b.name)}</h1></div>
     <div class="card stack">${reportHtml(B())}</div>
     ${planParent()}
+    ${typeof weakTypesParent==="function"?weakTypesParent():""}
     ${schoolWordsBlock()}
     ${mustParent()}
     ${typeof w5Parent==="function"?w5Parent():""}

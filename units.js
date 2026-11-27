@@ -86,7 +86,7 @@ function ucResult(it,ok){
       const H=MB().hist[t]=MB().hist[t]||[]; if(H.length<400)H.push({q:`Units (${UC_STEP[it.step][0]}): ${it.qq||ucFact(UC_BY[it.k])}`,a:it.aa||ucFact(UC_BY[it.k]),v:String(it.given||"").slice(0,40),ok:false,t:"Units",w:UC_BY[it.k].why});}}
   L.u=Date.now();
   if(ok){L.fin=[...new Set([...(L.fin||[]),it.k])];if(L.fin.length>=(L.items||[]).length)L.done=true;}
-  else UV.q.push({...it,again:true});
+  else{L.fin=[...new Set([...(L.fin||[]),it.k])];if(L.fin.length>=(L.items||[]).length)L.done=true;} // not repeated today: back tomorrow
   Store.save();
 }
 function ucNext(){UV.i++;UV.sub=0;UV.bad=false;ucShow();}
